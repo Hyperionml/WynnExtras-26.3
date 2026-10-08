@@ -1,12 +1,12 @@
 package julianh06.wynnextras.mixin.Invoker;
 
-import net.minecraft.entity.data.DataTracker;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.util.math.AffineTransformation;
+import com.mojang.math.Transformation;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.world.entity.Display;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
-@Mixin(DisplayEntity.class)
+@Mixin(Display.class)
 public interface GetTransformationInvoker {
-    @Invoker("getTransformation") AffineTransformation invokeGetTransformation(DataTracker dataTracker);
+    @Invoker("createTransformation") static Transformation invokeGetTransformation(SynchedEntityData dataTracker) { throw new AssertionError(); }
 }

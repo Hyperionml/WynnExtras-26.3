@@ -6,8 +6,7 @@ import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.features.inventory.BankOverlay;
 import julianh06.wynnextras.utils.SearchQueryParser;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.item.ItemStack;
-
+import net.minecraft.world.item.ItemStack;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
@@ -109,7 +108,7 @@ public class CrossClassBankSearch {
         if (MinecraftUtils.player() == null) return null;
 
         Path configDir = FabricLoader.getInstance().getConfigDir()
-                .resolve("wynnextras/" + MinecraftUtils.player().getUuid().toString());
+                .resolve("wynnextras/" + MinecraftUtils.player().getUUID().toString());
 
         Map<Integer, List<ItemStack>> accountBankPages = includeAccountBank
                 ? snapshotAccountBankPages()
@@ -236,7 +235,7 @@ public class CrossClassBankSearch {
         if (MinecraftUtils.player() == null) return ItemStack.EMPTY;
 
         Path configDir = FabricLoader.getInstance().getConfigDir()
-                .resolve("wynnextras/" + MinecraftUtils.player().getUuid().toString());
+                .resolve("wynnextras/" + MinecraftUtils.player().getUUID().toString());
         if (!Files.exists(configDir)) return ItemStack.EMPTY;
 
         return findLastHeldWeapon(configDir, stableId, name, classType, level, requireUniqueBankMatch);

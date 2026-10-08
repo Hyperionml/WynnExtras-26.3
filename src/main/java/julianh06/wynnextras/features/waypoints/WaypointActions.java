@@ -1,12 +1,11 @@
 package julianh06.wynnextras.features.waypoints;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.core.BlockPos;
 import julianh06.wynnextras.features.waypoints.data.Waypoint;
 import julianh06.wynnextras.features.waypoints.data.WaypointCategory;
 import julianh06.wynnextras.features.waypoints.data.WaypointData;
 import julianh06.wynnextras.features.waypoints.data.WaypointPackage;
-import net.minecraft.util.math.BlockPos;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

@@ -5,10 +5,10 @@ import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.core.WynnExtras;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderTickCounter;
+import julianh06.wynnextras.compat.client.HudRenderCallback;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public class ProvokeTimer {
     private static int storedTicks = -1;
@@ -32,8 +32,8 @@ public class ProvokeTimer {
         HudRenderCallback.EVENT.register(ProvokeTimer::renderHud);
     }
 
-    public static void provokeTimer(MinecraftClient client) {
-        if (client.world == null || client.player == null || !WynnExtrasConfig.INSTANCE.provokeTimerToggle) return;
+    public static void provokeTimer(Minecraft client) {
+        if (client.level == null || client.player == null || !WynnExtrasConfig.INSTANCE.provokeTimerToggle) return;
         clientTicks++;
 
         boolean provokeActive = StatusEffectState.hasEffect("Provoke");
@@ -69,12 +69,12 @@ public class ProvokeTimer {
         }
     }
 
-    private static void renderHud(DrawContext ctx, RenderTickCounter tickCounter) {
+    private static void renderHud(GuiGraphicsExtractor ctx, DeltaTracker tickCounter) {
         if (!WynnExtrasConfig.INSTANCE.provokeTimerToggle) return;
         if (!isActive()) return;
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        if (mc.options.hudHidden) return;
+        if (mc.gui.hud.isHidden()) return;
 
         int secs = calculatedSeconds;
         int color;
@@ -84,15 +84,15 @@ public class ProvokeTimer {
 
         String text = "Provoke: " + secs + "s";
         float scale = WynnExtrasConfig.INSTANCE.provokeTimerScale;
-        int x = WynnExtrasConfig.INSTANCE.provokeTimerX == -1 ? mc.getWindow().getScaledWidth() / 2 : WynnExtrasConfig.INSTANCE.provokeTimerX;
+        int x = WynnExtrasConfig.INSTANCE.provokeTimerX == -1 ? mc.getWindow().getGuiScaledWidth() / 2 : WynnExtrasConfig.INSTANCE.provokeTimerX;
         int y = WynnExtrasConfig.INSTANCE.provokeTimerY;
 
-        int tw = mc.textRenderer.getWidth(text);
-        int th = mc.textRenderer.fontHeight;
+        int tw = mc.font.width(text);
+        int th = mc.font.lineHeight;
 
         WynnExtrasConfig.Align align = WynnExtrasConfig.INSTANCE.provokeTimerAlignment;
 
-        int previewTw = mc.textRenderer.getWidth("Provoke: " + WynnExtrasConfig.INSTANCE.provokeTimerDuration + "s");
+        int previewTw = mc.font.width("Provoke: " + WynnExtrasConfig.INSTANCE.provokeTimerDuration + "s");
 
         int textOffsetX;
         if (align == WynnExtrasConfig.Align.LEFT) {
@@ -103,10 +103,10 @@ public class ProvokeTimer {
             textOffsetX = -tw / 2;
         }
 
-        ctx.getMatrices().pushMatrix();
-        ctx.getMatrices().translate(x, y);
-        ctx.getMatrices().scale(scale, scale);
-        ctx.drawText(mc.textRenderer, text, textOffsetX, -th / 2, color, true);
-        ctx.getMatrices().popMatrix();
+        ctx.pose().pushMatrix();
+        ctx.pose().translate(x, y);
+        ctx.pose().scale(scale, scale);
+        ctx.text(mc.font, text, textOffsetX, -th / 2, color, true);
+        ctx.pose().popMatrix();
     }
 }

@@ -3,14 +3,13 @@ package julianh06.wynnextras.utils.render;
 import julianh06.wynnextras.event.RenderWorldEvent;
 import julianh06.wynnextras.utils.Pair;
 import julianh06.wynnextras.utils.WEVec;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.RenderLayers;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-
+import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,18 +42,16 @@ public class LineDrawer {
     private void drawQueuedLines() {
         if (queuedLines.isEmpty()) return;
 
-        VertexConsumer buffer = event.vertexConsumerProvider.getBuffer(
-                RenderLayers.debugFilledBox()
-        );
+        var lines = List.copyOf(queuedLines);
+        Vec3 cameraPosition = event.camera.position();
+        event.orderedRenderCommandQueue.submitCustomGeometry(event.matrices, WorldRenderUtils.FILLED_BOX_LAYER, (matrix, buffer) -> {
 
-        MatrixStack.Entry matrix = event.matrices.peek();
-        Camera camera = MinecraftClient.getInstance().gameRenderer.getCamera();
         float halfWidth = lineWidth * -0.01f;
 
-        for (QueuedLine line : queuedLines) {
+        for (QueuedLine line : lines) {
             WEVec dir = line.p2.subtract(line.p1).normalize();
-            Vec3d toCamera1 = camera.getCameraPos().subtract(line.p1.toVec3d()).normalize();
-            Vec3d toCamera2 = camera.getCameraPos().subtract(line.p2.toVec3d()).normalize();
+            Vec3 toCamera1 = cameraPosition.subtract(line.p1.toVec3d()).normalize();
+            Vec3 toCamera2 = cameraPosition.subtract(line.p2.toVec3d()).normalize();
             WEVec right1 = new WEVec(toCamera1).cross(dir);
             WEVec right2 = new WEVec(toCamera2).cross(dir);
 
@@ -73,19 +70,20 @@ public class LineDrawer {
             WEVec p2a = line.p2.add(right2);
             WEVec p2b = line.p2.subtract(right2);
 
-            buffer.vertex(matrix.getPositionMatrix(), (float)p1a.x(), (float)p1a.y(), (float)p1a.z())
-                    .color(line.color.getRed(), line.color.getGreen(), line.color.getBlue(), line.color.getAlpha());
+            buffer.addVertex(matrix.pose(), (float)p1a.x(), (float)p1a.y(), (float)p1a.z())
+                    .setColor(line.color.getRed(), line.color.getGreen(), line.color.getBlue(), line.color.getAlpha());
 
-            buffer.vertex(matrix.getPositionMatrix(), (float)p2a.x(), (float)p2a.y(), (float)p2a.z())
-                    .color(line.color.getRed(), line.color.getGreen(), line.color.getBlue(), line.color.getAlpha());
+            buffer.addVertex(matrix.pose(), (float)p2a.x(), (float)p2a.y(), (float)p2a.z())
+                    .setColor(line.color.getRed(), line.color.getGreen(), line.color.getBlue(), line.color.getAlpha());
 
-            buffer.vertex(matrix.getPositionMatrix(), (float)p2b.x(), (float)p2b.y(), (float)p2b.z())
-                    .color(line.color.getRed(), line.color.getGreen(), line.color.getBlue(), line.color.getAlpha());
+            buffer.addVertex(matrix.pose(), (float)p2b.x(), (float)p2b.y(), (float)p2b.z())
+                    .setColor(line.color.getRed(), line.color.getGreen(), line.color.getBlue(), line.color.getAlpha());
 
-            buffer.vertex(matrix.getPositionMatrix(), (float)p1b.x(), (float)p1b.y(), (float)p1b.z())
-                    .color(line.color.getRed(), line.color.getGreen(), line.color.getBlue(), line.color.getAlpha());
+            buffer.addVertex(matrix.pose(), (float)p1b.x(), (float)p1b.y(), (float)p1b.z())
+                    .setColor(line.color.getRed(), line.color.getGreen(), line.color.getBlue(), line.color.getAlpha());
         }
 
+        });
         queuedLines.clear();
     }
 
@@ -110,7 +108,7 @@ public class LineDrawer {
         }
     }
 
-    public void drawEdges(Box box, Color color) {
+    public void drawEdges(AABB box, Color color) {
         for (Pair<WEVec, WEVec> edge: WorldRenderUtils.calculateEdges(box)) {
             draw3DLine(edge.getFirst(), edge.getSecond(), color);
         }
@@ -121,7 +119,7 @@ public class LineDrawer {
     }
 
     static void draw3D(RenderWorldEvent event, int lineWidth, boolean depth, LineDrawerDraws draws) {
-        event.matrices.push();
+        event.matrices.pushPose();
 
         WEVec inverseView = WorldRenderUtils.getViewerPos().negate();
         event.matrices.translate(inverseView.x(), inverseView.y(), inverseView.z());
@@ -130,7 +128,7 @@ public class LineDrawer {
         draws.draw(lineDrawer);
         lineDrawer.drawQueuedLines();
 
-        event.matrices.pop();
+        event.matrices.popPose();
     }
 
     @FunctionalInterface

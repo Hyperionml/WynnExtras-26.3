@@ -2,9 +2,8 @@ package julianh06.wynnextras.features.shoppinglist.ui;
 
 import julianh06.wynnextras.features.shoppinglist.model.RequirementType;
 import julianh06.wynnextras.features.shoppinglist.service.ShoppingListHaveCount;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,42 +52,42 @@ public record ShoppingListRowDetail(
     }
 
     public List<String> tooltipLines(ShoppingListMenuRenderPolicy.ShoppingListRowPrimaryAction primaryAction) {
-        return tooltipText(primaryAction).stream().map(Text::getString).toList();
+        return tooltipText(primaryAction).stream().map(Component::getString).toList();
     }
 
-    public List<Text> tooltipText(ShoppingListMenuRenderPolicy.ShoppingListRowPrimaryAction primaryAction) {
-        List<Text> lines = new ArrayList<>();
-        lines.add(Text.literal(displayNameWithTier).formatted(Formatting.AQUA));
-        lines.add(quantityLine("Have", have, Formatting.GREEN));
-        lines.add(quantityLine("Need", need, Formatting.RED));
+    public List<Component> tooltipText(ShoppingListMenuRenderPolicy.ShoppingListRowPrimaryAction primaryAction) {
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.literal(displayNameWithTier).withStyle(ChatFormatting.AQUA));
+        lines.add(quantityLine("Have", have, ChatFormatting.GREEN));
+        lines.add(quantityLine("Need", need, ChatFormatting.RED));
         if (inventory > 0) lines.add(sourceLine("Inventory", inventory));
         if (accountBank > 0) lines.add(sourceLine("Account Bank", accountBank));
         if (characterBank > 0) lines.add(sourceLine("Character Bank", characterBank));
         if (miscBucket > 0) lines.add(sourceLine("Misc Bucket", miscBucket));
         String cacheStatus = bankCacheStatusLine();
         if (cacheStatus != null) {
-            lines.add(Text.literal(cacheStatus).formatted(Formatting.GRAY));
+            lines.add(Component.literal(cacheStatus).withStyle(ChatFormatting.GRAY));
         }
-        lines.add(Text.literal(switch (primaryAction) {
+        lines.add(Component.literal(switch (primaryAction) {
             case BANK_OVERLAY_SEARCH -> "Left-click: Search in Bank Overlay";
             case TRADE_MARKET_SEARCH -> "Left-click: Search in Trade Market";
             case COPY_ONLY -> "Left-click/Right-click: Copy";
             case NONE -> "Left-click: Unavailable";
-        }).formatted(Formatting.GRAY));
-        if(primaryAction != ShoppingListMenuRenderPolicy.ShoppingListRowPrimaryAction.COPY_ONLY) lines.add(Text.literal("Right-click: Copy").formatted(Formatting.GRAY));
+        }).withStyle(ChatFormatting.GRAY));
+        if(primaryAction != ShoppingListMenuRenderPolicy.ShoppingListRowPrimaryAction.COPY_ONLY) lines.add(Component.literal("Right-click: Copy").withStyle(ChatFormatting.GRAY));
         return List.copyOf(lines);
     }
 
-    private static Text quantityLine(String label, int count, Formatting countColor) {
-        return Text.literal(label + ": ").formatted(Formatting.GRAY)
-                .append(Text.literal(Integer.toString(count)).formatted(countColor))
-                .append(Text.literal(" (" + ShoppingListQuantityFormatter.formatStackBreakdown(count) + ")")
-                        .formatted(Formatting.DARK_GRAY));
+    private static Component quantityLine(String label, int count, ChatFormatting countColor) {
+        return Component.literal(label + ": ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(Integer.toString(count)).withStyle(countColor))
+                .append(Component.literal(" (" + ShoppingListQuantityFormatter.formatStackBreakdown(count) + ")")
+                        .withStyle(ChatFormatting.DARK_GRAY));
     }
 
-    private static Text sourceLine(String label, int count) {
-        return Text.literal(label + ": ").formatted(Formatting.GRAY)
-                .append(Text.literal(Integer.toString(count)).formatted(Formatting.WHITE));
+    private static Component sourceLine(String label, int count) {
+        return Component.literal(label + ": ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(Integer.toString(count)).withStyle(ChatFormatting.WHITE));
     }
 
     public String bankCacheStatusLine() {

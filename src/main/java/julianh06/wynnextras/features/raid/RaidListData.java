@@ -12,8 +12,6 @@ import julianh06.wynnextras.features.misc.ItemStackSerializer;
 import julianh06.wynnextras.features.misc.StyledTextAdapter;
 import julianh06.wynnextras.utils.OptionalTypeAdapter;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.item.ItemStack;
-
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;

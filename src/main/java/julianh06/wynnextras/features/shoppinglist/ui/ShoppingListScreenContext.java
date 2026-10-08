@@ -5,11 +5,10 @@ import julianh06.wynnextras.features.shoppinglist.service.ShoppingListTextCleane
 import julianh06.wynnextras.features.shoppinglist.service.ShoppingListTradeMarketSlotMatcher;
 import julianh06.wynnextras.wynncraft.menu.MenuType;
 import julianh06.wynnextras.wynncraft.menu.WynncraftMenuService;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.Slot;
-
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import java.util.Locale;
 
 public enum ShoppingListScreenContext {
@@ -25,7 +24,7 @@ public enum ShoppingListScreenContext {
     BLOCKED_MODAL,
     UNSUPPORTED;
 
-    private static HandledScreen<?> cachedScreen;
+    private static AbstractContainerScreen<?> cachedScreen;
     private static int cachedRevision = -1;
     private static final ShoppingListScreenContext[] CACHED_CONTEXTS = new ShoppingListScreenContext[2];
 
@@ -50,7 +49,7 @@ public enum ShoppingListScreenContext {
         };
     }
 
-    public static ShoppingListScreenContext detect(HandledScreen<?> screen, boolean customBankOverlayActive) {
+    public static ShoppingListScreenContext detect(AbstractContainerScreen<?> screen, boolean customBankOverlayActive) {
         if (screen == null) {
             return UNSUPPORTED;
         }
@@ -58,7 +57,7 @@ public enum ShoppingListScreenContext {
             return INVENTORY;
         }
 
-        int revision = screen.getScreenHandler().getRevision();
+        int revision = screen.getMenu().getStateId();
         if (screen != cachedScreen || revision != cachedRevision) {
             cachedScreen = screen;
             cachedRevision = revision;
@@ -74,7 +73,7 @@ public enum ShoppingListScreenContext {
         return detected;
     }
 
-    private static ShoppingListScreenContext detectUncached(HandledScreen<?> screen, boolean customBankOverlayActive) {
+    private static ShoppingListScreenContext detectUncached(AbstractContainerScreen<?> screen, boolean customBankOverlayActive) {
         MenuType menuType = WynncraftMenuService.currentType();
         boolean tradeMarketMainScreen = hasTradeMarketSearchAndFilterSlot(screen);
         boolean tradeMarketPurchaseConfirmation = !tradeMarketMainScreen
@@ -190,27 +189,27 @@ public enum ShoppingListScreenContext {
                 || normalized.contains("sell order");
     }
 
-    private static boolean hasTradeMarketSearchAndFilterSlot(HandledScreen<?> screen) {
-        if (screen == null || screen.getScreenHandler() == null) {
+    private static boolean hasTradeMarketSearchAndFilterSlot(AbstractContainerScreen<?> screen) {
+        if (screen == null || screen.getMenu() == null) {
             return false;
         }
-        for (Slot slot : screen.getScreenHandler().slots) {
-            if (slot != null && slot.hasStack() && isSearchAndFilterLabel(slot.getStack())) {
+        for (Slot slot : screen.getMenu().slots) {
+            if (slot != null && slot.hasItem() && isSearchAndFilterLabel(slot.getItem())) {
                 return true;
             }
         }
         return false;
     }
 
-    private static boolean hasTradeMarketFilterSignal(HandledScreen<?> screen) {
-        if (screen == null || screen.getScreenHandler() == null) {
+    private static boolean hasTradeMarketFilterSignal(AbstractContainerScreen<?> screen) {
+        if (screen == null || screen.getMenu() == null) {
             return false;
         }
-        for (Slot slot : screen.getScreenHandler().slots) {
-            if (slot == null || !slot.hasStack()) {
+        for (Slot slot : screen.getMenu().slots) {
+            if (slot == null || !slot.hasItem()) {
                 continue;
             }
-            String label = cleanSlotLabel(slot.getStack());
+            String label = cleanSlotLabel(slot.getItem());
             if (label.contains("filter") || label.contains("sort")) {
                 return true;
             }
@@ -218,15 +217,15 @@ public enum ShoppingListScreenContext {
         return false;
     }
 
-    private static boolean hasTradeMarketDetailSignal(HandledScreen<?> screen) {
-        if (screen == null || screen.getScreenHandler() == null) {
+    private static boolean hasTradeMarketDetailSignal(AbstractContainerScreen<?> screen) {
+        if (screen == null || screen.getMenu() == null) {
             return false;
         }
-        for (Slot slot : screen.getScreenHandler().slots) {
-            if (slot == null || !slot.hasStack()) {
+        for (Slot slot : screen.getMenu().slots) {
+            if (slot == null || !slot.hasItem()) {
                 continue;
             }
-            String label = cleanSlotLabel(slot.getStack());
+            String label = cleanSlotLabel(slot.getItem());
             if (label.contains("view trade")
                     || label.equals("buy")
                     || label.contains("buy now")
@@ -237,12 +236,12 @@ public enum ShoppingListScreenContext {
         return false;
     }
 
-    private static boolean hasTradeMarketPurchaseConfirmationSignal(HandledScreen<?> screen) {
-        if (screen == null || screen.getScreenHandler() == null) {
+    private static boolean hasTradeMarketPurchaseConfirmationSignal(AbstractContainerScreen<?> screen) {
+        if (screen == null || screen.getMenu() == null) {
             return false;
         }
-        for (Slot slot : screen.getScreenHandler().slots) {
-            if (slot != null && slot.hasStack() && cleanSlotLabel(slot.getStack()).contains("confirm purchase")) {
+        for (Slot slot : screen.getMenu().slots) {
+            if (slot != null && slot.hasItem() && cleanSlotLabel(slot.getItem()).contains("confirm purchase")) {
                 return true;
             }
         }
@@ -253,13 +252,13 @@ public enum ShoppingListScreenContext {
         if (stack == null || stack.isEmpty()) {
             return false;
         }
-        return ShoppingListTradeMarketSlotMatcher.isSearchFilterLabel(stack.getName().getString());
+        return ShoppingListTradeMarketSlotMatcher.isSearchFilterLabel(stack.getHoverName().getString());
     }
 
     private static String cleanSlotLabel(ItemStack stack) {
         if (stack == null || stack.isEmpty()) {
             return "";
         }
-        return ShoppingListTextCleaner.clean(stack.getName().getString()).toLowerCase(Locale.ROOT);
+        return ShoppingListTextCleaner.clean(stack.getHoverName().getString()).toLowerCase(Locale.ROOT);
     }
 }

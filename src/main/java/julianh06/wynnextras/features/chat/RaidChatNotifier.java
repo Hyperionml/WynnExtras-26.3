@@ -11,8 +11,8 @@ import julianh06.wynnextras.features.raid.tna.TnaApi;
 import julianh06.wynnextras.utils.ChatUtils;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 
 import java.io.IOException;
@@ -53,7 +53,7 @@ public class RaidChatNotifier {
                 overlay || allowReceivedMessage(message));
     }
 
-    private static boolean allowReceivedMessage(Text message) {
+    private static boolean allowReceivedMessage(Component message) {
         String raw = stripColorCodes(message.getString());
         TnaApi.handleMessage(raw);
         RaidState.observeChat(raw);
@@ -304,11 +304,11 @@ public class RaidChatNotifier {
                 String progress = detector.extractProgress(msg);
                 List<String> finalMessages = detector.getFormattedMessages(progress, timestamp);
 
-                MinecraftClient.getInstance().execute(() -> {
+                Minecraft.getInstance().execute(() -> {
                     for (String finalMsg : finalMessages) {
                         if (finalMsg.isEmpty()) continue;
                         MinecraftUtils.sendMessageToClient(
-                                WynnExtras.addWynnExtrasPrefix(Text.of(finalMsg))
+                                WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty(finalMsg))
                         );
                     }
                 });
@@ -579,7 +579,7 @@ public class RaidChatNotifier {
                     for (int i = 7; i >= 0; i--) {
                         int countdown = i;
 
-                        MinecraftClient.getInstance().execute(() ->
+                        Minecraft.getInstance().execute(() ->
                                 ChatUtils.displayTitle(
                                         "§cSPAWNING IN: §f" + countdown,
                                         "",
@@ -590,7 +590,7 @@ public class RaidChatNotifier {
                         Thread.sleep(1000);
                     }
 
-                    MinecraftClient.getInstance().execute(() ->
+                    Minecraft.getInstance().execute(() ->
                             ChatUtils.displayTitle("", "", 0, 0, 0)
                     );
 
@@ -930,7 +930,7 @@ public class RaidChatNotifier {
         }
 
         MinecraftUtils.sendMessageToClient(
-                WynnExtras.addWynnExtrasPrefix(Text.of(msg))
+                WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty(msg))
         );
     }
 

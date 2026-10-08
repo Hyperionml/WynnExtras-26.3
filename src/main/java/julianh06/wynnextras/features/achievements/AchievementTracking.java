@@ -19,16 +19,16 @@ import julianh06.wynnextras.utils.BossBarUtils;
 import julianh06.wynnextras.utils.WynncraftApiHandler;
 import julianh06.wynnextras.wynncraft.menu.MenuType;
 import julianh06.wynnextras.wynncraft.menu.WynncraftMenuService;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.hud.ClientBossBar;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.LerpingBossEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.world.Container;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.ArrayList;
@@ -171,21 +171,21 @@ public class AchievementTracking {
     private void checkRichBankAchievement() {
         if (achievements.isUnlocked("bank.rich")) return;
 
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client.player == null) return;
 
         if (!WynncraftMenuService.isCurrentAny(MenuType.ACCOUNT_BANK, MenuType.CHARACTER_BANK)) return;
 
-        ScreenHandler handler = MinecraftUtils.containerMenu();
+        AbstractContainerMenu handler = MinecraftUtils.containerMenu();
         if (handler == null) return;
 
-        Inventory playerInventory = client.player.getInventory();
+        Container playerInventory = client.player.getInventory();
         int bankSlotCount = 0;
         for (Slot slot : handler.slots) {
-            if (slot.inventory == playerInventory) continue;
+            if (slot.container == playerInventory) continue;
             if (bankSlotCount == 45) break;
-            String name = slot.getStack().getName().getString().replaceAll("§[0-9a-fk-or]", "").trim();
-            if (!name.equalsIgnoreCase("Liquid Emerald") || slot.getStack().getCount() != 64) {
+            String name = slot.getItem().getHoverName().getString().replaceAll("§[0-9a-fk-or]", "").trim();
+            if (!name.equalsIgnoreCase("Liquid Emerald") || slot.getItem().getCount() != 64) {
                 return;
             }
             bankSlotCount++;
@@ -207,10 +207,10 @@ public class AchievementTracking {
 
     /** Records the active tower; the achievement is only granted after the capture message. */
     private void trackWarAchievements() {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client.player == null) return;
 
-        for (ClientBossBar bar : BossBarUtils.getBossBars(client.inGameHud.getBossBarHud())) {
+        for (LerpingBossEvent bar : BossBarUtils.getBossBars(client.gui.hud.getBossOverlay())) {
             String name = bar.getName().getString();
             if (name == null || !name.replaceAll("§[0-9a-fk-or]", "").contains("Tower")) continue;
             String territoryName = getWarTerritoryName(name);
@@ -294,7 +294,7 @@ public class AchievementTracking {
     }
 
     private void announce(String message) {
-        MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.of(message)));
+        MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty(message)));
     }
 
     private void tickUnlockAnnouncements() {
@@ -335,16 +335,16 @@ public class AchievementTracking {
     }
 
     private void sendBundledUnlockAnnouncement() {
-        MutableText tooltip = Text.empty();
+        MutableComponent tooltip = Component.empty();
         for (int i = 0; i < pendingUnlockAnnouncements.size(); i++) {
-            if (i > 0) tooltip.append(Text.literal("\n"));
-            tooltip.append(Text.literal("§a- §f" + pendingUnlockAnnouncements.get(i).tooltipLine));
+            if (i > 0) tooltip.append(Component.literal("\n"));
+            tooltip.append(Component.literal("§a- §f" + pendingUnlockAnnouncements.get(i).tooltipLine));
         }
 
         int amount = pendingUnlockAnnouncements.size();
-        MutableText message = Text.literal("You have unlocked " + amount + " achievements! ")
-                .append(Text.literal("[Hover here to view them]").setStyle(Style.EMPTY
-                        .withColor(Formatting.YELLOW)
+        MutableComponent message = Component.literal("You have unlocked " + amount + " achievements! ")
+                .append(Component.literal("[Hover here to view them]").setStyle(Style.EMPTY
+                        .withColor(ChatFormatting.YELLOW)
                         .withHoverEvent(new HoverEvent.ShowText(tooltip))));
         MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(message));
     }
@@ -362,7 +362,7 @@ public class AchievementTracking {
 
         WynncraftApiHandler.fetchPlayerData(username)
                 .thenCombine(WynncraftApiHandler.fetchContentCompletionMax(), ApiSyncData::new)
-                .thenAccept(syncData -> MinecraftClient.getInstance().execute(() ->
+                .thenAccept(syncData -> Minecraft.getInstance().execute(() ->
                         reconcileWithApi(syncData.playerData(), syncData.contentCompletionMax())))
                 .exceptionally(ex -> {
                     WynnExtras.LOGGER.error("[WynnExtras] Failed to sync raid achievement counts: " + ex.getMessage());
@@ -553,10 +553,10 @@ public class AchievementTracking {
                 .count();
         if (classCount < 5) return false;
 
-        String uuid = MinecraftUtils.player().getUuidAsString();
+        String uuid = MinecraftUtils.player().getStringUUID();
         syncingAspects = true;
         WynncraftApiHandler.fetchPlayerAspectData(uuid)
-                .thenAccept(result -> MinecraftClient.getInstance().execute(() -> {
+                .thenAccept(result -> Minecraft.getInstance().execute(() -> {
                     syncingAspects = false;
                     if (result != null && result.status() == WynncraftApiHandler.FetchStatus.NOT_FOUND) {
                         aspectsSynced = true;
@@ -567,7 +567,7 @@ public class AchievementTracking {
                     }
                 }))
                 .exceptionally(ex -> {
-                    MinecraftClient.getInstance().execute(() -> {
+                    Minecraft.getInstance().execute(() -> {
                         syncingAspects = false;
                         nextAspectSyncAt = System.currentTimeMillis() + ASPECT_SYNC_RETRY_DELAY_MS;
                         WynnExtras.LOGGER.error("[WynnExtras] Failed to sync aspect achievements: " + ex.getMessage());

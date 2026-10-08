@@ -2,16 +2,15 @@ package julianh06.wynnextras.wynncraft.item;
 
 import julianh06.wynnextras.wynncraft.state.CharacterClass;
 import julianh06.wynnextras.wynncraft.state.SkillPoint;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.CustomModelDataComponent;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.text.Style;
-import net.minecraft.text.StyleSpriteSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomModelData;
+import net.minecraft.world.item.component.ItemLore;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
@@ -47,7 +46,7 @@ public final class WynnItemParser {
     public static Optional<WynnItemData> parse(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return Optional.empty();
         try {
-            CacheKey key = new CacheKey(Registries.ITEM.getId(stack.getItem()).toString(),
+            CacheKey key = new CacheKey(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),
                     stack.getComponents().hashCode(), stack.getCount());
             synchronized (CACHE) {
                 Optional<WynnItemData> cached = CACHE.get(key);
@@ -70,7 +69,7 @@ public final class WynnItemParser {
     }
 
     private static Optional<WynnItemData> parseUncached(ItemStack stack) {
-        String name = clean(stack.getName().getString());
+        String name = clean(stack.getHoverName().getString());
         List<String> lore = lore(stack);
         if (name.isEmpty() && lore.isEmpty()) return Optional.empty();
         String all = String.join("\n", lore);
@@ -107,22 +106,22 @@ public final class WynnItemParser {
     }
 
     private static List<String> lore(ItemStack stack) {
-        LoreComponent component = stack.get(DataComponentTypes.LORE);
+        ItemLore component = stack.get(DataComponents.LORE);
         if (component == null) return List.of();
         List<String> result = new ArrayList<>(component.lines().size());
-        for (Text line : component.lines()) result.add(clean(line.getString()));
+        for (Component line : component.lines()) result.add(clean(line.getString()));
         return result;
     }
 
     private static List<List<WynnTooltipParser.Segment>> styledLore(ItemStack stack) {
-        LoreComponent component = stack.get(DataComponentTypes.LORE);
+        ItemLore component = stack.get(DataComponents.LORE);
         if (component == null) return List.of();
         List<List<WynnTooltipParser.Segment>> result = new ArrayList<>(component.lines().size());
-        for (Text line : component.lines()) {
+        for (Component line : component.lines()) {
             List<WynnTooltipParser.Segment> segments = new ArrayList<>();
             line.visit((style, string) -> {
                 String font = null;
-                if (style.getFont() instanceof StyleSpriteSource.Font(Identifier id)) font = id.toString();
+                if (style.getFont() instanceof FontDescription.Resource(Identifier id)) font = id.toString();
                 segments.add(new WynnTooltipParser.Segment(font, string));
                 return Optional.empty();
             }, Style.EMPTY);
@@ -132,7 +131,7 @@ public final class WynnItemParser {
     }
 
     private static ItemTier tier(ItemStack stack, String text) {
-        CustomModelDataComponent modelData = stack.getComponents().get(DataComponentTypes.CUSTOM_MODEL_DATA);
+        CustomModelData modelData = stack.getComponents().get(DataComponents.CUSTOM_MODEL_DATA);
         if (modelData != null) {
             for (String value : modelData.strings()) {
                 if (!value.startsWith("item_tier_")) continue;
@@ -201,7 +200,7 @@ public final class WynnItemParser {
     }
 
     private static GearType gearType(ItemStack stack, String text, CharacterClass requiredClass) {
-        String itemId = Registries.ITEM.getId(stack.getItem()).getPath();
+        String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath();
         if (itemId.endsWith("helmet") || text.contains(" helmet")) return GearType.HELMET;
         if (itemId.endsWith("chestplate") || text.contains(" chestplate")) return GearType.CHESTPLATE;
         if (itemId.endsWith("leggings") || text.contains(" leggings")) return GearType.LEGGINGS;

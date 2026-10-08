@@ -5,7 +5,7 @@ import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.core.command.Command;
 import julianh06.wynnextras.event.ChatEvent;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import net.neoforged.bus.api.SubscribeEvent;
 
 @WEModule
@@ -23,10 +23,10 @@ public class AutoStream {
     @SubscribeEvent
     public void onChat(ChatEvent event) {
         if (!WynnExtrasConfig.INSTANCE.autoStreamEnabled) return;
-        if (MinecraftClient.getInstance().getNetworkHandler() == null || event.message == null || event.message.getString() == null) return;
+        if (Minecraft.getInstance().getConnection() == null || event.message == null || event.message.getString() == null) return;
 
         if (event.message.getString().contains("Welcome to Wynncraft")) {
-            MinecraftClient.getInstance().getNetworkHandler().sendChatCommand("stream");
+            Minecraft.getInstance().getConnection().sendCommand("stream");
         }
     }
 }

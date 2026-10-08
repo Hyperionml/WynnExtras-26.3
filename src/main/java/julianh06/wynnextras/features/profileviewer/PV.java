@@ -12,11 +12,11 @@ import julianh06.wynnextras.features.profileviewer.data.PlayerData;
 import julianh06.wynnextras.features.profileviewer.tabs.AspectsTabWidget;
 import julianh06.wynnextras.utils.WynncraftApiHandler;
 import julianh06.wynnextras.utils.WynncraftAuthManager;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import net.neoforged.bus.api.SubscribeEvent;
-import org.lwjgl.glfw.GLFW;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.util.List;
 
@@ -34,7 +34,7 @@ public class PV {
     public static Boolean openedAspectPage;
 
     public static List<String> getApiKeyInfo() {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client.player == null || WynncraftAuthManager.hasApiKey()) return List.of();
 
         boolean ownProfile = currentPlayer.equalsIgnoreCase(client.player.getName().getString());
@@ -73,7 +73,7 @@ public class PV {
                         return 1;
                     },
                     null,
-                    List.of(ClientCommandManager.argument("player", StringArgumentType.word()))
+                    List.of(ClientCommands.argument("player", StringArgumentType.word()))
             );
 
             pvCmdNoArgs = new Command(
@@ -93,19 +93,19 @@ public class PV {
     @SubscribeEvent
     void onTick(TickEvent event) {
         if(PVScreen.dummy != null) {
-            PVScreen.dummy.age++;
+            PVScreen.dummy.tickCount++;
         }
         if(inPV) {
-            MinecraftClient.getInstance().send(() -> MinecraftClient.getInstance().setScreen(new PVScreen(currentPlayer)));
+            Minecraft.getInstance().schedule(() -> Minecraft.getInstance().gui.setScreen(new PVScreen(currentPlayer)));
             inPV = false;
         }
     }
 
     @SubscribeEvent
     void onInput(KeyInputEvent event) {
-        if(event.getKey() != GLFW.GLFW_KEY_ENTER || event.getAction() != GLFW.GLFW_PRESS) return;
+        if(event.getKey() != InputCompat.KEY_ENTER || event.getAction() != InputCompat.PRESS) return;
         // Only process Enter when the PV screen is actually open
-        if (!(MinecraftClient.getInstance().currentScreen instanceof PVScreen)) return;
+        if (!(Minecraft.getInstance().gui.screen() instanceof PVScreen)) return;
         if(PVScreen.searchBar != null && PVScreen.searchBar.isFocused()) {
             open(PVScreen.searchBar.getInput());
         }
@@ -129,8 +129,8 @@ public class PV {
             return null;
         });
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        client.send(() -> client.setScreen(null));
+        Minecraft client = Minecraft.getInstance();
+        client.schedule(() -> client.gui.setScreen(null));
         openedAspectPage = false;
         AspectsTabWidget.currentPlayerAspectData = null;
         AspectsTabWidget.fetchStatus = null;

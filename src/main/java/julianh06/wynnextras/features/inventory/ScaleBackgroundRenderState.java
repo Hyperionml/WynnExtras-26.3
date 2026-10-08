@@ -1,9 +1,8 @@
 package julianh06.wynnextras.features.inventory;
 
 import julianh06.wynnextras.config.WynnExtrasConfig;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.ItemStack;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.ItemStack;
 import java.util.List;
 
 /**
@@ -50,9 +49,9 @@ public final class ScaleBackgroundRenderState {
     }
 
     public static boolean isInTradeMarket() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.currentScreen == null) return false;
-        String title = client.currentScreen.getTitle().getString();
+        Minecraft client = Minecraft.getInstance();
+        if (client.gui.screen() == null) return false;
+        String title = client.gui.screen().getTitle().getString();
         return TRADE_MARKET_TITLES.stream().anyMatch(title::contains);
     }
 }

@@ -7,16 +7,16 @@ import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.features.inventory.WeightDisplay;
 import julianh06.wynnextras.wynncraft.menu.MenuType;
 import julianh06.wynnextras.wynncraft.menu.WynncraftMenuService;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import julianh06.wynnextras.wynncraft.item.IdentifierRollResolver;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.tooltip.TooltipType;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import org.lwjgl.glfw.GLFW;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -84,15 +84,15 @@ public final class IdentifierCaseOpeningOverlay extends WEMenuExtension {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (!isReplacingMenu()) return false;
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE && state == State.RESULTS) startFadeOut();
+        if (keyCode == InputCompat.KEY_ESCAPE && state == State.RESULTS) startFadeOut();
         return true;
     }
 
     @Override
-    protected void drawBackground(DrawContext ctx, int mouseX, int mouseY, float delta) {}
+    protected void drawBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {}
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         if (!isIdentifierMenu()) {
             reset();
             return;
@@ -108,19 +108,19 @@ public final class IdentifierCaseOpeningOverlay extends WEMenuExtension {
     }
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         if (state != State.RESULTS) return;
         for (RollStripWidget widget : rollWidgets) {
             if (!widget.resultHovered || widget.resultStack.isEmpty()) continue;
-            MinecraftClient client = MinecraftClient.getInstance();
-            List<Text> tooltip = widget.resultStack.getTooltip(Item.TooltipContext.DEFAULT, client.player, TooltipType.BASIC);
-            ctx.drawTooltip(client.textRenderer, tooltip, mouseX, mouseY);
+            Minecraft client = Minecraft.getInstance();
+            List<Component> tooltip = widget.resultStack.getTooltipLines(Item.TooltipContext.EMPTY, client.player, TooltipFlag.NORMAL);
+            ctx.setComponentTooltipForNextFrame(client.font, tooltip, mouseX, mouseY);
             return;
         }
     }
 
     private void updateState(long now) {
-        ScreenHandler handler = MinecraftUtils.containerMenu();
+        AbstractContainerMenu handler = MinecraftUtils.containerMenu();
         if (handler == null || handler.slots.size() <= 11) {
             reset();
             return;
@@ -151,7 +151,7 @@ public final class IdentifierCaseOpeningOverlay extends WEMenuExtension {
         if (state == State.SETTLING && now - stateStartedAt >= settleDurationMs) {
             state = State.RESULTS;
             stateStartedAt = now;
-            MinecraftUtils.playSoundUI(SoundEvents.ENTITY_ENDER_DRAGON_GROWL, 0.35f, 1.1f);
+            MinecraftUtils.playSoundUI(SoundEvents.ENDER_DRAGON_GROWL, 0.35f, 1.1f);
         }
 
         if (state == State.FADING_OUT && now - stateStartedAt >= FADE_OUT_MS) {
@@ -177,11 +177,11 @@ public final class IdentifierCaseOpeningOverlay extends WEMenuExtension {
         setCaseWidgetsVisible(true);
     }
 
-    private void captureResults(ScreenHandler handler, long now) {
+    private void captureResults(AbstractContainerMenu handler, long now) {
         List<ItemStack> stacks = new ArrayList<>(cachedInputs.size());
         for (InputSnapshot input : cachedInputs) {
             if (input.slot() >= handler.slots.size()) return;
-            ItemStack stack = handler.getSlot(input.slot()).getStack();
+            ItemStack stack = handler.getSlot(input.slot()).getItem();
             if (isEmptyInput(stack)) return;
             stacks.add(stack.copy());
         }
@@ -228,7 +228,7 @@ public final class IdentifierCaseOpeningOverlay extends WEMenuExtension {
         MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value(), 0.7f);
     }
 
-    private void finishFadeOut(ScreenHandler handler, boolean waiting) {
+    private void finishFadeOut(AbstractContainerMenu handler, boolean waiting) {
         state = State.IDLE;
         stateStartedAt = 0;
         spinStartedAt = 0;
@@ -315,14 +315,14 @@ public final class IdentifierCaseOpeningOverlay extends WEMenuExtension {
         MinecraftUtils.playSoundAmbient(SoundEvents.UI_BUTTON_CLICK.value(), 0.12f, 1.75f);
     }
 
-    private static List<InputSnapshot> collectInputs(ScreenHandler handler) {
+    private static List<InputSnapshot> collectInputs(AbstractContainerMenu handler) {
         List<InputSnapshot> inputs = new ArrayList<>();
         int[] inputSlots = WynncraftMenuService.isCurrent(MenuType.AUGMENT_IDENTIFIER)
                 ? AUGMENT_INPUT_SLOTS
                 : IDENTIFIER_INPUT_SLOTS;
         for (int slot : inputSlots) {
             if (slot >= handler.slots.size()) continue;
-            ItemStack stack = handler.getSlot(slot).getStack();
+            ItemStack stack = handler.getSlot(slot).getItem();
             if (!isEmptyInput(stack)) {
                 ItemStack copy = stack.copy();
                 inputs.add(new InputSnapshot(slot, copy, IdentifierRollResolver.possibleItemNames(copy)));
@@ -331,9 +331,9 @@ public final class IdentifierCaseOpeningOverlay extends WEMenuExtension {
         return List.copyOf(inputs);
     }
 
-    private static boolean isWaiting(ScreenHandler handler) {
+    private static boolean isWaiting(AbstractContainerMenu handler) {
         for (int slot = 0; slot < handler.slots.size(); slot++) {
-            String name = cleanName(handler.getSlot(slot).getStack());
+            String name = cleanName(handler.getSlot(slot).getItem());
             if (name.toLowerCase(Locale.ROOT).startsWith("please wait")) return true;
         }
         return false;
@@ -351,7 +351,7 @@ public final class IdentifierCaseOpeningOverlay extends WEMenuExtension {
 
     private static String cleanName(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return "";
-        return IdentifierRollResolver.cleanDisplayName(stack.getName().getString());
+        return IdentifierRollResolver.cleanDisplayName(stack.getHoverName().getString());
     }
 
     private static OptionalDouble findOverallPercentage(ItemStack stack) {
@@ -404,21 +404,21 @@ public final class IdentifierCaseOpeningOverlay extends WEMenuExtension {
 
     private final class BackdropWidget extends Widget {
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawRect(x, y, width, height, color("000000", backdropOpacity()));
         }
     }
 
     private final class MachinePanelWidget extends Widget {
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawVanillaPanel(x, y, width, height, 5, alpha());
         }
     }
 
     private final class DoneButtonWidget extends Widget {
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             float alpha = doneAlpha();
             ui.drawVanillaPanelButton(x, y, width, height, 5, 2, hovered, alpha);
             ui.drawCenteredText("Done", x + width / 2f, y + height / 2f,
@@ -427,7 +427,7 @@ public final class IdentifierCaseOpeningOverlay extends WEMenuExtension {
 
         @Override
         protected boolean onClick(int button) {
-            if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT || state != State.RESULTS) return false;
+            if (button != InputCompat.MOUSE_BUTTON_LEFT || state != State.RESULTS) return false;
             startFadeOut();
             return true;
         }
@@ -523,7 +523,7 @@ public final class IdentifierCaseOpeningOverlay extends WEMenuExtension {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             float alpha = alpha();
             ui.drawRect(x, y, width, height, color("090C11", alpha));
             ui.drawRect(x + 1, y + 1, width - 2, height - 2, color("10151D", alpha));
@@ -587,17 +587,17 @@ public final class IdentifierCaseOpeningOverlay extends WEMenuExtension {
         }
 
         private List<String> wrapName(String name, float availableWidth, float textScale) {
-            var renderer = MinecraftClient.getInstance().textRenderer;
+            var renderer = Minecraft.getInstance().font;
             int maxWidth = Math.max(1, (int) ((availableWidth - 12) / textScale));
-            if (renderer.getWidth(name) <= maxWidth) return List.of(name);
+            if (renderer.width(name) <= maxWidth) return List.of(name);
 
-            String fitting = renderer.trimToWidth(name, maxWidth);
+            String fitting = renderer.plainSubstrByWidth(name, maxWidth);
             int split = fitting.lastIndexOf(' ');
             if (split <= 0) split = fitting.length();
             String first = name.substring(0, split).trim();
             String second = name.substring(split).trim();
-            if (renderer.getWidth(second) > maxWidth) {
-                second = renderer.trimToWidth(second, Math.max(1, maxWidth - renderer.getWidth("..."))) + "...";
+            if (renderer.width(second) > maxWidth) {
+                second = renderer.plainSubstrByWidth(second, Math.max(1, maxWidth - renderer.width("..."))) + "...";
             }
             return second.isEmpty() ? List.of(first) : List.of(first, second);
         }

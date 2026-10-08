@@ -9,7 +9,7 @@
 //import net.minecraft.sound.SoundEvents;
 //import net.minecraft.text.Text;
 //import net.minecraft.util.math.MathHelper;
-//import org.lwjgl.glfw.GLFW;
+//import julianh06.wynnextras.compat.client.InputCompat;
 //
 //import java.util.ArrayList;
 //import java.util.List;
@@ -111,7 +111,7 @@
 //
 //        int by = height - 55;
 //        if (mx >= width / 2 - 50 && mx < width / 2 + 50 && my >= by && my < by + 24) {
-//            client.setScreen(parent);
+//            client.gui.setScreen(parent);
 //            MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
 //            return true;
 //        }
@@ -144,17 +144,17 @@
 //
 //    @Override
 //    public boolean keyPressed(KeyInput input) {
-//        int key = input.key();
-//        boolean ctrl = (input.modifiers() & GLFW.GLFW_MOD_CONTROL) != 0;
+//        int key = julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key());
+//        boolean ctrl = (julianh06.wynnextras.compat.client.InputCompat.legacyModifiers(input.modifiers()) & InputCompat.MOD_CONTROL) != 0;
 //
-//        if (ctrl && key == GLFW.GLFW_KEY_V) {
+//        if (ctrl && key == InputCompat.KEY_V) {
 //            String clip = client.keyboard.getClipboard();
 //            if (clip != null && !clip.isEmpty()) nameInput += clip.replaceAll("[\\r\\n\\t]", "");
 //            return true;
-//        } else if (ctrl && key == GLFW.GLFW_KEY_C) {
+//        } else if (ctrl && key == InputCompat.KEY_C) {
 //            client.keyboard.setClipboard(nameInput);
 //            return true;
-//        } else if (ctrl && key == GLFW.GLFW_KEY_X) {
+//        } else if (ctrl && key == InputCompat.KEY_X) {
 //            client.keyboard.setClipboard(nameInput);
 //            nameInput = "";
 //            return true;
@@ -172,7 +172,7 @@
 //            return true;
 //        }
 //        if (key == 256) {
-//            client.setScreen(parent);
+//            client.gui.setScreen(parent);
 //            return true;
 //        }
 //        return super.keyPressed(input);
@@ -181,8 +181,8 @@
 //    @Override
 //    public boolean charTyped(CharInput charInput) {
 //        long window = client.getWindow().getHandle();
-//        boolean ctrlHeld = GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS
-//                || GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
+//        boolean ctrlHeld = InputCompat.keyState(window, InputCompat.KEY_LEFT_CONTROL) == InputCompat.PRESS
+//                || InputCompat.keyState(window, InputCompat.KEY_RIGHT_CONTROL) == InputCompat.PRESS;
 //        if (ctrlHeld) return true;
 //        int c = charInput.codepoint();
 //        if (c >= 32) {
@@ -200,5 +200,5 @@
 //    }
 //
 //    @Override
-//    public void close() { client.setScreen(parent); }
+//    public void close() { client.gui.setScreen(parent); }
 //}

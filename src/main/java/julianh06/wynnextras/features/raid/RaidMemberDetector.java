@@ -2,8 +2,8 @@ package julianh06.wynnextras.features.raid;
 
 import julianh06.wynnextras.annotations.WEModule;
 import julianh06.wynnextras.event.ChatEvent;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.ArrayList;
@@ -14,7 +14,7 @@ import java.util.Optional;
 public class RaidMemberDetector {
     @SubscribeEvent
     public void onChat(ChatEvent event) {
-        Text message = event.message;
+        Component message = event.message;
         if (message == null || message.getString().isEmpty()) return;
 
         if (message.getString().contains("Party members")) {

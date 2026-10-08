@@ -17,8 +17,7 @@ import julianh06.wynnextras.utils.BackendErrorLogger;
 import julianh06.wynnextras.utils.InstantTypeAdapter;
 import julianh06.wynnextras.utils.MojangAuth;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -647,7 +646,7 @@ public class Achievements {
     private static Path getConfigPath(String fileName) {
         return FabricLoader.getInstance().getConfigDir()
                 .resolve("wynnextras/"
-                        + MinecraftClient.getInstance().player.getUuid()
+                        + Minecraft.getInstance().player.getUUID()
                         + "/" + fileName);
     }
     public void rebuildIndex() {

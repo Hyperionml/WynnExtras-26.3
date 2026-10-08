@@ -14,36 +14,35 @@ import julianh06.wynnextras.utils.UI.UIUtils;
 import julianh06.wynnextras.utils.UI.WEHandledScreen;
 import julianh06.wynnextras.utils.UI.Widget;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.NativeImageBackedTexture;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.item.tooltip.TooltipType;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.component.CustomData;
 import julianh06.wynnextras.event.CharInputEvent;
 import julianh06.wynnextras.event.KeyInputEvent;
 import julianh06.wynnextras.features.bankoverlay.BankOverlay2;
 import julianh06.wynnextras.features.inventory.data.CrossClassBankSearch;
 import julianh06.wynnextras.features.misc.ClassSelectionData.CharIdentity;
 import julianh06.wynnextras.utils.TickScheduler;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.NbtComponent;
-import net.minecraft.component.type.PotionContentsComponent;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import org.lwjgl.glfw.GLFW;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import javax.imageio.ImageIO;
+import com.mojang.blaze3d.platform.NativeImage;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.DirectoryStream;
@@ -63,7 +62,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     public enum ScreenMode { CLASS_SELECTION }
 
     private ScreenMode mode;
-    private HandledScreen<?> screen;
+    private AbstractContainerScreen<?> screen;
 
     // ==================== CLASS SELECTION SLOTS ====================
     private static final int[] CHARACTER_SLOTS = {9, 10, 11, 18, 19, 20, 27, 28, 29, 36, 37, 38, 45, 46, 47};
@@ -83,7 +82,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     // Hover state
     private int hoveredCharVisIdx = -1;
     private int hoveredSettingSlot = -1;
-    private List<Text> hoveredTooltip = new ArrayList<>();
+    private List<Component> hoveredTooltip = new ArrayList<>();
 
     // Drag state
     private int pressedVisIdx = -1;
@@ -216,7 +215,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         return style == null ? WynnExtrasConfig.ClassSelectionContentProgressStyle.PROGRESS_BAR : style;
     }
 
-    public ClassSelectionOverlay(HandledScreen<?> screen, ScreenMode mode) {
+    public ClassSelectionOverlay(AbstractContainerScreen<?> screen, ScreenMode mode) {
         this.screen = screen;
         this.mode = mode;
     }
@@ -230,7 +229,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     private CharIdentity extractCharData(ItemStack stack, int characterSlotIndex) {
         CharIdentity data = new CharIdentity();
         data.stableId = extractStableCharacterId(stack);
-        data.name = cleanName(stack.getName().getString());
+        data.name = cleanName(stack.getHoverName().getString());
         data.classType = extractClassName(stack);
         data.color = extractPotionColor(stack);
         data.timePlayed = extractTimePlayed(stack);
@@ -257,22 +256,22 @@ public class ClassSelectionOverlay extends WEHandledScreen {
 
     private String extractStableCharacterId(ItemStack stack) {
         try {
-            NbtComponent customData = stack.get(DataComponentTypes.CUSTOM_DATA);
+            CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
             if (customData == null || customData.isEmpty()) return "";
-            return findStableCharacterId(customData.copyNbt(), "");
+            return findStableCharacterId(customData.copyTag(), "");
         } catch (Exception e) {
             return "";
         }
     }
 
-    private String findStableCharacterId(NbtCompound compound, String path) {
-        for (Map.Entry<String, NbtElement> entry : compound.entrySet()) {
+    private String findStableCharacterId(CompoundTag compound, String path) {
+        for (Map.Entry<String, Tag> entry : compound.entrySet()) {
             String key = entry.getKey();
-            NbtElement value = entry.getValue();
+            Tag value = entry.getValue();
             String lowerKey = key.toLowerCase(Locale.ROOT);
             String lowerPath = path.toLowerCase(Locale.ROOT);
 
-            if (value instanceof NbtCompound nested) {
+            if (value instanceof CompoundTag nested) {
                 String nestedResult = findStableCharacterId(nested, path + "." + key);
                 if (!nestedResult.isEmpty()) return nestedResult;
                 continue;
@@ -311,7 +310,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
 
     private int extractPotionColor(ItemStack stack) {
         try {
-            PotionContentsComponent contents = stack.get(DataComponentTypes.POTION_CONTENTS);
+            PotionContents contents = stack.get(DataComponents.POTION_CONTENTS);
             if (contents != null && contents.customColor().isPresent()) {
                 return contents.customColor().get();
             }
@@ -320,7 +319,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     }
 
     private double extractTimePlayed(ItemStack stack) {
-        for (Text line : getTooltipLines(stack)) {
+        for (Component line : getTooltipLines(stack)) {
             String str = line.getString().replaceAll("\u00A7[0-9a-fk-or]", "").trim();
             if (str.contains("Time Played:")) {
                 String after = str.substring(str.indexOf("Time Played:") + "Time Played:".length()).trim();
@@ -333,7 +332,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     }
 
     private static int extractLevel(ItemStack stack) {
-        for (Text line : getTooltipLines(stack)) {
+        for (Component line : getTooltipLines(stack)) {
             String str = line.getString().replaceAll("\u00A7[0-9a-fk-or]", "").trim();
             if (str.contains("Level:")) {
                 String after = str.substring(str.indexOf("Level:") + "Level:".length()).trim();
@@ -347,7 +346,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     }
 
     private double extractXpPercent(ItemStack stack) {
-        for (Text line : getTooltipLines(stack)) {
+        for (Component line : getTooltipLines(stack)) {
             String str = line.getString().replaceAll("\u00A7[0-9a-fk-or]", "").trim();
             if (str.contains("Level:") && str.contains("%")) {
                 int pIdx = str.indexOf('(');
@@ -362,7 +361,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     }
 
     private String extractLocation(ItemStack stack) {
-        for (Text line : getTooltipLines(stack)) {
+        for (Component line : getTooltipLines(stack)) {
             String str = cleanTooltipLine(line);
             int locationIndex = str.toLowerCase(Locale.ROOT).indexOf("location:");
             if (locationIndex < 0) continue;
@@ -801,9 +800,9 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     }
 
     private String getCurrentPlayerKey() {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client == null || client.player == null) return "";
-        return client.player.getUuidAsString();
+        return client.player.getStringUUID();
     }
 
     private class FuzzySearch {
@@ -892,7 +891,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     private static String extractClassName(ItemStack stack) {
         String[] classNames = {"Warrior", "Knight", "Mage", "Dark Wizard", "Assassin", "Ninja",
                 "Archer", "Hunter", "Shaman", "Skyseer"};
-        for (Text line : getTooltipLines(stack)) {
+        for (Component line : getTooltipLines(stack)) {
             String str = line.getString().replaceAll("\u00A7[0-9a-fk-or]", "").trim();
             for (String cn : classNames) {
                 if (str.contains(cn)) return cn;
@@ -914,7 +913,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     public static boolean matchesCrossClassTarget(ItemStack stack, String targetName, int targetLevel) {
         if (stack == null || stack.isEmpty() || targetName == null || targetName.isEmpty()) return false;
 
-        boolean nameMatch = targetName.equalsIgnoreCase(cleanName(stack.getName().getString()))
+        boolean nameMatch = targetName.equalsIgnoreCase(cleanName(stack.getHoverName().getString()))
                 || targetName.equalsIgnoreCase(extractClassName(stack));
         if (!nameMatch) return false;
 
@@ -926,7 +925,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     private float px(float screenPx) { return screenPx * (float) scaleFactor; }
 
     @Override
-    protected void drawBackground(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         if (!WynnExtrasConfig.INSTANCE.classSelectionBackgroundEnabled) {
             ctx.fillGradient(0, 0, screenWidth, screenHeight, 0xC0101010, 0xD0101010);
             return;
@@ -947,7 +946,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         hoveredCharVisIdx = -1;
         hoveredSettingSlot = -1;
         hoveredTooltip = new ArrayList<>();
@@ -959,7 +958,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     }
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         if (isDragging && pressedVisIdx >= 0 && mode == ScreenMode.CLASS_SELECTION) {
             drawDraggedCard(ctx, mouseX, mouseY);
         }
@@ -967,18 +966,18 @@ public class ClassSelectionOverlay extends WEHandledScreen {
             // ctx.drawTooltip expects GUI-scale coordinates and clamps against screen.width/height.
             // mouseX/mouseY here are in logical space (divided by matrixScale), so undo the
             // matrix transform before calling to prevent boundary clamping going wrong at high GUI scales.
-            ctx.getMatrices().pushMatrix();
-            ctx.getMatrices().scale((float)(1.0 / matrixScale), (float)(1.0 / matrixScale));
-            ctx.drawTooltip(MinecraftClient.getInstance().textRenderer, hoveredTooltip, Optional.empty(),
+            ctx.pose().pushMatrix();
+            ctx.pose().scale((float)(1.0 / matrixScale), (float)(1.0 / matrixScale));
+            ctx.setTooltipForNextFrame(Minecraft.getInstance().font, hoveredTooltip, Optional.empty(),
                     (int)(mouseX * matrixScale), (int)(mouseY * matrixScale));
-            ctx.getMatrices().popMatrix();
+            ctx.pose().popMatrix();
         }
         drawDescriptionInput(ctx, mouseX, mouseY);
     }
 
     // ==================== CLASS SELECTION ====================
 
-    private void drawClassSelection(DrawContext ctx, int mouseX, int mouseY) {
+    private void drawClassSelection(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
         List<ItemStack> stacks = getStacks();
         if (stacks == null || stacks.isEmpty()) return;
 
@@ -1122,7 +1121,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     }
 
     private boolean hasGamemodeIcons(ItemStack stack) {
-        Text gamemodeIcons = extractGamemodeIcons(stack);
+        Component gamemodeIcons = extractGamemodeIcons(stack);
         return gamemodeIcons != null && !gamemodeIcons.getString().isBlank();
     }
 
@@ -1193,7 +1192,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         return stableIdentitySnapshotCount >= REQUIRED_STABLE_SNAPSHOTS;
     }
 
-    private void drawCharCard(DrawContext ctx, ItemStack stack, String charId, float cx, float cy,
+    private void drawCharCard(GuiGraphicsExtractor ctx, ItemStack stack, String charId, float cx, float cy,
                                boolean hovered, boolean dropTarget) {
         CustomColor bgColor;
         if (dropTarget) bgColor = CustomColor.fromHexString("5a4530");
@@ -1203,7 +1202,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
 
         String classInfo = extractClassInfo(stack);
         CustomColor accent = getClassColor(classInfo);
-        Text gamemodeIcons = extractGamemodeIcons(stack);
+        Component gamemodeIcons = extractGamemodeIcons(stack);
         ContentProgress progress = extractContentProgress(stack);
         WynnExtrasConfig.ClassSelectionContentProgressStyle progressStyle = getContentProgressStyle();
         List<String> details = extractClassDetails(stack, charId, progress, progressStyle);
@@ -1231,14 +1230,14 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         float maxIconSizePx = Math.min(cardHPx, iconAvailableHPx) * 0.95f;
         float iconAreaPx = Math.min(Math.clamp(maxIconSizePx, 14, 48), cardHPx * 0.95f);
         float iconYPx = iconAreaTopYPx + (iconAvailableHPx - iconAreaPx) / 2f;
-        ctx.getMatrices().pushMatrix();
+        ctx.pose().pushMatrix();
         float sIX = ui.sx(cx + px(iconXPx));
         float sIY = ui.sy(cy + px(iconYPx));
-        ctx.getMatrices().translate(sIX, sIY);
+        ctx.pose().translate(sIX, sIY);
         float iScale = iconAreaPx / 16f;
-        ctx.getMatrices().scale(iScale, iScale);
-        ctx.drawItem(stack, 0, 0);
-        ctx.getMatrices().popMatrix();
+        ctx.pose().scale(iScale, iScale);
+        ctx.item(stack, 0, 0);
+        ctx.pose().popMatrix();
 
         if (hasGamemodeIcons) {
             drawOverlayText(gamemodeIcons, cx + cardLW - px(8), cy + px(textLayout.bottomContentYPx),
@@ -1246,7 +1245,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         }
 
         // Character name - use client nickname if set, otherwise cleaned name
-        String charName = cleanName(stack.getName().getString());
+        String charName = cleanName(stack.getHoverName().getString());
         String clientNick = WynnExtrasConfig.INSTANCE.clientNicknames.get(charId);
         if (clientNick != null && !clientNick.isEmpty()) {
             charName = clientNick;
@@ -1298,7 +1297,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         }
     }
 
-    private void drawDraggedCard(DrawContext ctx, int mouseX, int mouseY) {
+    private void drawDraggedCard(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
         List<ItemStack> stacks = getStacks();
         if (stacks == null || pressedVisIdx < 0 || pressedVisIdx >= visibleCardCount) return;
         int slotIdx = CHARACTER_SLOTS[visOrder[pressedVisIdx]];
@@ -1333,7 +1332,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         return mode == null ? WynnExtrasConfig.ClassSelectionCompletionChromaMode.NAME_AND_LINES : mode;
     }
 
-    private void drawSettingsButtons(DrawContext ctx, List<ItemStack> stacks, int mouseX, int mouseY,
+    private void drawSettingsButtons(GuiGraphicsExtractor ctx, List<ItemStack> stacks, int mouseX, int mouseY,
                                       float panelXPx, float settingsYPx, float panelWPx) {
         int[] slots = {SLOT_CANCEL_DELETION, SLOT_BACKUPS, SLOT_MUSIC, SLOT_AUTO_OPEN};
         float btnWPx = 112, btnHPx = 18, gapPx = 8;
@@ -1353,7 +1352,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
                 hoveredTooltip = getTooltipLines(stack);
             }
             ui.drawButton(bx, by, bw, bh, hovered);
-            String label = truncate(cleanName(stack.getName().getString()), 18);
+            String label = truncate(cleanName(stack.getHoverName().getString()), 18);
             float textScale = getFittingButtonTextScale(label, btnWPx, 2.15f);
             ui.drawCenteredText(label, bx + bw / 2f, by + bh / 2f,
                     CustomColor.fromHexString("FFFFFF"), textScale);
@@ -1361,7 +1360,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     }
 
     private float getFittingButtonTextScale(String text, float buttonWidthPx, float preferredTextScale) {
-        int textWidth = MinecraftClient.getInstance().textRenderer.getWidth(text);
+        int textWidth = Minecraft.getInstance().font.width(text);
         if (textWidth <= 0) return preferredTextScale;
 
         float availableWidthPx = buttonWidthPx - 16f;
@@ -1378,7 +1377,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         ui.drawText(text, x, y, color, hAlign, vAlign, getOverlayTextScale(textScale));
     }
 
-    private void drawOverlayText(Text text, float x, float y, CustomColor color,
+    private void drawOverlayText(Component text, float x, float y, CustomColor color,
                                  HorizontalAlignment hAlign, VerticalAlignment vAlign, float textScale) {
         ui.drawText(text, x, y, color, hAlign, vAlign, getOverlayTextScale(textScale));
     }
@@ -1527,9 +1526,9 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     }
 
     private boolean isShiftDown() {
-        long handle = MinecraftClient.getInstance().getWindow().getHandle();
-        return GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS
-                || GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
+        long handle = Minecraft.getInstance().getWindow().handle();
+        return InputCompat.keyState(handle, InputCompat.KEY_LEFT_SHIFT) == InputCompat.PRESS
+                || InputCompat.keyState(handle, InputCompat.KEY_RIGHT_SHIFT) == InputCompat.PRESS;
     }
 
     private int findVisualSlotAt(double mx, double my) {
@@ -1541,7 +1540,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
 
     // ==================== VANILLA MODE TOGGLE (static, used by mixin) ====================
 
-    public static void renderVanillaToggleButton(DrawContext ctx, HandledScreen<?> screen) {
+    public static void renderVanillaToggleButton(GuiGraphicsExtractor ctx, AbstractContainerScreen<?> screen) {
         if (WynnExtrasConfig.INSTANCE.hideClassSelectionQuickToggleButton) {
             vanillaMode = false;
             return;
@@ -1550,16 +1549,16 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         String title = screen.getTitle().getString();
         if (!isClassSelectionScreen(title)) return;
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        int sw = mc.getWindow().getScaledWidth();
-        double mx = mc.mouse.getX() * sw / mc.getWindow().getWidth();
-        double my = mc.mouse.getY() * mc.getWindow().getScaledHeight() / mc.getWindow().getHeight();
+        Minecraft mc = Minecraft.getInstance();
+        int sw = mc.getWindow().getGuiScaledWidth();
+        double mx = mc.mouseHandler.xpos() * sw / mc.getWindow().getScreenWidth();
+        double my = mc.mouseHandler.ypos() * mc.getWindow().getGuiScaledHeight() / mc.getWindow().getScreenHeight();
         UIUtils vanillaUi = new UIUtils(ctx, 1, 0, 0);
         layoutToggleWidget(VANILLA_TOGGLE_WIDGET, sw, 1f);
         VANILLA_TOGGLE_WIDGET.draw(ctx, (int) mx, (int) my, 0, vanillaUi);
     }
 
-    public static boolean handleVanillaToggleClick(double mx, double my, HandledScreen<?> screen) {
+    public static boolean handleVanillaToggleClick(double mx, double my, AbstractContainerScreen<?> screen) {
         if (WynnExtrasConfig.INSTANCE.hideClassSelectionQuickToggleButton) {
             vanillaMode = false;
             return false;
@@ -1568,8 +1567,8 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         String title = screen.getTitle().getString();
         if (!isClassSelectionScreen(title)) return false;
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        layoutToggleWidget(VANILLA_TOGGLE_WIDGET, mc.getWindow().getScaledWidth(), 1f);
+        Minecraft mc = Minecraft.getInstance();
+        layoutToggleWidget(VANILLA_TOGGLE_WIDGET, mc.getWindow().getGuiScaledWidth(), 1f);
         return VANILLA_TOGGLE_WIDGET.mouseClicked(mx, my, 0);
     }
 
@@ -1600,7 +1599,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawButton(x, y, width, height, hovered);
             ui.drawCenteredText(WynnExtrasConfig.INSTANCE.customClassSelectionEnabled ? "Disable class overlay" : "Enable class overlay",
                     x + width / 2f, y + height / 2f, CustomColor.fromHexString("FFFFFF"), textScale);
@@ -1639,12 +1638,12 @@ public class ClassSelectionOverlay extends WEHandledScreen {
 
     private static boolean handleDescriptionKey(int key, int scanCode, int modifiers) {
         ensureDescriptionInputWidget();
-        if (key == GLFW.GLFW_KEY_ESCAPE) {
+        if (key == InputCompat.KEY_ESCAPE) {
             descriptionInputActive = false;
             descriptionInputWidget.setFocused(false);
             return true;
         }
-        if (key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER) {
+        if (key == InputCompat.KEY_ENTER || key == InputCompat.KEY_KP_ENTER) {
             confirmDescription();
             return true;
         }
@@ -1688,7 +1687,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         descriptionInputWidget.setOnChange(value -> descriptionText = value);
     }
 
-    private void drawDescriptionInput(DrawContext ctx, int mouseX, int mouseY) {
+    private void drawDescriptionInput(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
         if (!descriptionInputActive) return;
 
         ctx.fill(0, 0, screenWidth, screenHeight, 0x88000000);
@@ -1702,10 +1701,10 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         ctx.fill((int)boxXPx, (int)boxYPx,
                 (int)(boxXPx + boxWPx), (int)(boxYPx + boxHPx), 0xFF1a1410);
 
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         String title = "Set Class Description";
-        int titleW = mc.textRenderer.getWidth(title);
-        ctx.drawText(mc.textRenderer, title,
+        int titleW = mc.font.width(title);
+        ctx.text(mc.font, title,
                 (int)(boxXPx + (boxWPx - titleW) / 2f), (int)(boxYPx + 14), 0xFFFFAA00, true);
 
         float fieldX = boxXPx + 22, fieldY = boxYPx + 46;
@@ -1717,12 +1716,12 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         descriptionInputWidget.draw(ctx, mouseX, mouseY, 0, ui);
 
         String counter = descriptionText.length() + "/" + DESCRIPTION_MAX_LENGTH;
-        ctx.drawText(mc.textRenderer, counter,
-                (int)(fieldX + fieldW - mc.textRenderer.getWidth(counter)), (int)(fieldY + fieldH + 6), 0xFF888888, false);
+        ctx.text(mc.font, counter,
+                (int)(fieldX + fieldW - mc.font.width(counter)), (int)(fieldY + fieldH + 6), 0xFF888888, false);
 
         String hint = "Enter to confirm  |  Escape to cancel";
-        int hintW = mc.textRenderer.getWidth(hint);
-        ctx.drawText(mc.textRenderer, hint,
+        int hintW = mc.font.width(hint);
+        ctx.text(mc.font, hint,
                 (int)(boxXPx + (boxWPx - hintW) / 2f), (int)(boxYPx + boxHPx - 24), 0xFF666666, false);
     }
 
@@ -1763,15 +1762,15 @@ public class ClassSelectionOverlay extends WEHandledScreen {
             }
             bgImgW = image.getWidth();
             bgImgH = image.getHeight();
-            NativeImageBackedTexture texture = new NativeImageBackedTexture(() -> "wynnextras_class_bg", image);
-            bgTexture = Identifier.of("wynnextras", "class_bg_" + System.currentTimeMillis());
-            MinecraftClient.getInstance().getTextureManager().registerTexture(bgTexture, texture);
+            DynamicTexture texture = new DynamicTexture(() -> "wynnextras_class_bg", image);
+            bgTexture = Identifier.fromNamespaceAndPath("wynnextras", "class_bg_" + System.currentTimeMillis());
+            Minecraft.getInstance().getTextureManager().register(bgTexture, texture);
         } catch (Exception ignored) { }
     }
 
     public static void invalidateBackground() {
         if (bgTexture != null) {
-            MinecraftClient.getInstance().getTextureManager().destroyTexture(bgTexture);
+            Minecraft.getInstance().getTextureManager().release(bgTexture);
             bgTexture = null;
         }
         bgScanned = false;
@@ -1782,10 +1781,10 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     private void clickSlot(int slotIndex, int mouseButton) {
         try {
             if (WynntilsEventAdapter.postContainerClick(
-                    MinecraftUtils.containerMenu(), slotIndex, SlotActionType.PICKUP, mouseButton)) return;
+                    MinecraftUtils.containerMenu(), slotIndex, ContainerInput.PICKUP, mouseButton)) return;
 
-            ContainerUtils.clickOnSlot(slotIndex, MinecraftUtils.containerMenu().syncId,
-                    mouseButton, MinecraftUtils.containerMenu().getStacks());
+            ContainerUtils.clickOnSlot(slotIndex, MinecraftUtils.containerMenu().containerId,
+                    mouseButton, MinecraftUtils.containerMenu().getItems());
         } catch (Exception e) {}
     }
 
@@ -1841,7 +1840,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     }
 
     private List<ItemStack> getStacks() {
-        try { return MinecraftUtils.containerMenu().getStacks(); }
+        try { return MinecraftUtils.containerMenu().getItems(); }
         catch (Exception e) { return null; }
     }
 
@@ -1851,8 +1850,8 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         return mx >= sx && mx <= sx + sw && my >= sy && my <= sy + sh;
     }
 
-    private static List<Text> getTooltipLines(ItemStack stack) {
-        return stack.getTooltip(Item.TooltipContext.DEFAULT, MinecraftClient.getInstance().player, TooltipType.BASIC);
+    private static List<Component> getTooltipLines(ItemStack stack) {
+        return stack.getTooltipLines(Item.TooltipContext.EMPTY, Minecraft.getInstance().player, TooltipFlag.NORMAL);
     }
 
     /** Strip formatting codes, brackets, and Wynncraft resource pack glyphs */
@@ -1889,20 +1888,20 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     }
 
     private float getTextWidthPx(String text, float textScale) {
-        return MinecraftClient.getInstance().textRenderer.getWidth(text)
+        return Minecraft.getInstance().font.width(text)
                 * getOverlayTextScale(textScale) / (float) scaleFactor;
     }
 
     private String extractClassInfo(ItemStack stack) {
-        for (Text line : getTooltipLines(stack)) {
+        for (Component line : getTooltipLines(stack)) {
             String str = cleanTooltipLine(line);
             if (str.contains("Class")) return str;
         }
         return "";
     }
 
-    private Text extractGamemodeIcons(ItemStack stack) {
-        for (Text line : getTooltipLines(stack)) {
+    private Component extractGamemodeIcons(ItemStack stack) {
+        for (Component line : getTooltipLines(stack)) {
             String raw = stripFormattingCodes(line.getString());
             String cleaned = cleanTooltipLine(line);
             if (!cleaned.contains("Class")) continue;
@@ -1915,7 +1914,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
 
             return sliceStyledText(line, classLabelIdx + "Class: ".length() + 1, classLabelIdx + "Class:".length() + classNameIdx + 1);
         }
-        return Text.empty();
+        return Component.empty();
     }
 
     private int findClassNameIndex(String text) {
@@ -1934,7 +1933,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         List<String> detectedDetails = new ArrayList<>();
         boolean afterClassLine = false;
         boolean skippingContentProgress = false;
-        for (Text line : getTooltipLines(stack)) {
+        for (Component line : getTooltipLines(stack)) {
             String str = cleanTooltipLine(line);
             if (str.isEmpty()) continue;
 
@@ -1987,7 +1986,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     }
 
     private String extractLevelDetail(ItemStack stack) {
-        for (Text line : getTooltipLines(stack)) {
+        for (Component line : getTooltipLines(stack)) {
             String str = cleanTooltipLine(line);
             if (!str.contains("Level:")) continue;
             String after = str.substring(str.indexOf("Level:") + "Level:".length()).trim();
@@ -2008,7 +2007,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
                     hasVisibleDuplicateClassCard(identity)
             );
             if (weapon != null && !weapon.isEmpty()) {
-                String detail = truncate("- Weapon: " + cleanName(weapon.getName().getString()), 30);
+                String detail = truncate("- Weapon: " + cleanName(weapon.getHoverName().getString()), 30);
                 return detail;
             }
         }
@@ -2082,7 +2081,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         return null;
     }
 
-    private Text sliceStyledText(Text text, int start, int end) {
+    private Component sliceStyledText(Component text, int start, int end) {
         List<StyledTextSegment> segments = new ArrayList<>();
         int[] pos = {0};
         text.visit((style, string) -> {
@@ -2098,7 +2097,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         }, Style.EMPTY);
 
         trimStyledSegments(segments);
-        MutableText result = Text.empty();
+        MutableComponent result = Component.empty();
         int remainingChars = 0;
         for (StyledTextSegment segment : segments) {
             remainingChars += segment.text.codePointCount(0, segment.text.length());
@@ -2108,10 +2107,10 @@ public class ClassSelectionOverlay extends WEHandledScreen {
             for (int offset = 0; offset < segment.text.length();) {
                 int codePoint = segment.text.codePointAt(offset);
                 String glyph = new String(Character.toChars(codePoint));
-                result.append(Text.literal(glyph).setStyle(segment.style));
+                result.append(Component.literal(glyph).setStyle(segment.style));
                 remainingChars--;
                 if (remainingChars > 0) {
-                    result.append(Text.literal(" ").setStyle(segment.style));
+                    result.append(Component.literal(" ").setStyle(segment.style));
                 }
                 offset += Character.charCount(codePoint);
             }
@@ -2169,7 +2168,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
         }
     }
 
-    private String cleanTooltipLine(Text line) {
+    private String cleanTooltipLine(Component line) {
         return cleanName(line.getString().replaceAll("\u00A7[0-9a-fk-or]", ""));
     }
 
@@ -2178,7 +2177,7 @@ public class ClassSelectionOverlay extends WEHandledScreen {
     }
 
     private ContentProgress extractContentProgress(ItemStack stack) {
-        List<Text> lines = getTooltipLines(stack);
+        List<Component> lines = getTooltipLines(stack);
         for (int i = 0; i < lines.size(); i++) {
             String str = cleanTooltipLine(lines.get(i));
             if (!str.equalsIgnoreCase("Content Progress")) continue;

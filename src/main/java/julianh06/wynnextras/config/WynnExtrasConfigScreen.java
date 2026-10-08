@@ -15,19 +15,18 @@ import julianh06.wynnextras.features.profileviewer.PV;
 import julianh06.wynnextras.features.tetris.TetrisScreen;
 import julianh06.wynnextras.utils.LinkUtils;
 import julianh06.wynnextras.utils.WynncraftApiHandler;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
 import julianh06.wynnextras.utils.UI.WEScreen;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -50,7 +49,7 @@ import java.util.function.Supplier;
  * 3. To add subcategories: category.sub("SubcategoryName").add(...)
  */
 public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContext {
-    private static Identifier logoTexture = Identifier.of("wynnextras", "textures/general/wynnextrasbanner.png");
+    private static Identifier logoTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/wynnextrasbanner.png");
     private static final WynnExtrasConfig DEFAULT_CONFIG = new WynnExtrasConfig();
 
     private final Screen parent;
@@ -99,7 +98,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
     private static final int SEARCH_BAR_HEIGHT = 28;
 
     public WynnExtrasConfigScreen(Screen parent) {
-        super(Text.literal("WynnExtras Configuration"));
+        super(Component.literal("WynnExtras Configuration"));
         this.parent = parent;
         this.config = WynnExtrasConfig.INSTANCE;
         this.originalTelemetryMode = config.telemetryMode;
@@ -136,18 +135,18 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
                     PV.open(MinecraftUtils.playerName());
                 }, "Open"))
                 .add(button("Waypoints", "Open the Waypoints screen", (x) -> {
-                    MinecraftClient.getInstance().setScreen(null);
-                    if (MinecraftClient.getInstance().player != null) {
-                        MinecraftClient.getInstance().player.networkHandler.sendChatCommand("we waypoints");
+                    Minecraft.getInstance().gui.setScreen(null);
+                    if (Minecraft.getInstance().player != null) {
+                        Minecraft.getInstance().player.connection.sendCommand("we waypoints");
                     }
                 }, "Open"))
                 .add(button("Achievements", "Open achievements and badge customization", (x) -> {
                     WEScreen.open(AchievementScreen::new);
                 }, "Open"))
                 .add(button("Raid List", "Open the Raid List", (x) -> {
-                    MinecraftClient.getInstance().setScreen(null);
-                    if (MinecraftClient.getInstance().player != null) {
-                        MinecraftClient.getInstance().player.networkHandler.sendChatCommand("we raidlist");
+                    Minecraft.getInstance().gui.setScreen(null);
+                    if (Minecraft.getInstance().player != null) {
+                        Minecraft.getInstance().player.connection.sendCommand("we raidlist");
                     }
                 }, "Open"))
             .endSub()
@@ -643,7 +642,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
                 .add(slider("Pitch", "Sound pitch",
                         0, 200, () -> (int)(config.soundPitch), v -> config.soundPitch = v))
                 .add(button("Sound Test", "Click the button to test the sound",
-                        v -> MinecraftUtils.playSoundAmbient(SoundEvent.of(Identifier.of(config.notificationSound.getSoundId())), config.soundVolume / 100, config.soundPitch / 100), "Test")).endSub()
+                        v -> MinecraftUtils.playSoundAmbient(SoundEvent.createVariableRangeEvent(Identifier.parse(config.notificationSound.getSoundId())), config.soundVolume / 100, config.soundPitch / 100), "Test")).endSub()
             .sub("Direct Messages")
                 .add(toggle("Play Sound On Message", "Play a sound when another player sends you a direct message",
                         () -> config.privateMessageSound, v -> config.privateMessageSound = v))
@@ -657,7 +656,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
                                 0, 200, () -> (int)(config.privateMessageSoundPitch), v -> config.privateMessageSoundPitch = v),
                         () -> config.privateMessageSound))
                 .add(visibleWhen(button("Sound Test", "Click the button to test the sound",
-                                v -> MinecraftUtils.playSoundAmbient(SoundEvent.of(Identifier.of(config.privateMessageSoundType.getSoundId())), config.privateMessageSoundVolume / 100, config.privateMessageSoundPitch / 100), "Test"),
+                                v -> MinecraftUtils.playSoundAmbient(SoundEvent.createVariableRangeEvent(Identifier.parse(config.privateMessageSoundType.getSoundId())), config.privateMessageSoundVolume / 100, config.privateMessageSoundPitch / 100), "Test"),
                         () -> config.privateMessageSound)).endSub()
             .sub("Premade Notifications")
                 .add(toggle("Lost Eye", "Lost Eye in TNA light room",
@@ -1075,7 +1074,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
             .add(slider("Pitch", "Sound pitch",
                     0, 200, () -> (int)(config.soundPitch), v -> config.soundPitch = v))
             .add(button("Sound Test", "Click the button to test the sound",
-                    v -> MinecraftUtils.playSoundAmbient(SoundEvent.of(Identifier.of(config.notificationSound.getSoundId())), config.soundVolume / 100, config.soundPitch / 100), "Test")).endSub()
+                    v -> MinecraftUtils.playSoundAmbient(SoundEvent.createVariableRangeEvent(Identifier.parse(config.notificationSound.getSoundId())), config.soundVolume / 100, config.soundPitch / 100), "Test")).endSub()
         .sub("Direct Messages")
             .add(toggle("Play Sound On Message", "Play a sound when another player sends you a direct message",
                     () -> config.privateMessageSound, v -> config.privateMessageSound = v))
@@ -1089,7 +1088,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
                             0, 200, () -> (int)(config.privateMessageSoundPitch), v -> config.privateMessageSoundPitch = v),
                     () -> config.privateMessageSound))
             .add(visibleWhen(button("Sound Test", "Click the button to test the sound",
-                            v -> MinecraftUtils.playSoundAmbient(SoundEvent.of(Identifier.of(config.privateMessageSoundType.getSoundId())), config.privateMessageSoundVolume / 100, config.privateMessageSoundPitch / 100), "Test"),
+                            v -> MinecraftUtils.playSoundAmbient(SoundEvent.createVariableRangeEvent(Identifier.parse(config.privateMessageSoundType.getSoundId())), config.privateMessageSoundVolume / 100, config.privateMessageSoundPitch / 100), "Test"),
                     () -> config.privateMessageSound))
         .endSub()
         .sub("Waypoints")
@@ -1310,7 +1309,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
     // ==================== SCREEN LIFECYCLE ====================
     @Override
     protected void init() {
-        selectedCategory = MathHelper.clamp(lastSelectedCategory, 0, categories.size() - 1);
+        selectedCategory = Mth.clamp(lastSelectedCategory, 0, categories.size() - 1);
         for (Category cat : categories) {
             for (Object item : cat.items) {
                 if (item instanceof SubCategory sub) {
@@ -1320,7 +1319,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
             }
         }
         updateMaxScroll();
-        scrollTarget = MathHelper.clamp(lastScrollTarget, 0, maxScroll);
+        scrollTarget = Mth.clamp(lastScrollTarget, 0, maxScroll);
         scrollOffset = scrollTarget;
     }
 
@@ -1335,15 +1334,15 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
 
     // ==================== RENDERING ====================
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         updateMaxScroll();
-        scrollTarget = MathHelper.clamp(scrollTarget, 0, maxScroll);
+        scrollTarget = Mth.clamp(scrollTarget, 0, maxScroll);
         double scrollDiff = scrollTarget - scrollOffset;
         if (Math.abs(scrollDiff) < SCROLL_SNAP) scrollOffset = scrollTarget;
         else scrollOffset += scrollDiff * SCROLL_SPEED * delta;
 
         double sidebarMax = getSidebarMaxScroll();
-        sidebarScrollTarget = MathHelper.clamp(sidebarScrollTarget, 0, sidebarMax);
+        sidebarScrollTarget = Mth.clamp(sidebarScrollTarget, 0, sidebarMax);
         double sidebarDiff = sidebarScrollTarget - sidebarScrollOffset;
         if (Math.abs(sidebarDiff) < SCROLL_SNAP) sidebarScrollOffset = sidebarScrollTarget;
         else sidebarScrollOffset += sidebarDiff * SCROLL_SPEED * delta;
@@ -1364,7 +1363,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
         }
     }
 
-    private void drawDiamond(DrawContext context, int cx, int cy, int size, int color) {
+    private void drawDiamond(GuiGraphicsExtractor context, int cx, int cy, int size, int color) {
         for (int i = 0; i <= size; i++) {
             context.fill(cx - i, cy - size + i, cx + i + 1, cy - size + i + 1, color);
             context.fill(cx - i, cy + size - i, cx + i + 1, cy + size - i + 1, color);
@@ -1378,11 +1377,11 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
         return Math.max(0, count * 28 - listH);
     }
 
-    private void drawSidebar(DrawContext ctx, int mouseX, int mouseY) {
+    private void drawSidebar(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
         ctx.fill(0, 0, SIDEBAR_WIDTH, height, BG_MEDIUM);
         ctx.fill(SIDEBAR_WIDTH - 2, 0, SIDEBAR_WIDTH, height, BORDER_DARK);
 
-        ctx.drawCenteredTextWithShadow(textRenderer, "Categories", SIDEBAR_WIDTH / 2, 18, GOLD);
+        ctx.centeredText(font, "Categories", SIDEBAR_WIDTH / 2, 18, GOLD);
         ctx.fill(20, 32, SIDEBAR_WIDTH - 20, 33, GOLD_DARK);
 
         // Search bar
@@ -1398,7 +1397,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
         int searchTextColor = searchQuery.isEmpty() && !searchFocused ? TEXT_DIM : TEXT_LIGHT;
         String displayText = searchText;
         if (displayText.length() > 12) displayText = displayText.substring(0, 10) + "..";
-        ctx.drawTextWithShadow(textRenderer, displayText + (searchFocused ? "_" : ""),
+        ctx.text(font, displayText + (searchFocused ? "_" : ""),
                 14, searchY + 10, searchTextColor);
 
         if (!searchQuery.isEmpty()) {
@@ -1406,7 +1405,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
             boolean clearHovered = mouseX >= clearX && mouseX < clearX + 20
                     && mouseY >= searchY + 4 && mouseY < searchY + 24;
             ctx.fill(clearX, searchY + 4, clearX + 20, searchY + 24, clearHovered ? ACCENT_RED : BG_DARK);
-            ctx.drawCenteredTextWithShadow(textRenderer, "X", clearX + 10, searchY + 10, TEXT_LIGHT);
+            ctx.centeredText(font, "X", clearX + 10, searchY + 10, TEXT_LIGHT);
         }
 
         int listStartY = searchY + SEARCH_BAR_HEIGHT + 8;
@@ -1414,7 +1413,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
         int listH = listEndY - listStartY;
 
         double sidebarMaxScroll = getSidebarMaxScroll();
-        sidebarScrollOffset = MathHelper.clamp(sidebarScrollOffset, 0, sidebarMaxScroll);
+        sidebarScrollOffset = Mth.clamp(sidebarScrollOffset, 0, sidebarMaxScroll);
 
         ctx.enableScissor(0, listStartY, SIDEBAR_WIDTH - 2, listEndY);
 
@@ -1435,7 +1434,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
             }
 
             drawDiamond(ctx, 20, y + 10, 4, cat.color);
-            ctx.drawTextWithShadow(textRenderer, cat.name, 30, y + 7, selected ? TEXT_LIGHT : TEXT_DIM);
+            ctx.text(font, cat.name, 30, y + 7, selected ? TEXT_LIGHT : TEXT_DIM);
 
             y += 28;
         }
@@ -1454,7 +1453,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
         }
     }
 
-    private void drawMainPanel(DrawContext ctx, int mouseX, int mouseY) {
+    private void drawMainPanel(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
         int panelX = SIDEBAR_WIDTH + 5;
         int panelW = width - SIDEBAR_WIDTH - 10;
 
@@ -1469,8 +1468,8 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
         // Header
         ctx.fill(panelX + 5, 10, panelX + panelW - 5, HEADER_HEIGHT, PARCHMENT);
         ctx.fill(panelX + 5, 10, panelX + panelW - 5, 12, cat.color);
-        ctx.drawCenteredTextWithShadow(textRenderer, "WynnExtras", panelX + panelW / 2, 19, TEXT_LIGHT);
-        ctx.drawCenteredTextWithShadow(textRenderer, "Configuration - v" + CurrentVersionData.INSTANCE.version, panelX + panelW / 2, 32, TEXT_DIM);
+        ctx.centeredText(font, "WynnExtras", panelX + panelW / 2, 19, TEXT_LIGHT);
+        ctx.centeredText(font, "Configuration - v" + CurrentVersionData.INSTANCE.version, panelX + panelW / 2, 32, TEXT_DIM);
         ctx.fill(panelX + 15, 48, panelX + panelW - 15, 50, cat.color);
 
         drawDiamond(ctx, panelX + 11, 4 + HEADER_HEIGHT / 2, 3, cat.color);
@@ -1482,7 +1481,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
         int listBottom = height - FOOTER_HEIGHT - 10;
 
         drawDiamond(ctx, contentX + 5, listTop + 2, 5, cat.color);
-        ctx.drawTextWithShadow(textRenderer, cat.name, contentX + 16, listTop - 1, cat.color);
+        ctx.text(font, cat.name, contentX + 16, listTop - 1, cat.color);
         ctx.fill(contentX, listTop + 12, contentX + contentW, listTop + 13, cat.color);
 
         ctx.enableScissor(panelX, listTop + 15, panelX + panelW - 15, listBottom);
@@ -1520,8 +1519,8 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
             ctx.fill(contentX, stickyY, contentX + contentW, stickyY + 1, BORDER_LIGHT);
             ctx.fill(contentX, stickyY + SUBCATEGORY_HEADER_HEIGHT - 1, contentX + contentW, stickyY + SUBCATEGORY_HEADER_HEIGHT, BORDER_DARK);
             String arrow = stickySub.isExpanded() ? "▼" : "▶";
-            ctx.drawTextWithShadow(textRenderer, arrow, contentX + 8, stickyY + 8, selectedCategoryColor);
-            ctx.drawTextWithShadow(textRenderer, stickySub.name, contentX + 22, stickyY + 8, TEXT_LIGHT);
+            ctx.text(font, arrow, contentX + 8, stickyY + 8, selectedCategoryColor);
+            ctx.text(font, stickySub.name, contentX + 22, stickyY + 8, TEXT_LIGHT);
         }
 
         if (maxScroll > 0) {
@@ -1536,7 +1535,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
         }
     }
 
-    private int renderSubCategory(DrawContext ctx, SubCategory sub, int x, int y, int w, int mX, int mY, int top, int bot) {
+    private int renderSubCategory(GuiGraphicsExtractor ctx, SubCategory sub, int x, int y, int w, int mX, int mY, int top, int bot) {
         if (y + SUBCATEGORY_HEADER_HEIGHT > top && y < bot) {
             boolean hovered = mX >= x && mX < x + w && mY >= y && mY < y + SUBCATEGORY_HEADER_HEIGHT;
             ctx.fill(x, y, x + w, y + SUBCATEGORY_HEADER_HEIGHT, hovered ? PARCHMENT_LIGHT : SUBCATEGORY_BG);
@@ -1544,8 +1543,8 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
             ctx.fill(x, y + SUBCATEGORY_HEADER_HEIGHT - 1, x + w, y + SUBCATEGORY_HEADER_HEIGHT, BORDER_DARK);
 
             String arrow = sub.isExpanded() ? "\u25BC" : "\u25B6";
-            ctx.drawTextWithShadow(textRenderer, arrow, x + 8, y + 8, selectedCategoryColor);
-            ctx.drawTextWithShadow(textRenderer, sub.name, x + 22, y + 8, TEXT_LIGHT);
+            ctx.text(font, arrow, x + 8, y + 8, selectedCategoryColor);
+            ctx.text(font, sub.name, x + 22, y + 8, TEXT_LIGHT);
         }
         y += SUBCATEGORY_HEADER_HEIGHT + 5;
 
@@ -1565,7 +1564,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
         return y;
     }
 
-    private void renderDropdownOverlay(DrawContext ctx, int mouseX, int mouseY) {
+    private void renderDropdownOverlay(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
         Object[] values = activeDropdown.getValues();
         int totalContentH = values.length * DROPDOWN_ITEM_HEIGHT;
         int visibleH = Math.min(totalContentH, DROPDOWN_MAX_HEIGHT);
@@ -1582,7 +1581,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
         }
 
         double maxScroll = Math.max(0, totalContentH - visibleH);
-        dropdownScroll = MathHelper.clamp(dropdownScroll, 0, maxScroll);
+        dropdownScroll = Mth.clamp(dropdownScroll, 0, maxScroll);
 
         ctx.fill(ddX - 3, ddY - 3, ddX + ddW + 3, ddY + visibleH + 3, BORDER_DARK);
         ctx.fill(ddX - 2, ddY - 2, ddX + ddW + 2, ddY + visibleH + 2, selectedCategoryColor);
@@ -1608,7 +1607,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
             }
 
             String text = trimDropdownText(values[i].toString(), itemW - 16);
-            ctx.drawTextWithShadow(textRenderer, text, ddX + 8, iy + 7, selected ? GOLD : TEXT_LIGHT);
+            ctx.text(font, text, ddX + 8, iy + 7, selected ? GOLD : TEXT_LIGHT);
         }
 
         ctx.disableScissor();
@@ -1628,7 +1627,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
         int scrollW = needsScroll ? 10 : 0;
         int longestTextW = 0;
         for (Object value : values) {
-            longestTextW = Math.max(longestTextW, textRenderer.getWidth(value.toString()));
+            longestTextW = Math.max(longestTextW, font.width(value.toString()));
         }
 
         int desiredW = Math.max(dropdownWidth, longestTextW + 16 + scrollW);
@@ -1639,17 +1638,17 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
     }
 
     private String trimDropdownText(String text, int maxTextW) {
-        if (textRenderer.getWidth(text) <= maxTextW) return text;
+        if (font.width(text) <= maxTextW) return text;
 
         String suffix = "..";
-        int suffixW = textRenderer.getWidth(suffix);
-        if (maxTextW <= suffixW) return textRenderer.trimToWidth(text, maxTextW);
-        return textRenderer.trimToWidth(text, maxTextW - suffixW) + suffix;
+        int suffixW = font.width(suffix);
+        if (maxTextW <= suffixW) return font.plainSubstrByWidth(text, maxTextW);
+        return font.plainSubstrByWidth(text, maxTextW - suffixW) + suffix;
     }
 
     private record DropdownBounds(int x, int width, int itemWidth) {}
 
-    private void drawFooter(DrawContext ctx, int mouseX, int mouseY) {
+    private void drawFooter(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
         int footerY = height - FOOTER_HEIGHT + 5;
 
         if (selectedCategory < 0 || selectedCategory >= categories.size()) return;
@@ -1671,20 +1670,20 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
         drawButton(ctx, editX, btnY, 100, 24, "Edit HUD positions", editHover, PARCHMENT_LIGHT);
     }
 
-    private void drawButton(DrawContext ctx, int x, int y, int w, int h, String text, boolean hover, int accent) {
+    private void drawButton(GuiGraphicsExtractor ctx, int x, int y, int w, int h, String text, boolean hover, int accent) {
         ctx.fill(x, y, x + w, y + h, hover ? PARCHMENT_HOVER : PARCHMENT);
         ctx.fill(x, y, x + w, y + 1, hover ? GOLD : BORDER_LIGHT);
         ctx.fill(x, y + h - 1, x + w, y + h, BORDER_DARK);
         ctx.fill(x + 2, y + h - 3, x + w - 2, y + h - 2, accent);
-        ctx.drawCenteredTextWithShadow(textRenderer, text, x + w / 2, y + 8, TEXT_LIGHT);
+        ctx.centeredText(font, text, x + w / 2, y + 8, TEXT_LIGHT);
     }
 
     // ==================== INPUT HANDLING ====================
     @Override
-    public boolean mouseClicked(Click click, boolean doubleClick) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubleClick) {
         double mx = click.x();
         double my = click.y();
-        int btn = click.button();
+        int btn = julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button());
 
         if (activeDropdown != null) {
             Object[] values = activeDropdown.getValues();
@@ -1732,7 +1731,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
                 WynnExtrasConfig.save();
                 WynnExtrasConfig.load();
                 applyPrivacyChanges();
-                client.setScreen(parent);
+                minecraft.gui.setScreen(parent);
                 MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
                 return true;
             }
@@ -1740,7 +1739,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
             if (mx >= width - 225 && mx < width - 125) {
                 saveCurrentScreenState();
                 WynnExtrasConfig.load();
-                client.setScreen(parent);
+                minecraft.gui.setScreen(parent);
                 MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
                 return true;
             }
@@ -1748,7 +1747,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
             if (mx >= width - 335 && mx < width - 235) {
                 WynnExtrasConfig.save();
                 WynnExtrasConfig.load();
-                client.setScreen(new HudEditScreen(this));
+                minecraft.gui.setScreen(new HudEditScreen(this));
                 MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
                 return true;
             }
@@ -1802,7 +1801,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
                 return true;
             } else if (my >= sidebarScrollbarY && my < sidebarScrollbarY + sidebarScrollbarHeight) {
                 double clickPercent = (my - sidebarScrollbarY - sidebarScrollbarThumbH / 2.0) / (sidebarScrollbarHeight - sidebarScrollbarThumbH);
-                sidebarScrollTarget = MathHelper.clamp(clickPercent * sidebarMaxScroll, 0, sidebarMaxScroll);
+                sidebarScrollTarget = Mth.clamp(clickPercent * sidebarMaxScroll, 0, sidebarMaxScroll);
                 MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
                 return true;
             }
@@ -1817,7 +1816,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
                 return true;
             } else if (my >= scrollbarY && my < scrollbarY + scrollbarHeight) {
                 double clickPercent = (my - scrollbarY - scrollbarThumbH / 2.0) / (scrollbarHeight - scrollbarThumbH);
-                scrollTarget = MathHelper.clamp(clickPercent * maxScroll, 0, maxScroll);
+                scrollTarget = Mth.clamp(clickPercent * maxScroll, 0, maxScroll);
                 MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
                 return true;
             }
@@ -1849,7 +1848,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
                             contentY += opt.getHeight(contentW) + OPTION_SPACING;
                         }
                     }
-                    scrollTarget = MathHelper.clamp(contentY + 5, 0, maxScroll);
+                    scrollTarget = Mth.clamp(contentY + 5, 0, maxScroll);
                     scrollOffset = scrollTarget;
                 }
                 MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
@@ -1909,10 +1908,10 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
     }
 
     @Override
-    public boolean mouseReleased(Click click) {
+    public boolean mouseReleased(MouseButtonEvent click) {
         double mx = click.x();
         double my = click.y();
-        int btn = click.button();
+        int btn = julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button());
 
         scrollbarDragging = false;
         sidebarScrollbarDragging = false;
@@ -1932,17 +1931,17 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
     }
 
     @Override
-    public boolean mouseDragged(Click click, double dx, double dy) {
+    public boolean mouseDragged(MouseButtonEvent click, double dx, double dy) {
         double mx = click.x();
         double my = click.y();
-        int btn = click.button();
+        int btn = julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button());
 
         if (sidebarScrollbarDragging) {
             double sidebarMaxScroll = getSidebarMaxScroll();
             if (sidebarMaxScroll > 0) {
                 double newThumbY = my - sidebarScrollbarDragOffset;
                 double percent = (newThumbY - sidebarScrollbarY) / (sidebarScrollbarHeight - sidebarScrollbarThumbH);
-                sidebarScrollTarget = MathHelper.clamp(percent * sidebarMaxScroll, 0, sidebarMaxScroll);
+                sidebarScrollTarget = Mth.clamp(percent * sidebarMaxScroll, 0, sidebarMaxScroll);
             }
             return true;
         }
@@ -1950,7 +1949,7 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
         if (scrollbarDragging && maxScroll > 0) {
             double newThumbY = my - scrollbarDragOffset;
             double percent = (newThumbY - scrollbarY) / (scrollbarHeight - scrollbarThumbH);
-            scrollTarget = MathHelper.clamp(percent * maxScroll, 0, maxScroll);
+            scrollTarget = Mth.clamp(percent * maxScroll, 0, maxScroll);
             return true;
         }
 
@@ -1991,56 +1990,56 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
             int totalContentH = values.length * DROPDOWN_ITEM_HEIGHT;
             int visibleH = Math.min(totalContentH, DROPDOWN_MAX_HEIGHT);
             double maxDropScroll = Math.max(0, totalContentH - visibleH);
-            dropdownScroll = MathHelper.clamp(dropdownScroll - vAmt * 20, 0, maxDropScroll);
+            dropdownScroll = Mth.clamp(dropdownScroll - vAmt * 20, 0, maxDropScroll);
             return true;
         }
         if (mx > SIDEBAR_WIDTH) {
-            scrollTarget = MathHelper.clamp(scrollTarget - vAmt * 30, 0, maxScroll);
+            scrollTarget = Mth.clamp(scrollTarget - vAmt * 30, 0, maxScroll);
         } else {
-            sidebarScrollTarget = MathHelper.clamp(sidebarScrollTarget - vAmt * 20, 0, getSidebarMaxScroll());
+            sidebarScrollTarget = Mth.clamp(sidebarScrollTarget - vAmt * 20, 0, getSidebarMaxScroll());
         }
         return true;
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
+    public boolean keyPressed(KeyEvent input) {
         for (ConfigOption opt : getCurrentOptions()) {
-            if (opt.keyPressed(input.key(), input.scancode(), input.modifiers())) return true;
+            if (opt.keyPressed(julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key()), input.keycode(), julianh06.wynnextras.compat.client.InputCompat.legacyModifiers(input.modifiers()))) return true;
         }
 
         // Relay to any listening KeybindOption
         for (Category cat : categories) {
             for (Object item : cat.items) {
                 if (item instanceof ConfigOption opt) {
-                    if (opt instanceof KeybindOption kb && kb.onKeyPressed(input.key())) return true;
+                    if (opt instanceof KeybindOption kb && kb.onKeyPressed(julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key()))) return true;
                 } else if (item instanceof SubCategory sub) {
                     for (ConfigOption opt : sub.options) {
-                        if (opt instanceof KeybindOption kb && kb.onKeyPressed(input.key())) return true;
+                        if (opt instanceof KeybindOption kb && kb.onKeyPressed(julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key()))) return true;
                     }
                 }
             }
         }
 
-        int key = input.key();
+        int key = julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key());
         if (activeDropdown != null && key == 256) {
             activeDropdown = null;
             return true;
         }
 
         if (searchFocused) {
-            boolean ctrl = (input.modifiers() & org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL) != 0;
-            if (ctrl && key == org.lwjgl.glfw.GLFW.GLFW_KEY_V) {
-                String clipboard = net.minecraft.client.MinecraftClient.getInstance().keyboard.getClipboard();
+            boolean ctrl = (julianh06.wynnextras.compat.client.InputCompat.legacyModifiers(input.modifiers()) & julianh06.wynnextras.compat.client.InputCompat.MOD_CONTROL) != 0;
+            if (ctrl && key == julianh06.wynnextras.compat.client.InputCompat.KEY_V) {
+                String clipboard = net.minecraft.client.Minecraft.getInstance().keyboardHandler.getClipboard();
                 if (clipboard != null && !clipboard.isEmpty()) {
                     searchQuery += clipboard.replaceAll("[\\r\\n\\t]", "");
                     onSearchQueryChanged();
                 }
                 return true;
-            } else if (ctrl && key == org.lwjgl.glfw.GLFW.GLFW_KEY_C) {
-                net.minecraft.client.MinecraftClient.getInstance().keyboard.setClipboard(searchQuery);
+            } else if (ctrl && key == julianh06.wynnextras.compat.client.InputCompat.KEY_C) {
+                net.minecraft.client.Minecraft.getInstance().keyboardHandler.setClipboard(searchQuery);
                 return true;
-            } else if (ctrl && key == org.lwjgl.glfw.GLFW.GLFW_KEY_X) {
-                net.minecraft.client.MinecraftClient.getInstance().keyboard.setClipboard(searchQuery);
+            } else if (ctrl && key == julianh06.wynnextras.compat.client.InputCompat.KEY_X) {
+                net.minecraft.client.Minecraft.getInstance().keyboardHandler.setClipboard(searchQuery);
                 searchQuery = "";
                 onSearchQueryChanged();
                 return true;
@@ -2063,16 +2062,16 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
     }
 
     @Override
-    public boolean charTyped(CharInput charInput) {
+    public boolean charTyped(CharacterEvent charInput) {
         char c = (char) charInput.codepoint();
         for (ConfigOption opt : getCurrentOptions()) {
-            if (opt.charTyped(c, charInput.modifiers())) return true;
+            if (opt.charTyped(c, 0)) return true;
         }
 
         // Block character input when Ctrl is held (Ctrl+V etc.)
-        long window = net.minecraft.client.MinecraftClient.getInstance().getWindow().getHandle();
-        boolean ctrlHeld = org.lwjgl.glfw.GLFW.glfwGetKey(window, org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_CONTROL) == org.lwjgl.glfw.GLFW.GLFW_PRESS
-                || org.lwjgl.glfw.GLFW.glfwGetKey(window, org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_CONTROL) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
+        long window = net.minecraft.client.Minecraft.getInstance().getWindow().handle();
+        boolean ctrlHeld = julianh06.wynnextras.compat.client.InputCompat.keyState(window, julianh06.wynnextras.compat.client.InputCompat.KEY_LEFT_CONTROL) == julianh06.wynnextras.compat.client.InputCompat.PRESS
+                || julianh06.wynnextras.compat.client.InputCompat.keyState(window, julianh06.wynnextras.compat.client.InputCompat.KEY_RIGHT_CONTROL) == julianh06.wynnextras.compat.client.InputCompat.PRESS;
         if (ctrlHeld) return true;
 
         if (searchFocused) {
@@ -2172,9 +2171,9 @@ public class WynnExtrasConfigScreen extends Screen implements ConfigScreenContex
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         saveCurrentScreenState();
-        client.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     private void saveCurrentScreenState() {

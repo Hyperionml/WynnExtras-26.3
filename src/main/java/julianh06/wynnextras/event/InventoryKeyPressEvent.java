@@ -1,7 +1,7 @@
 package julianh06.wynnextras.event;
 
 import julianh06.wynnextras.event.api.WEEvent;
-import net.minecraft.screen.slot.Slot;
+import net.minecraft.world.inventory.Slot;
 import net.neoforged.bus.api.ICancellableEvent;
 
 public class InventoryKeyPressEvent extends WEEvent implements ICancellableEvent {

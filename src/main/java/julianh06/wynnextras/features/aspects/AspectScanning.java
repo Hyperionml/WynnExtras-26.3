@@ -6,29 +6,26 @@ import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.features.abilitytree.TreeLoader;
 import julianh06.wynnextras.features.inventory.BankOverlay;
 import julianh06.wynnextras.utils.WynncraftApiHandler;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.Component;
+import julianh06.wynnextras.compat.client.Tuple;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import julianh06.wynnextras.features.raid.RaidLootConfig;
 import julianh06.wynnextras.features.raid.RaidLootData;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.tooltip.TooltipType;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Text;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Pair;
-
 import java.time.ZonedDateTime;
 import java.util.*;
-import java.util.HashMap;
-import java.util.List;
 
 
 public class AspectScanning {
     static int SearchedPages = 0;
-    public static final Map<String, Pair<String, String>> allAspects = new HashMap<>();
+    public static final Map<String, Tuple<String, String>> allAspects = new HashMap<>();
 
     private static final Map<String, Long> lastPersonalUploadTime = new HashMap<>();
     private static final long PERSONAL_UPLOAD_COOLDOWN_MS = 60_000;
@@ -47,14 +44,14 @@ public class AspectScanning {
             "TWP", new double[]{-19065, 125, -1819}
     );
 
-    public static Map<String, Pair<String, String>> aspectsToUpload = new HashMap<>();
+    public static Map<String, Tuple<String, String>> aspectsToUpload = new HashMap<>();
 
-    public static void openMenu(MinecraftClient client, PlayerEntity player) {
+    public static void openMenu(Minecraft client, Player player) {
         int currentSlot = player.getInventory().getSelectedSlot();
         player.getInventory().setSelectedSlot(7);
 
         // Just click normally - this opens the character menu
-        client.interactionManager.interactItem(player, Hand.MAIN_HAND);
+        client.gameMode.useItem(player, InteractionHand.MAIN_HAND);
 
         player.getInventory().setSelectedSlot(currentSlot);
 
@@ -63,10 +60,10 @@ public class AspectScanning {
         maintracking.setAspectScanreq(true);
     }
 
-    public static Map<String, Pair<String, String>> AspectsInMenu() {
-        Screen currScreen = MinecraftClient.getInstance().currentScreen;
-        HandledScreen<?> screen = (currScreen instanceof HandledScreen) ? (HandledScreen<?>) currScreen : null;
-        Map<String, Pair<String, String>> result = new HashMap<>();
+    public static Map<String, Tuple<String, String>> AspectsInMenu() {
+        Screen currScreen = Minecraft.getInstance().gui.screen();
+        AbstractContainerScreen<?> screen = (currScreen instanceof AbstractContainerScreen) ? (AbstractContainerScreen<?>) currScreen : null;
+        Map<String, Tuple<String, String>> result = new HashMap<>();
         if (screen == null) {
             return result;
         } else {
@@ -75,24 +72,24 @@ public class AspectScanning {
                 int[] centerSlots = {4, 11, 15, 18, 26};
 
                 for (int slotIdx : centerSlots) {
-                    if (slotIdx >= screen.getScreenHandler().slots.size()) continue;
-                    Slot slot = screen.getScreenHandler().slots.get(slotIdx);
-                    if (!slot.hasStack()) continue;
+                    if (slotIdx >= screen.getMenu().slots.size()) continue;
+                    Slot slot = screen.getMenu().slots.get(slotIdx);
+                    if (!slot.hasItem()) continue;
 
-                    List<Text> tooltips = slot.getStack().getTooltip(Item.TooltipContext.DEFAULT, MinecraftClient.getInstance().player, TooltipType.BASIC);
+                    List<Component> tooltips = slot.getItem().getTooltipLines(Item.TooltipContext.EMPTY, Minecraft.getInstance().player, TooltipFlag.NORMAL);
                     String name = null;
                     String rarity = "";
 
-                    for (Text tooltip : tooltips) {
+                    for (Component tooltip : tooltips) {
                         String s = tooltip.getString().replaceAll("§.", "").trim();
                         if (name == null && (s.contains("Aspect") || s.contains("Embodiment"))) {
                             name = s;
 
                             // Get rarity from color
-                            if (slot.getStack().getCustomName() != null &&
-                                slot.getStack().getCustomName().getStyle() != null &&
-                                slot.getStack().getCustomName().getStyle().getColor() != null) {
-                                String hexCode = slot.getStack().getCustomName().getStyle().getColor().getHexCode();
+                            if (slot.getItem().getCustomName() != null &&
+                                slot.getItem().getCustomName().getStyle() != null &&
+                                slot.getItem().getCustomName().getStyle().getColor() != null) {
+                                String hexCode = slot.getItem().getCustomName().getStyle().getColor().formatValue();
                                 if(hexCode.equals("#AA00AA")) rarity = "Mythic";
                                 else if(hexCode.equals("#FF5555")) rarity = "Fabled";
                                 else if(hexCode.equals("#55FFFF")) rarity = "Legendary";
@@ -101,7 +98,7 @@ public class AspectScanning {
                     }
 
                     String bestTierLine = null;
-                    for (Text tooltip : tooltips) {
+                    for (Component tooltip : tooltips) {
                         String candidate = extractBestTierLine(tooltip).trim();
                         if (candidate.contains("Tier") &&
                                 (candidate.contains(">>>") || candidate.matches(".*\\[\\d+/\\d+\\].*") || candidate.contains("[MAX]"))) {
@@ -114,22 +111,22 @@ public class AspectScanning {
                     if (name != null && bestTierLine != null && !bestTierLine.isEmpty()) {
                         bestTierLine = bestTierLine.replaceAll("^[^A-Za-z0-9]*", "");
                         bestTierLine = bestTierLine.replaceAll("(\\[MAX])\\1+", "$1");
-                        result.put(name, new Pair<>(bestTierLine, rarity));
+                        result.put(name, new Tuple<>(bestTierLine, rarity));
                     }
                 }
 
                 String classId = BankOverlay.currentCharacterID;
                 if (classId != null && !classId.isEmpty()) {
                     Map<String, String> activeMap = new LinkedHashMap<>();
-                    for (Map.Entry<String, Pair<String, String>> entry : result.entrySet()) {
-                        activeMap.put(entry.getKey(), entry.getValue().getLeft());
+                    for (Map.Entry<String, Tuple<String, String>> entry : result.entrySet()) {
+                        activeMap.put(entry.getKey(), entry.getValue().getA());
                     }
 
                     LocalAspectStorage.saveActiveAspects(classId, activeMap);
                 }
 
                 // Add active aspects to global map immediately
-                for (Map.Entry<String, Pair<String, String>> entry : result.entrySet()) {
+                for (Map.Entry<String, Tuple<String, String>> entry : result.entrySet()) {
                     allAspects.put(entry.getKey(), entry.getValue());
                 }
 
@@ -144,29 +141,29 @@ public class AspectScanning {
             int readCount = 0;
             for (int idx = 0; idx < slotsToRead.length; idx++) {
                 int i = slotsToRead[idx];
-                Slot slot = screen.getScreenHandler().slots.get(i);
+                Slot slot = screen.getMenu().slots.get(i);
 
                 // Stop early if we encounter empty slots before batch is full
-                if (!slot.hasStack()) {
+                if (!slot.hasItem()) {
                     // If this happens before readCount == 18, stop the batch immediately
                     dummyfunction(screen);
                     break; // Exit loop early, immediately go to next page
                 }
 
-                List<Text> tooltips = slot.getStack().getTooltip(Item.TooltipContext.DEFAULT, MinecraftClient.getInstance().player, TooltipType.BASIC);
+                List<Component> tooltips = slot.getItem().getTooltipLines(Item.TooltipContext.EMPTY, Minecraft.getInstance().player, TooltipFlag.NORMAL);
                 String name = null;
                 String rarity = "";
 
-                for (Text tooltip : tooltips) {
+                for (Component tooltip : tooltips) {
                     String s = tooltip.getString().replaceAll("§.", "").trim();
                     if (name == null && (s.contains("Aspect") || s.contains("Embodiment"))) {
                         name = s;
 
                         // Safe null checking for rarity detection
-                        if (slot.getStack().getCustomName() != null &&
-                            slot.getStack().getCustomName().getStyle() != null &&
-                            slot.getStack().getCustomName().getStyle().getColor() != null) {
-                            String hexCode = slot.getStack().getCustomName().getStyle().getColor().getHexCode();
+                        if (slot.getItem().getCustomName() != null &&
+                            slot.getItem().getCustomName().getStyle() != null &&
+                            slot.getItem().getCustomName().getStyle().getColor() != null) {
+                            String hexCode = slot.getItem().getCustomName().getStyle().getColor().formatValue();
                             if(hexCode.equals("#AA00AA")) {
                                 rarity = "Mythic";
                             } else if(hexCode.equals("#FF5555")) {
@@ -179,7 +176,7 @@ public class AspectScanning {
                 }
 
                 String bestTierLine = null;
-                for (Text tooltip : tooltips) {
+                for (Component tooltip : tooltips) {
                     String candidate = extractBestTierLine(tooltip).trim();
                     if (candidate.contains("Tier") &&
                             (candidate.contains(">>>") || candidate.matches(".*\\[\\d+/\\d+\\].*") || candidate.contains("[MAX]"))) {
@@ -192,14 +189,14 @@ public class AspectScanning {
                 if (name != null && bestTierLine != null && !bestTierLine.isEmpty()) {
                     bestTierLine = bestTierLine.replaceAll("^[^A-Za-z0-9]*", "");
                     bestTierLine = bestTierLine.replaceAll("(\\[MAX])\\1+", "$1");
-                    result.put(name, new Pair<>(bestTierLine, rarity));
+                    result.put(name, new Tuple<>(bestTierLine, rarity));
                 }
 
                 readCount++;
                 if (readCount == 18) {
                     // Add current page aspects to global map BEFORE calling dummyfunction
                     // This ensures page 6 aspects are included in the upload
-                    for (Map.Entry<String, Pair<String, String>> entry : result.entrySet()) {
+                    for (Map.Entry<String, Tuple<String, String>> entry : result.entrySet()) {
                         allAspects.put(entry.getKey(), entry.getValue());
                     }
                     dummyfunction(screen);
@@ -209,7 +206,7 @@ public class AspectScanning {
             }
 
             // Add remaining aspects to global map (for pages with < 18 aspects)
-            for (Map.Entry<String, Pair<String, String>> entry : result.entrySet()) {
+            for (Map.Entry<String, Tuple<String, String>> entry : result.entrySet()) {
                 allAspects.put(entry.getKey(), entry.getValue());
             }
 
@@ -217,35 +214,35 @@ public class AspectScanning {
 
             // Don't close screen early - let the normal pagination complete
             // Only close if we've searched all pages (0-6 = 7 pages total)
-            if (SearchedPages > 6 && MinecraftUtils.mc().currentScreen != null) {
-                MinecraftUtils.mc().currentScreen.close();
+            if (SearchedPages > 6 && MinecraftUtils.mc().gui.screen() != null) {
+                MinecraftUtils.mc().gui.screen().onClose();
             }
             return result;
         }
     }
 
     public static void scanCurrentPagePassive() {
-        Screen currScreen = MinecraftClient.getInstance().currentScreen;
-        HandledScreen<?> screen = (currScreen instanceof HandledScreen) ? (HandledScreen<?>) currScreen : null;
+        Screen currScreen = Minecraft.getInstance().gui.screen();
+        AbstractContainerScreen<?> screen = (currScreen instanceof AbstractContainerScreen) ? (AbstractContainerScreen<?>) currScreen : null;
         if (screen == null) return;
 
         int[] centerSlots = {4, 11, 15, 18, 26};
         Map<String, String> activeMap = new LinkedHashMap<>();
         for (int slotIdx : centerSlots) {
-            if (slotIdx >= screen.getScreenHandler().slots.size()) continue;
-            Slot slot = screen.getScreenHandler().slots.get(slotIdx);
-            if (!slot.hasStack()) continue;
+            if (slotIdx >= screen.getMenu().slots.size()) continue;
+            Slot slot = screen.getMenu().slots.get(slotIdx);
+            if (!slot.hasItem()) continue;
 
             String name = null;
             String bestTierLine = null;
-            List<Text> tooltips = slot.getStack().getTooltip(
-                    Item.TooltipContext.DEFAULT, MinecraftClient.getInstance().player, TooltipType.BASIC);
+            List<Component> tooltips = slot.getItem().getTooltipLines(
+                    Item.TooltipContext.EMPTY, Minecraft.getInstance().player, TooltipFlag.NORMAL);
 
-            for (Text tooltip : tooltips) {
+            for (Component tooltip : tooltips) {
                 String s = tooltip.getString().replaceAll("§.", "").trim();
                 if (name == null && (s.contains("Aspect") || s.contains("Embodiment"))) name = s;
             }
-            for (Text tooltip : tooltips) {
+            for (Component tooltip : tooltips) {
                 String candidate = extractBestTierLine(tooltip).trim();
                 if (candidate.contains("Tier") &&
                         (candidate.contains(">>>") || candidate.matches(".*\\[\\d+/\\d+\\].*") || candidate.contains("[MAX]"))) {
@@ -267,31 +264,31 @@ public class AspectScanning {
 
         int[] slotsToRead = {36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53};
         for (int i : slotsToRead) {
-            if (i >= screen.getScreenHandler().slots.size()) break;
-            Slot slot = screen.getScreenHandler().slots.get(i);
-            if (!slot.hasStack()) break;
+            if (i >= screen.getMenu().slots.size()) break;
+            Slot slot = screen.getMenu().slots.get(i);
+            if (!slot.hasItem()) break;
 
             String name = null;
             String rarity = "";
             String bestTierLine = null;
-            List<Text> tooltips = slot.getStack().getTooltip(
-                    Item.TooltipContext.DEFAULT, MinecraftClient.getInstance().player, TooltipType.BASIC);
+            List<Component> tooltips = slot.getItem().getTooltipLines(
+                    Item.TooltipContext.EMPTY, Minecraft.getInstance().player, TooltipFlag.NORMAL);
 
-            for (Text tooltip : tooltips) {
+            for (Component tooltip : tooltips) {
                 String s = tooltip.getString().replaceAll("§.", "").trim();
                 if (name == null && (s.contains("Aspect") || s.contains("Embodiment"))) {
                     name = s;
-                    if (slot.getStack().getCustomName() != null &&
-                            slot.getStack().getCustomName().getStyle() != null &&
-                            slot.getStack().getCustomName().getStyle().getColor() != null) {
-                        String hex = slot.getStack().getCustomName().getStyle().getColor().getHexCode();
+                    if (slot.getItem().getCustomName() != null &&
+                            slot.getItem().getCustomName().getStyle() != null &&
+                            slot.getItem().getCustomName().getStyle().getColor() != null) {
+                        String hex = slot.getItem().getCustomName().getStyle().getColor().formatValue();
                         if (hex.equals("#AA00AA")) rarity = "Mythic";
                         else if (hex.equals("#FF5555")) rarity = "Fabled";
                         else if (hex.equals("#55FFFF")) rarity = "Legendary";
                     }
                 }
             }
-            for (Text tooltip : tooltips) {
+            for (Component tooltip : tooltips) {
                 String candidate = extractBestTierLine(tooltip).trim();
                 if (candidate.contains("Tier") &&
                         (candidate.contains(">>>") || candidate.matches(".*\\[\\d+/\\d+\\].*") || candidate.contains("[MAX]"))) {
@@ -300,17 +297,17 @@ public class AspectScanning {
             }
             if (name != null && bestTierLine != null) {
                 bestTierLine = bestTierLine.replaceAll("^[^A-Za-z0-9]*", "");
-                allAspects.put(name, new Pair<>(bestTierLine, rarity));
+                allAspects.put(name, new Tuple<>(bestTierLine, rarity));
             }
         }
     }
 
     public static void AspectsInRaidChest() {
-        Screen currScreen = MinecraftClient.getInstance().currentScreen;
-        HandledScreen<?> screen = (currScreen instanceof HandledScreen) ? (HandledScreen<?>) currScreen : null;
+        Screen currScreen = Minecraft.getInstance().gui.screen();
+        AbstractContainerScreen<?> screen = (currScreen instanceof AbstractContainerScreen) ? (AbstractContainerScreen<?>) currScreen : null;
         if (screen == null) return;
 
-        if(!screen.getScreenHandler().getSlot(4).hasStack()) {
+        if(!screen.getMenu().getSlot(4).hasItem()) {
             return;
         }
 
@@ -318,7 +315,7 @@ public class AspectScanning {
         if(!maintracking.scanDone) {
             for (int i = 11; i < 16; i++) {
                 int arrayIndex = i - 11; // Map slot 11-15 to array index 0-4
-                Slot slot = screen.getScreenHandler().slots.get(i);
+                Slot slot = screen.getMenu().slots.get(i);
                 ItemStack cachedStack = maintracking.aspectsInChest[arrayIndex];
 
                 // If cached is null, definitely not same page
@@ -327,15 +324,15 @@ public class AspectScanning {
                     break;
                 }
 
-                if (slot.getStack().isEmpty()) {
+                if (slot.getItem().isEmpty()) {
                     if (!cachedStack.isEmpty()) {
                         samePage = false;
                         break;
                     }
                 } else {
                     // Safe null check for customName comparison
-                    Text currentName = slot.getStack().getCustomName();
-                    Text cachedName = cachedStack.getCustomName();
+                    Component currentName = slot.getItem().getCustomName();
+                    Component cachedName = cachedStack.getCustomName();
                     if (currentName == null || cachedName == null || !currentName.equals(cachedName)) {
                         samePage = false;
                         break;
@@ -345,7 +342,7 @@ public class AspectScanning {
         }
 
         // 2. RETURN TO FIRST PAGE PHASE
-        if (maintracking.scanDone && !maintracking.returnedToFirstPage && !screen.getScreenHandler().slots.get(10).getStack().isEmpty()) {
+        if (maintracking.scanDone && !maintracking.returnedToFirstPage && !screen.getMenu().slots.get(10).getItem().isEmpty()) {
             if (maintracking.pagesToGoBack > 0) {
                 PrevPageRaid(screen);
                 maintracking.pagesToGoBack--;
@@ -365,21 +362,21 @@ public class AspectScanning {
 
         for(int i = 11; i < 16; i++) {
             int arrayIndex = i - 11; // Map slot 11-15 to array index 0-4
-            Slot slot = screen.getScreenHandler().slots.get(i);
+            Slot slot = screen.getMenu().slots.get(i);
 
-            maintracking.aspectsInChest[arrayIndex] = slot.getStack().copy();
+            maintracking.aspectsInChest[arrayIndex] = slot.getItem().copy();
 
             // Stop if empty
-            if (!slot.hasStack()) break;
+            if (!slot.hasItem()) break;
 
             String rarity = null;
 
-            List<Text> tooltips = slot.getStack().getTooltip(Item.TooltipContext.DEFAULT, MinecraftClient.getInstance().player, TooltipType.BASIC);
+            List<Component> tooltips = slot.getItem().getTooltipLines(Item.TooltipContext.EMPTY, Minecraft.getInstance().player, TooltipFlag.NORMAL);
             String name = null;
-            if (slot.getStack().getCustomName() != null &&
-                    slot.getStack().getCustomName().getStyle() != null &&
-                    slot.getStack().getCustomName().getStyle().getColor() != null) {
-                String hexCode = slot.getStack().getCustomName().getStyle().getColor().getHexCode();
+            if (slot.getItem().getCustomName() != null &&
+                    slot.getItem().getCustomName().getStyle() != null &&
+                    slot.getItem().getCustomName().getStyle().getColor() != null) {
+                String hexCode = slot.getItem().getCustomName().getStyle().getColor().formatValue();
                 RaidLootData data = RaidLootConfig.INSTANCE.data;
                 String currentRaid = detectRaidFromPosition();
                 if (hexCode.equals("#AA00AA")) {
@@ -406,7 +403,7 @@ public class AspectScanning {
                 }
             }
 
-            for (Text tooltip : tooltips) {
+            for (Component tooltip : tooltips) {
                 String s = tooltip.getString().replaceAll("§.", "").trim();
                 if (s.contains("Aspect") || s.contains("Embodiment")) {
                     name = s;
@@ -417,7 +414,7 @@ public class AspectScanning {
             if (name == null) break;
 
             String bestTierLine = null;
-            for (Text tooltip : tooltips) {
+            for (Component tooltip : tooltips) {
                 String candidate = extractBestTierLine(tooltip).trim();
                 if (candidate.contains("Tier") &&
                         (candidate.contains(">>>") || candidate.matches(".*\\[\\d+/\\d+\\].*") || candidate.contains("[MAX]"))) {
@@ -429,12 +426,12 @@ public class AspectScanning {
 
             if(bestTierLine == null) continue;
 
-            aspectsToUpload.put(name, new Pair<>(bestTierLine, rarity));
+            aspectsToUpload.put(name, new Tuple<>(bestTierLine, rarity));
         }
 
         // 1. SCANNING PHASE
         if (!maintracking.scanDone) {
-            if (!screen.getScreenHandler().slots.get(16).getStack().isEmpty()) {
+            if (!screen.getMenu().slots.get(16).getItem().isEmpty()) {
                 NextPageRaid(screen);
                 maintracking.pagesToGoBack++;
             } else {
@@ -450,7 +447,7 @@ public class AspectScanning {
     }
 
     private static String detectRaidFromPosition() {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return "UNKNOWN";
 
         double px = mc.player.getX();
@@ -483,7 +480,7 @@ public class AspectScanning {
         }
     }
 
-    private static String extractBestTierLine(Text t) {
+    private static String extractBestTierLine(Component t) {
         String self = t.getString().replaceAll("§.", "").trim();
         boolean relevant = !self.isEmpty() && (self.contains("Tier") || self.contains(">>>") ||
                 self.matches(".*\\[\\d+/\\d+\\].*") || self.contains("[MAX]"));
@@ -492,7 +489,7 @@ public class AspectScanning {
 
         StringBuilder deepest = new StringBuilder();
         if (t.getSiblings() != null) {
-            for (Text sib : t.getSiblings()) {
+            for (Component sib : t.getSiblings()) {
                 String sub = extractBestTierLine(sib).trim();
                 if (sub.length() > deepest.length()) {
                     deepest.setLength(0); deepest.append(sub);
@@ -502,10 +499,10 @@ public class AspectScanning {
         return deepest.length() > out.length() ? deepest.toString() : out.toString();
     }
 
-    private static void dummyfunction(HandledScreen<?> screen) {
+    private static void dummyfunction(AbstractContainerScreen<?> screen) {
         //WynnExtras.LOGGER.info("dummyfunction called after 18 slots read");
         SearchedPages++;
-        TreeLoader.clickOnNameInInventory("Next Page",screen,MinecraftClient.getInstance());
+        TreeLoader.clickOnNameInInventory("Next Page",screen,Minecraft.getInstance());
         if(SearchedPages<=6){
             maintracking.setNextPage(true);
             // Show progress message matching UI page numbers (don't show for page 0 which is active aspects)
@@ -515,21 +512,21 @@ public class AspectScanning {
         }
         else{
             // Create a copy of the map to avoid it being cleared before async upload completes
-            Map<String, Pair<String, String>> aspectsCopy = new HashMap<>(allAspects);
+            Map<String, Tuple<String, String>> aspectsCopy = new HashMap<>(allAspects);
             WynncraftApiHandler.processAspects(aspectsCopy);
             resetAllAspects();
             SearchedPages = 0;
         }
     }
-    private static void NextPageRaid(HandledScreen<?> screen) {
+    private static void NextPageRaid(AbstractContainerScreen<?> screen) {
         WynnExtras.LOGGER.info("[WynnExtras] Clicking next page in reward chest");
-        TreeLoader.clickOnNameInInventory("Next Page",screen,MinecraftClient.getInstance());
+        TreeLoader.clickOnNameInInventory("Next Page",screen,Minecraft.getInstance());
         maintracking.GuiSettleTicks = 0;
     }
 
-    public static void PrevPageRaid(HandledScreen<?> screen) {
+    public static void PrevPageRaid(AbstractContainerScreen<?> screen) {
         WynnExtras.LOGGER.info("[WynnExtras] Clicking previous page in reward chest");
-        TreeLoader.clickOnNameInInventory("Previous Page",screen,MinecraftClient.getInstance());
+        TreeLoader.clickOnNameInInventory("Previous Page",screen,Minecraft.getInstance());
         maintracking.GuiSettleTicks = 0;
     }
     public static void setSearchedPages(int searchedPages) {
@@ -549,7 +546,7 @@ public class AspectScanning {
      * Description is between "Refreshes in X hours" and "Rewards for enabling"
      * Also saves to GambitData for the GUI
      */
-    public static void detectGambit(HandledScreen<?> screen) {
+    public static void detectGambit(AbstractContainerScreen<?> screen) {
         if (screen == null) return;
 
         try {
@@ -557,10 +554,10 @@ public class AspectScanning {
             List<GambitData.GambitEntry> gambitsForSave = new ArrayList<>();
 
             // Search through inventory slots for all gambit items
-            for (Slot slot : screen.getScreenHandler().slots) {
-                if (!slot.hasStack()) continue;
+            for (Slot slot : screen.getMenu().slots) {
+                if (!slot.hasItem()) continue;
 
-                ItemStack stack = slot.getStack();
+                ItemStack stack = slot.getItem();
                 if (stack.getCustomName() == null) continue;
 
                 String itemName = stack.getCustomName().getString().replaceAll("§.", "").trim();
@@ -568,13 +565,13 @@ public class AspectScanning {
                 // Check if item name contains "Gambit"
                 if (itemName.contains("Gambit")) {
                     // Get the tooltip for description
-                    List<Text> tooltips = stack.getTooltip(Item.TooltipContext.DEFAULT,
-                        MinecraftClient.getInstance().player, TooltipType.BASIC);
+                    List<Component> tooltips = stack.getTooltipLines(Item.TooltipContext.EMPTY,
+                        Minecraft.getInstance().player, TooltipFlag.NORMAL);
 
                     StringBuilder description = new StringBuilder();
                     boolean inDescriptionSection = false;
 
-                    for (Text tooltip : tooltips) {
+                    for (Component tooltip : tooltips) {
                         String line = tooltip.getString().replaceAll("§.", "").trim();
 
                         // Start collecting after "Refreshes in" line
@@ -624,7 +621,7 @@ public class AspectScanning {
      * Also extracts user's AspectScanning tier and progress for each AspectScanning
      * Saves loot pool data locally for the GUI
      */
-    public static void scanPreviewChest(HandledScreen<?> screen, String screenTitle) {
+    public static void scanPreviewChest(AbstractContainerScreen<?> screen, String screenTitle) {
         if (screen == null) return;
 
         WynnExtras.LOGGER.info("[WynnExtras] scanPreviewChest called with title: " + screenTitle);
@@ -644,15 +641,15 @@ public class AspectScanning {
                 selectedRaid = "TWP";
             }
 
-            Map<String, Pair<String, String>> foundAspects = new HashMap<>();
+            Map<String, Tuple<String, String>> foundAspects = new HashMap<>();
 
             // Collect all aspects with their progress
-            for (Slot slot : screen.getScreenHandler().slots) {
-                if (!slot.hasStack()) continue;
+            for (Slot slot : screen.getMenu().slots) {
+                if (!slot.hasItem()) continue;
 
-                ItemStack stack = slot.getStack();
-                List<Text> tooltips = stack.getTooltip(Item.TooltipContext.DEFAULT,
-                    MinecraftClient.getInstance().player, TooltipType.BASIC);
+                ItemStack stack = slot.getItem();
+                List<Component> tooltips = stack.getTooltipLines(Item.TooltipContext.EMPTY,
+                    Minecraft.getInstance().player, TooltipFlag.NORMAL);
 
                 String aspectName = null;
                 String rarity = "";
@@ -660,7 +657,7 @@ public class AspectScanning {
                 boolean foundName = false;
                 boolean foundTier = false;
 
-                for (Text tooltip : tooltips) {
+                for (Component tooltip : tooltips) {
                     String line = tooltip.getString().replaceAll("§.", "").trim();
 
                     // Find AspectScanning name
@@ -672,7 +669,7 @@ public class AspectScanning {
                         if (stack.getCustomName() != null &&
                             stack.getCustomName().getStyle() != null &&
                             stack.getCustomName().getStyle().getColor() != null) {
-                            String hexCode = stack.getCustomName().getStyle().getColor().getHexCode();
+                            String hexCode = stack.getCustomName().getStyle().getColor().formatValue();
                             if (hexCode.equals("#AA00AA")) {
                                 rarity = "Mythic";
                             } else if (hexCode.equals("#FF5555")) {
@@ -701,7 +698,7 @@ public class AspectScanning {
 
                 // Find best tier line
                 String bestTierLine = null;
-                for (Text tooltip : tooltips) {
+                for (Component tooltip : tooltips) {
                     String candidate = extractBestTierLine(tooltip).trim();
                     if (candidate.contains("Tier") &&
                             (candidate.contains(">>>") || candidate.matches(".*\\[\\d+/\\d+\\].*") || candidate.contains("[MAX]"))) {
@@ -714,7 +711,7 @@ public class AspectScanning {
                 if (aspectName != null && bestTierLine != null && !bestTierLine.isEmpty()) {
                     bestTierLine = bestTierLine.replaceAll("^[^A-Za-z0-9]*", "");
                     bestTierLine = bestTierLine.replaceAll("(\\[MAX])\\1+", "$1");
-                    foundAspects.put(aspectName, new Pair<>(bestTierLine, rarity));
+                    foundAspects.put(aspectName, new Tuple<>(bestTierLine, rarity));
                 }
             }
 

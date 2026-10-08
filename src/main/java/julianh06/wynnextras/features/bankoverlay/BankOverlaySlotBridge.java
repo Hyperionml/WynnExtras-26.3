@@ -2,10 +2,9 @@ package julianh06.wynnextras.features.bankoverlay;
 
 import julianh06.wynnextras.utils.HandledScreenAccess;
 import julianh06.wynnextras.utils.SlotAccess;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -23,15 +22,15 @@ public final class BankOverlaySlotBridge {
     private static final Map<Slot, SlotPosition> ORIGINAL_POSITIONS = new IdentityHashMap<>();
     private static final Set<Slot> EXPOSED_SLOTS = Collections.newSetFromMap(new IdentityHashMap<>());
     private static final Set<Slot> PREVIOUS_EXPOSED_SLOTS = Collections.newSetFromMap(new IdentityHashMap<>());
-    private static ScreenHandler activeHandler;
+    private static AbstractContainerMenu activeHandler;
     private static int activeSlotCount = -1;
 
     private BankOverlaySlotBridge() {}
 
-    public static void beginFrame(HandledScreen<?> screen) {
-        if (screen == null || screen.getScreenHandler() == null) return;
+    public static void beginFrame(AbstractContainerScreen<?> screen) {
+        if (screen == null || screen.getMenu() == null) return;
 
-        ScreenHandler handler = screen.getScreenHandler();
+        AbstractContainerMenu handler = screen.getMenu();
         if (handler != activeHandler) {
             restoreAll();
             activeHandler = handler;
@@ -53,7 +52,7 @@ public final class BankOverlaySlotBridge {
         EXPOSED_SLOTS.clear();
     }
 
-    public static void expose(HandledScreen<?> screen, Slot slot, int screenX, int screenY) {
+    public static void expose(AbstractContainerScreen<?> screen, Slot slot, int screenX, int screenY) {
         if (screen == null || slot == null) return;
 
         remember(slot);
@@ -69,7 +68,7 @@ public final class BankOverlaySlotBridge {
         PREVIOUS_EXPOSED_SLOTS.clear();
     }
 
-    public static Slot getExposedSlotAt(HandledScreen<?> screen, double mouseX, double mouseY) {
+    public static Slot getExposedSlotAt(AbstractContainerScreen<?> screen, double mouseX, double mouseY) {
         if (screen == null) return null;
 
         int screenX = HandledScreenAccess.x(screen);
@@ -97,7 +96,7 @@ public final class BankOverlaySlotBridge {
         activeSlotCount = -1;
     }
 
-    private static void hideAll(ScreenHandler handler) {
+    private static void hideAll(AbstractContainerMenu handler) {
         for (Slot slot : handler.slots) {
             hide(slot);
         }

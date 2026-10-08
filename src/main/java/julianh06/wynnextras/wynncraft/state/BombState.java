@@ -4,8 +4,8 @@ import julianh06.wynnextras.annotations.WEModule;
 import julianh06.wynnextras.event.ChatEvent;
 import julianh06.wynnextras.event.TickEvent;
 import julianh06.wynnextras.utils.BossBarUtils;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.hud.ClientBossBar;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.LerpingBossEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.ArrayList;
@@ -75,10 +75,10 @@ public final class BombState {
         if (event.ticks % 5 != 0) return;
 
         try {
-            MinecraftClient client = MinecraftClient.getInstance();
+            Minecraft client = Minecraft.getInstance();
             String currentWorld = currentWorld();
             if (client.player == null || currentWorld.isEmpty()) return;
-            for (ClientBossBar bar : BossBarUtils.getBossBars(client.inGameHud.getBossBarHud())) {
+            for (LerpingBossEvent bar : BossBarUtils.getBossBars(client.gui.hud.getBossOverlay())) {
                 ParsedBomb bomb = parseInfoBarBomb(bar.getName().getString(), currentWorld);
                 if (bomb != null) add(bomb, false);
             }

@@ -3,13 +3,12 @@ package julianh06.wynnextras.utils.path;
 import julianh06.wynnextras.event.RenderWorldEvent;
 import julianh06.wynnextras.utils.WEVec;
 import julianh06.wynnextras.utils.render.WorldRenderUtils;
-import net.minecraft.util.math.Vec3d;
-
+import net.minecraft.world.phys.Vec3;
 import java.awt.*;
 import java.util.List;
 
 public record Path(List<Node> nodes) {
-    public void draw(RenderWorldEvent event, Color color, Vec3d playerPos) {
+    public void draw(RenderWorldEvent event, Color color, Vec3 playerPos) {
         if (nodes == null || nodes.isEmpty()) return;
 
         int startIndex = 0;
@@ -18,7 +17,7 @@ public record Path(List<Node> nodes) {
             // Find the closest node to player
             double closestDistSq = Double.MAX_VALUE;
             for (int i = 0; i < nodes.size(); i++) {
-                double distSq = nodes.get(i).getCenterPos().squaredDistanceTo(playerPos);
+                double distSq = nodes.get(i).getCenterPos().distanceToSqr(playerPos);
                 if (distSq < closestDistSq) {
                     closestDistSq = distSq;
                     startIndex = i;
@@ -31,8 +30,8 @@ public record Path(List<Node> nodes) {
                 Node curr = nodes.get(startIndex);
                 Node next = nodes.get(startIndex + 1);
 
-                double playToNext = playerPos.squaredDistanceTo(next.getCenterPos());
-                double currToNext = curr.getCenterPos().squaredDistanceTo(next.getCenterPos());
+                double playToNext = playerPos.distanceToSqr(next.getCenterPos());
+                double currToNext = curr.getCenterPos().distanceToSqr(next.getCenterPos());
 
                 if (playToNext < currToNext && curr.getDistance(next) != 0.) {
                     startIndex = startIndex + 1;

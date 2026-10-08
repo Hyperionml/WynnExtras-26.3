@@ -10,15 +10,15 @@ import julianh06.wynnextras.mixin.Accessor.HandledScreenAccessor;
 import julianh06.wynnextras.utils.UI.WEMenuExtension;
 import julianh06.wynnextras.utils.UI.Widget;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.tooltip.TooltipType;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.text.Text;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.util.List;
 import java.util.regex.Matcher;
@@ -66,9 +66,9 @@ public class QuickRepair extends WEMenuExtension {
                 return;
             }
 
-            long window = client.getWindow().getHandle();
+            long window = client.getWindow().handle();
             int key = WynnExtrasConfig.INSTANCE.quickRepairKey;
-            boolean keyDown = GLFW.glfwGetKey(window, key) == GLFW.GLFW_PRESS;
+            boolean keyDown = InputCompat.keyState(window, key) == InputCompat.PRESS;
             if (keyDown && !keyWasDown) {
                 startRepair();
                 MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix("§aRepairing..."));
@@ -79,14 +79,14 @@ public class QuickRepair extends WEMenuExtension {
 
             if (spamCooldown > 0) { spamCooldown--; return; }
 
-            ScreenHandler menu = MinecraftUtils.containerMenu();
+            AbstractContainerMenu menu = MinecraftUtils.containerMenu();
             if (menu == null) return;
 
             if (title.equals(BLACKSMITH_TITLE)) {
                 if (menu.slots.size() > SLOT_REPAIR_ITEMS) {
-                    ItemStack stack = menu.getSlot(SLOT_REPAIR_ITEMS).getStack();
+                    ItemStack stack = menu.getSlot(SLOT_REPAIR_ITEMS).getItem();
                     if (!stack.isEmpty()) {
-                        ContainerUtils.clickOnSlot(SLOT_REPAIR_ITEMS, menu.syncId, 0, menu.getStacks());
+                        ContainerUtils.clickOnSlot(SLOT_REPAIR_ITEMS, menu.containerId, 0, menu.getItems());
                         spamCooldown = 4;
                     }
                 }
@@ -96,20 +96,20 @@ public class QuickRepair extends WEMenuExtension {
         });
     }
 
-    private static void handleRepairScreen(MinecraftClient client, ScreenHandler menu) {
+    private static void handleRepairScreen(Minecraft client, AbstractContainerMenu menu) {
         for (int slot : SLOT_ITEMS) {
             if (menu.slots.size() <= slot) continue;
 
-            ItemStack stack = menu.getSlot(slot).getStack();
+            ItemStack stack = menu.getSlot(slot).getItem();
             if (isEmptyRepairSlot(stack)) continue;
-            List<Text> tooltip = getTooltip(stack);
+            List<Component> tooltip = getTooltip(stack);
             if (cannotAffordRepair(tooltip)) continue;
 
             Integer durability = getDurabilityPercentage(stack, tooltip);
             if (durability == null || durability <= WynnExtrasConfig.INSTANCE.quickRepairDurabilityThreshold) {
                 emptySlotTicks = 0;
                 lastNextPageSignature = null;
-                ContainerUtils.clickOnSlot(slot, menu.syncId, 0, menu.getStacks());
+                ContainerUtils.clickOnSlot(slot, menu.containerId, 0, menu.getItems());
                 spamCooldown = 2;
                 return;
             }
@@ -120,7 +120,7 @@ public class QuickRepair extends WEMenuExtension {
             if (!signature.equals(lastNextPageSignature)) {
                 emptySlotTicks = 0;
                 lastNextPageSignature = signature;
-                ContainerUtils.clickOnSlot(SLOT_NEXT_PAGE, menu.syncId, 0, menu.getStacks());
+                ContainerUtils.clickOnSlot(SLOT_NEXT_PAGE, menu.containerId, 0, menu.getItems());
                 spamCooldown = 4;
                 return;
             }
@@ -131,14 +131,14 @@ public class QuickRepair extends WEMenuExtension {
             repairing = false;
             emptySlotTicks = 0;
             lastNextPageSignature = null;
-            client.execute(() -> client.player.closeHandledScreen());
+            client.execute(() -> client.player.closeContainer());
             MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix("§aAll items under the threshold of " + WynnExtrasConfig.INSTANCE.quickRepairDurabilityThreshold +  "% repaired!"));
         }
     }
 
-    private static boolean hasNextPage(ScreenHandler menu) {
+    private static boolean hasNextPage(AbstractContainerMenu menu) {
         if (menu.slots.size() <= SLOT_NEXT_PAGE) return false;
-        return !isEmptyRepairSlot(menu.getSlot(SLOT_NEXT_PAGE).getStack());
+        return !isEmptyRepairSlot(menu.getSlot(SLOT_NEXT_PAGE).getItem());
     }
 
     private static boolean isEmptyRepairSlot(ItemStack stack) {
@@ -147,12 +147,12 @@ public class QuickRepair extends WEMenuExtension {
         return itemName.contains("empty");
     }
 
-    private static String getPageSignature(ScreenHandler menu) {
+    private static String getPageSignature(AbstractContainerMenu menu) {
         StringBuilder signature = new StringBuilder();
         for (int slot : SLOT_ITEMS) {
             if (menu.slots.size() <= slot) continue;
-            ItemStack stack = menu.getSlot(slot).getStack();
-            List<Text> tooltip = getTooltip(stack);
+            ItemStack stack = menu.getSlot(slot).getItem();
+            List<Component> tooltip = getTooltip(stack);
             signature.append(slot).append(':')
                     .append(getCleanItemName(stack)).append(':')
                     .append(cannotAffordRepair(tooltip)).append(':')
@@ -163,10 +163,10 @@ public class QuickRepair extends WEMenuExtension {
 
     private static String getCleanItemName(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return "";
-        return stack.getName().getString().replaceAll("§[0-9a-fk-or]", "").toLowerCase();
+        return stack.getHoverName().getString().replaceAll("§[0-9a-fk-or]", "").toLowerCase();
     }
 
-    private static Integer getDurabilityPercentage(ItemStack stack, List<Text> tooltip) {
+    private static Integer getDurabilityPercentage(ItemStack stack, List<Component> tooltip) {
         Integer loreDurability = getLoreDurabilityPercentage(tooltip);
         if (loreDurability != null) return loreDurability;
 
@@ -174,28 +174,28 @@ public class QuickRepair extends WEMenuExtension {
                 .flatMap(item -> item.durability()).map(WynnItemData.Amount::percentage).orElse(null);
         if (parsedDurability != null) return parsedDurability;
 
-        if (!stack.isDamageable() || stack.getMaxDamage() <= 0) return null;
+        if (!stack.isDamageableItem() || stack.getMaxDamage() <= 0) return null;
 
-        int remaining = stack.getMaxDamage() - stack.getDamage();
+        int remaining = stack.getMaxDamage() - stack.getDamageValue();
         return Math.clamp(Math.round(remaining * 100f / stack.getMaxDamage()), 0, 100);
     }
 
-    private static List<Text> getTooltip(ItemStack stack) {
+    private static List<Component> getTooltip(ItemStack stack) {
         try {
-            return stack.getTooltip(Item.TooltipContext.DEFAULT, MinecraftClient.getInstance().player, TooltipType.BASIC);
+            return stack.getTooltipLines(Item.TooltipContext.EMPTY, Minecraft.getInstance().player, TooltipFlag.NORMAL);
         } catch (Exception ignored) {}
         return List.of();
     }
 
-    private static boolean cannotAffordRepair(List<Text> tooltip) {
-        for (Text line : tooltip) {
+    private static boolean cannotAffordRepair(List<Component> tooltip) {
+        for (Component line : tooltip) {
             if (line.getString().toLowerCase().contains("cannot afford to repair")) return true;
         }
         return false;
     }
 
-    private static Integer getLoreDurabilityPercentage(List<Text> tooltip) {
-        for (Text line : tooltip) {
+    private static Integer getLoreDurabilityPercentage(List<Component> tooltip) {
+        for (Component line : tooltip) {
             Matcher matcher = DURABILITY_LORE_PATTERN.matcher(line.getString());
             if (!matcher.find()) continue;
 
@@ -207,18 +207,18 @@ public class QuickRepair extends WEMenuExtension {
         return null;
     }
 
-    private static String getCurrentTitle(MinecraftClient mc) {
-        if (mc.currentScreen == null) return null;
-        return mc.currentScreen.getTitle().getString();
+    private static String getCurrentTitle(Minecraft mc) {
+        if (mc.gui.screen() == null) return null;
+        return mc.gui.screen().getTitle().getString();
     }
 
     @Override
-    protected void drawBackground(DrawContext ctx, int mouseX, int mouseY, float delta) {}
+    protected void drawBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {}
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         if (!WynnExtrasConfig.INSTANCE.quickRepairEnabled) return;
-        if (!(MinecraftUtils.screen() instanceof HandledScreen<?> screen)) return;
+        if (!(MinecraftUtils.screen() instanceof AbstractContainerScreen<?> screen)) return;
         if (!screen.getTitle().getString().equals(BLACKSMITH_TITLE) && !screen.getTitle().getString().equals(REPAIR_TITLE)) return;
 
         if (repairButton == null) {
@@ -227,22 +227,22 @@ public class QuickRepair extends WEMenuExtension {
         }
 
         HandledScreenAccessor acc = (HandledScreenAccessor) screen;
-        int bx = acc.getX() + acc.getBackgroundWidth() / 2 - BTN_W / 2;
-        int by = acc.getY() + acc.getBackgroundWidth() - BTN_H / 4;
+        int bx = acc.getX() + acc.getImageWidth() / 2 - BTN_W / 2;
+        int by = acc.getY() + acc.getImageWidth() - BTN_H / 4;
         repairButton.setBounds(bx, by, BTN_W, BTN_H);
         repairButton.setVisible(true);
     }
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         if (repairButton != null && !WynnExtrasConfig.INSTANCE.quickRepairEnabled)
             repairButton.setVisible(false);
     }
 
     private static class RepairButtonWidget extends Widget {
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
-            String keyName = GLFW.glfwGetKeyName(WynnExtrasConfig.INSTANCE.quickRepairKey, 0);
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
+            String keyName = InputCompat.keyName(WynnExtrasConfig.INSTANCE.quickRepairKey, 0);
             if (keyName == null) keyName = "?";
             String label = "Quick Repair [" + keyName.toUpperCase() + "]";
 

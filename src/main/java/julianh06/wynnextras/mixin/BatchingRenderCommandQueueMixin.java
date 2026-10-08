@@ -2,10 +2,10 @@ package julianh06.wynnextras.mixin;
 
 import julianh06.wynnextras.utils.EntityShader;
 import julianh06.wynnextras.utils.ShaderVertexConsumer;
-import net.minecraft.client.render.command.BatchingRenderCommandQueue;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.client.render.model.BakedQuad;
-import net.minecraft.util.math.ColorHelper;
+import net.minecraft.client.renderer.SubmitNodeCollection;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.util.ARGB;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
@@ -14,13 +14,13 @@ import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 import java.util.List;
 
-@Mixin(BatchingRenderCommandQueue.class)
+@Mixin(SubmitNodeCollection.class)
 public class BatchingRenderCommandQueueMixin {
     @ModifyArgs(
         method = "submitItem",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/render/command/OrderedRenderCommandQueueImpl$ItemCommand;<init>(Lnet/minecraft/client/util/math/MatrixStack$Entry;Lnet/minecraft/item/ItemDisplayContext;III[ILjava/util/List;Lnet/minecraft/client/render/RenderLayer;Lnet/minecraft/client/render/item/ItemRenderState$Glint;)V"
+            target = "Lnet/minecraft/client/renderer/feature/ItemFeatureRenderer$Submit;<init>(Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lnet/minecraft/world/item/ItemDisplayContext;III[ILjava/util/List;Lnet/minecraft/client/renderer/item/ItemStackRenderState$FoilType;)V"
         )
     )
     private void we$tintItem(Args args) {
@@ -33,41 +33,21 @@ public class BatchingRenderCommandQueueMixin {
         args.set(6, EntityShader.quadsWithDefaultTintIndex(quads));
     }
 
-    @ModifyArg(
-        method = "submitModel",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/render/command/OrderedRenderCommandQueueImpl$ModelCommand;<init>(Lnet/minecraft/client/util/math/MatrixStack$Entry;Lnet/minecraft/client/model/Model;Ljava/lang/Object;IIILnet/minecraft/client/texture/Sprite;ILnet/minecraft/client/render/command/ModelCommandRenderer$CrumblingOverlayCommand;)V"
-        ),
-        index = 5
-    )
+    @org.spongepowered.asm.mixin.injection.ModifyVariable(method = "submitModel", at = @At("HEAD"), argsOnly = true, ordinal = 2)
     private int we$tintModel(int color) {
-        Integer s = EntityShader.activeShader;
-        return s != null ? ColorHelper.mix(color, s) : color;
+        Integer shader = EntityShader.activeShader;
+        return shader == null ? color : ARGB.multiply(color, shader);
     }
 
     @ModifyArg(
-        method = "submitModelPart",
+        method = "submitCustomGeometry",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/render/command/OrderedRenderCommandQueueImpl$ModelPartCommand;<init>(Lnet/minecraft/client/util/math/MatrixStack$Entry;Lnet/minecraft/client/model/ModelPart;IILnet/minecraft/client/texture/Sprite;ZZILnet/minecraft/client/render/command/ModelCommandRenderer$CrumblingOverlayCommand;I)V"
-        ),
-        index = 7
-    )
-    private int we$tintModelPart(int color) {
-        Integer s = EntityShader.activeShader;
-        return s != null ? ColorHelper.mix(color, s) : color;
-    }
-
-    @ModifyArg(
-        method = "submitCustom",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/render/command/CustomCommandRenderer$Commands;add(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/RenderLayer;Lnet/minecraft/client/render/command/OrderedRenderCommandQueue$Custom;)V"
+            target = "Lnet/minecraft/client/renderer/feature/CustomFeatureRenderer$Submit;<init>(Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lnet/minecraft/client/renderer/rendertype/RenderType;Lnet/minecraft/client/renderer/SubmitNodeCollector$CustomGeometryRenderer;)V"
         ),
         index = 2
     )
-    private OrderedRenderCommandQueue.Custom we$tintCustom(OrderedRenderCommandQueue.Custom original) {
+    private SubmitNodeCollector.CustomGeometryRenderer we$tintCustom(SubmitNodeCollector.CustomGeometryRenderer original) {
         Integer shader = EntityShader.activeShader;
         if (shader == null) return original;
         return (entry, consumer) -> original.render(entry, ShaderVertexConsumer.wrap(consumer, shader));

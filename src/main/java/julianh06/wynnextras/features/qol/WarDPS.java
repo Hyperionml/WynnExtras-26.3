@@ -3,12 +3,11 @@ package julianh06.wynnextras.features.qol;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.utils.BossBarUtils;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.hud.ClientBossBar;
-import net.minecraft.client.render.RenderTickCounter;
-
+import julianh06.wynnextras.compat.client.HudRenderCallback;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.LerpingBossEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -37,7 +36,7 @@ public class WarDPS {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (!WynnExtrasConfig.INSTANCE.warDpsEnabled) return;
             if (client.player == null) return;
-            for (ClientBossBar bar : BossBarUtils.getBossBars(client.inGameHud.getBossBarHud())) {
+            for (LerpingBossEvent bar : BossBarUtils.getBossBars(client.gui.hud.getBossOverlay())) {
                 String text = bar.getName().getString();
                 if (text != null && text.contains("Tower")) {
                     processBossBar(text);
@@ -122,11 +121,11 @@ public class WarDPS {
         timeRemaining = 0;
     }
 
-    private static void render(DrawContext ctx, RenderTickCounter tickCounter) {
+    private static void render(GuiGraphicsExtractor ctx, DeltaTracker tickCounter) {
         if (!WynnExtrasConfig.INSTANCE.warDpsEnabled) return;
         if (System.currentTimeMillis() - lastTimeInWar > 2000) return;
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.player == null || mc.options.hudHidden) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.gui.hud.isHidden()) return;
 
         String[] stats = {
                 "§bWar Info",
@@ -142,10 +141,10 @@ public class WarDPS {
         int x = WynnExtrasConfig.INSTANCE.warDpsX;
         int y = WynnExtrasConfig.INSTANCE.warDpsY;
         int maxW = 0;
-        for (String s : stats) maxW = Math.max(maxW, mc.textRenderer.getWidth(s));
+        for (String s : stats) maxW = Math.max(maxW, mc.font.width(s));
         ctx.fill(x - 2, y - 2, x + maxW + 4, y + stats.length * 10 + 2, 0x66000000);
         for (int i = 0; i < stats.length; i++) {
-            ctx.drawTextWithShadow(mc.textRenderer, stats[i], x, y + i * 10, 0xFFFFFFFF);
+            ctx.text(mc.font, stats[i], x, y + i * 10, 0xFFFFFFFF);
         }
     }
 

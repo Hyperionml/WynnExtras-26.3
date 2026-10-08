@@ -3,11 +3,10 @@ package julianh06.wynnextras.features.misc;
 import julianh06.wynnextras.wynncraft.state.StatusEffectState;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderTickCounter;
-
+import julianh06.wynnextras.compat.client.HudRenderCallback;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,26 +44,26 @@ public class RadiantHud {
         HudRenderCallback.EVENT.register(RadiantHud::renderHud);
     }
 
-    private static void renderHud(DrawContext ctx, RenderTickCounter tickCounter) {
+    private static void renderHud(GuiGraphicsExtractor ctx, DeltaTracker tickCounter) {
         if (!WynnExtrasConfig.INSTANCE.radiantHudEnabled) return;
         if (cachedEntries.isEmpty()) return;
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.player == null || mc.options.hudHidden) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.gui.hud.isHidden()) return;
 
         float scale = WynnExtrasConfig.INSTANCE.radiantHudScale;
         int baseX = WynnExtrasConfig.INSTANCE.radiantHudX;
         int baseY = WynnExtrasConfig.INSTANCE.radiantHudY;
         int lineH = 10;
 
-        ctx.getMatrices().pushMatrix();
-        ctx.getMatrices().translate(baseX, baseY);
-        ctx.getMatrices().scale(scale, scale);
+        ctx.pose().pushMatrix();
+        ctx.pose().translate(baseX, baseY);
+        ctx.pose().scale(scale, scale);
 
         for (int i = 0; i < cachedEntries.size(); i++) {
             CachedEntry e = cachedEntries.get(i);
-            ctx.drawText(mc.textRenderer, e.display, 0, i * lineH, e.color, true);
+            ctx.text(mc.font, e.display, 0, i * lineH, e.color, true);
         }
 
-        ctx.getMatrices().popMatrix();
+        ctx.pose().popMatrix();
     }
 }

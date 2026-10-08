@@ -1,11 +1,10 @@
 package julianh06.wynnextras.config.configoptions;
 
 import julianh06.wynnextras.utils.MinecraftUtils;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.math.MathHelper;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -27,8 +26,8 @@ public class SliderOption extends ConfigOption {
     public int controlWidth() { return 145; }
 
     @Override
-    public void render(DrawContext ctx, int x, int y, int w, int h, int mx, int my, boolean hovered, int categoryColor) {
-        var tr = MinecraftClient.getInstance().textRenderer;
+    public void render(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int mx, int my, boolean hovered, int categoryColor) {
+        var tr = Minecraft.getInstance().font;
         ctx.fill(x, y, x + w, y + h - 5, hovered ? PARCHMENT_HOVER : PARCHMENT);
         ctx.fill(x, y, x + w, y + 1, BORDER_LIGHT);
         ctx.fill(x, y + h - 6, x + w, y + h - 5, BORDER_DARK);
@@ -47,7 +46,7 @@ public class SliderOption extends ConfigOption {
         ctx.fill(kx, sy - 3, kx + 10, sy + 11, BORDER_DARK);
         ctx.fill(kx + 1, sy - 2, kx + 9, sy + 10, GOLD);
 
-        ctx.drawTextWithShadow(tr, String.valueOf(val), x + w - 135 - tr.getWidth(String.valueOf(val)), sy, GOLD);
+        ctx.text(tr, String.valueOf(val), x + w - 135 - tr.width(String.valueOf(val)), sy, GOLD);
     }
 
     @Override
@@ -75,7 +74,7 @@ public class SliderOption extends ConfigOption {
     }
 
     void updateValue(double mx) {
-        float pct = MathHelper.clamp((float)(mx - sliderX) / sliderW, 0, 1);
+        float pct = Mth.clamp((float)(mx - sliderX) / sliderW, 0, 1);
         setter.accept(min + Math.round(pct * (max - min)));
     }
 }

@@ -12,6 +12,18 @@ import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.utils.render.HorizontalAlignment;
 import julianh06.wynnextras.utils.render.VerticalAlignment;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.resources.DefaultPlayerSkin;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.entity.player.PlayerModelPart;
+import net.minecraft.world.entity.player.PlayerSkin;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.features.profileviewer.data.*;
 import julianh06.wynnextras.features.profileviewer.tabs.*;
@@ -19,20 +31,6 @@ import julianh06.wynnextras.utils.UI.UIUtils;
 import julianh06.wynnextras.utils.WynncraftApiHandler;
 import julianh06.wynnextras.utils.UI.Widget;
 import julianh06.wynnextras.utils.UI.WEScreen;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.util.DefaultSkinHelper;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.player.PlayerModelPart;
-import net.minecraft.entity.player.SkinTextures;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -56,58 +54,58 @@ public class PVScreen extends WEScreen {
     public static List<TabButton> tabButtons = new ArrayList<>();
     public static List<CharacterButton> characterButtons = new ArrayList<>();
 
-    static Identifier tabLeft = Identifier.of("wynnextras", "textures/gui/profileviewer/tableft.png");
-    static Identifier tabMid = Identifier.of("wynnextras", "textures/gui/profileviewer/tabmid.png");
-    static Identifier tagRight = Identifier.of("wynnextras", "textures/gui/profileviewer/tabright.png");
+    static Identifier tabLeft = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/tableft.png");
+    static Identifier tabMid = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/tabmid.png");
+    static Identifier tagRight = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/tabright.png");
 
-    static Identifier tabLeftDark = Identifier.of("wynnextras", "textures/gui/profileviewer/tableft_dark.png");
-    static Identifier tabMidDark = Identifier.of("wynnextras", "textures/gui/profileviewer/tabmid_dark.png");
-    static Identifier tagRightDark = Identifier.of("wynnextras", "textures/gui/profileviewer/tabright_dark.png");
+    static Identifier tabLeftDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/tableft_dark.png");
+    static Identifier tabMidDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/tabmid_dark.png");
+    static Identifier tagRightDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/tabright_dark.png");
 
-    static Identifier backgroundTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/profileviewerbackground.png");
-    static Identifier alsobackgroundTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/alsoprofileviewerbackground.png");
-    static Identifier openInBrowserButtonTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/openinbrowserbuttontexture.png");
-    static Identifier openInBrowserButtonTextureW = Identifier.of("wynnextras", "textures/gui/profileviewer/openinbrowserbuttontexturewide.png");
-
-
-    static Identifier backgroundTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/profileviewerbackground_dark.png");
-    static Identifier alsobackgroundTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/alsoprofileviewerbackground_dark.png");
-    static Identifier openInBrowserButtonTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/openinbrowserbuttontexture_dark.png");
-    static Identifier openInBrowserButtonTextureWDark = Identifier.of("wynnextras", "textures/gui/profileviewer/openinbrowserbuttontexturewide_dark.png");
+    static Identifier backgroundTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/profileviewerbackground.png");
+    static Identifier alsobackgroundTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/alsoprofileviewerbackground.png");
+    static Identifier openInBrowserButtonTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/openinbrowserbuttontexture.png");
+    static Identifier openInBrowserButtonTextureW = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/openinbrowserbuttontexturewide.png");
 
 
-    static Identifier vip = Identifier.of("wynnextras", "textures/gui/profileviewer/ranks/vip.png");
-    static Identifier vipplus = Identifier.of("wynnextras", "textures/gui/profileviewer/ranks/vipplus.png");
-    static Identifier hero = Identifier.of("wynnextras", "textures/gui/profileviewer/ranks/hero.png");
-    static Identifier heroplus = Identifier.of("wynnextras", "textures/gui/profileviewer/ranks/heroplus.png");
-    static Identifier champion = Identifier.of("wynnextras", "textures/gui/profileviewer/ranks/champion.png");
-    static Identifier media = Identifier.of("wynnextras", "textures/gui/profileviewer/ranks/media.png");
-    static Identifier wynn = Identifier.of("wynnextras", "textures/gui/profileviewer/ranks/wynn.png");
-    static Identifier mod = Identifier.of("wynnextras", "textures/gui/profileviewer/ranks/moderator.png");
-    static Identifier admin = Identifier.of("wynnextras", "textures/gui/profileviewer/ranks/admin.png");
-    static Identifier warriorTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/classes/warrior.png");
-    static Identifier warriorGoldTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/classes/warriorgold.png");
-    static Identifier shamanTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/classes/shaman.png");
-    static Identifier shamanGoldTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/classes/shamangold.png");
-    static Identifier mageTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/classes/mage.png");
-    static Identifier mageGoldTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/classes/magegold.png");
-    static Identifier assassinTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/classes/assassin.png");
-    static Identifier assassinGoldTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/classes/assassingold.png");
-    static Identifier archerTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/classes/archer.png");
-    static Identifier archerGoldTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/classes/archergold.png");
+    static Identifier backgroundTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/profileviewerbackground_dark.png");
+    static Identifier alsobackgroundTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/alsoprofileviewerbackground_dark.png");
+    static Identifier openInBrowserButtonTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/openinbrowserbuttontexture_dark.png");
+    static Identifier openInBrowserButtonTextureWDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/openinbrowserbuttontexturewide_dark.png");
 
-    static Identifier miningTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/mining.png");
-    static Identifier woodcuttingTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/woodcutting.png");
-    static Identifier farmingTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/farming.png");
-    static Identifier fishingTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/fishing.png");
-    static Identifier armouringTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/armouring.png");
-    static Identifier tailoringTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/tailoring.png");
-    static Identifier weaponsmithingTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/weaponsmithing.png");
-    static Identifier woodworkingTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/woodworking.png");
-    static Identifier jewelingTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/jeweling.png");
-    static Identifier alchemismTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/alchemism.png");
-    static Identifier scribingTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/scribing.png");
-    static Identifier cookingTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/cooking.png");
+
+    static Identifier vip = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/ranks/vip.png");
+    static Identifier vipplus = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/ranks/vipplus.png");
+    static Identifier hero = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/ranks/hero.png");
+    static Identifier heroplus = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/ranks/heroplus.png");
+    static Identifier champion = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/ranks/champion.png");
+    static Identifier media = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/ranks/media.png");
+    static Identifier wynn = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/ranks/wynn.png");
+    static Identifier mod = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/ranks/moderator.png");
+    static Identifier admin = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/ranks/admin.png");
+    static Identifier warriorTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classes/warrior.png");
+    static Identifier warriorGoldTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classes/warriorgold.png");
+    static Identifier shamanTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classes/shaman.png");
+    static Identifier shamanGoldTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classes/shamangold.png");
+    static Identifier mageTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classes/mage.png");
+    static Identifier mageGoldTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classes/magegold.png");
+    static Identifier assassinTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classes/assassin.png");
+    static Identifier assassinGoldTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classes/assassingold.png");
+    static Identifier archerTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classes/archer.png");
+    static Identifier archerGoldTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classes/archergold.png");
+
+    static Identifier miningTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/mining.png");
+    static Identifier woodcuttingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/woodcutting.png");
+    static Identifier farmingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/farming.png");
+    static Identifier fishingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/fishing.png");
+    static Identifier armouringTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/armouring.png");
+    static Identifier tailoringTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/tailoring.png");
+    static Identifier weaponsmithingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/weaponsmithing.png");
+    static Identifier woodworkingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/woodworking.png");
+    static Identifier jewelingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/jeweling.png");
+    static Identifier alchemismTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/alchemism.png");
+    static Identifier scribingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/scribing.png");
+    static Identifier cookingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/cooking.png");
 
    static OpenInBrowserButton openInBrowserButton;
     public static Searchbar searchBar;
@@ -117,7 +115,7 @@ public class PVScreen extends WEScreen {
     public static Tab currentTab = Tab.General;
 
     String player;
-    public static AbstractClientPlayerEntity dummy;
+    public static AbstractClientPlayer dummy;
 
     public static CharacterData selectedCharacter;
 
@@ -142,7 +140,7 @@ public class PVScreen extends WEScreen {
     static boolean addedNewest = false;
 
     public PVScreen(String name) {
-        super(Text.of("Player Viewer"));
+        super(Component.nullToEmpty("Player Viewer"));
         String player;
         if(name == null && MinecraftUtils.player() == null) player = "null";
         else if(name == null) player = MinecraftUtils.playerName();
@@ -178,28 +176,28 @@ public class PVScreen extends WEScreen {
                 SkinData skin = fetchSkin(PV.currentPlayerData.getUuid());
                 GameProfile profile = createProfileWithSkin(PV.currentPlayerData.getUuid(), player, skin);
 
-                MinecraftClient client = MinecraftClient.getInstance();
-                ClientWorld world = client.world;
+                Minecraft client = Minecraft.getInstance();
+                ClientLevel world = client.level;
 
                 if (world != null) {
-                    MinecraftClient.getInstance().execute(() -> {
-                        dummy = new AbstractClientPlayerEntity(world, profile) {
+                    Minecraft.getInstance().execute(() -> {
+                        dummy = new AbstractClientPlayer(world, profile) {
 
-                            private SkinTextures skin;
+                            private PlayerSkin skin;
 
                             {
-                                MinecraftClient.getInstance().getSkinProvider()
-                                        .fetchSkinTextures(profile)
+                                Minecraft.getInstance().getSkinManager()
+                                        .get(profile)
                                         .thenAccept(opt -> opt.ifPresent(s -> this.skin = s));
                             }
 
                             @Override
-                            public SkinTextures getSkin() {
-                                return skin != null ? skin : DefaultSkinHelper.getSteve();
+                            public PlayerSkin getSkin() {
+                                return skin != null ? skin : DefaultPlayerSkin.getDefaultSkin();
                             }
 
                             @Override
-                            public boolean isModelPartVisible(PlayerModelPart part) {
+                            public boolean isModelPartShown(PlayerModelPart part) {
                                 return switch (part) {
                                     case CAPE -> false;
                                     default -> true;
@@ -299,7 +297,7 @@ public class PVScreen extends WEScreen {
     }
 
     @Override //im drawing the tab stuff in updateValues so the background has to be rendered first that's why this override exists
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         this.drawContext = context;
         computeScaleAndOffsets();
         if (ui == null) ui = new UIUtils(context, scaleFactor, xStart, yStart);
@@ -313,8 +311,8 @@ public class PVScreen extends WEScreen {
 
         ui.drawBackground();
 
-        context.getMatrices().pushMatrix();
-        context.getMatrices().scale((float) matrixScale, (float) matrixScale);
+        context.pose().pushMatrix();
+        context.pose().scale((float) matrixScale, (float) matrixScale);
 
         if(PV.currentPlayerData != null && !addedNewest) {
             if(PV.currentPlayerData.getUsername() != null) {
@@ -402,11 +400,11 @@ public class PVScreen extends WEScreen {
             w.draw(context, mouseX, mouseY, delta, ui);
         }
 
-        context.getMatrices().popMatrix();
+        context.pose().popMatrix();
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
 
     }
 
@@ -508,7 +506,7 @@ public class PVScreen extends WEScreen {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         PV.currentPlayer = "";
         PV.currentPlayerData = null;
         currentTabWidget = null;
@@ -520,7 +518,7 @@ public class PVScreen extends WEScreen {
         scrollOffset = 0;
         targetScrollOffset = 0;
         actualScrollOffset = 0;
-        super.close();
+        super.onClose();
     }
 
     public static Rank getRank() {
@@ -583,7 +581,7 @@ public class PVScreen extends WEScreen {
 
 
     @Override
-    public boolean mouseDragged(Click input, double deltaX, double deltaY) {
+    public boolean mouseDragged(MouseButtonEvent input, double deltaX, double deltaY) {
         int button = input.button();
 
         if (button == 0 && draggingAllowed) {
@@ -669,7 +667,7 @@ public class PVScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             currentMouseY = mouseY;
             ui.drawSliderFade(x, y, width, height, 5, DarkModeToggleWidget.fade);
             updateThumb(mouseY);
@@ -719,7 +717,7 @@ public class PVScreen extends WEScreen {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 ui.drawButtonFade(x, y, width, height, 5, hovered || isHeld);
             }
 
@@ -746,9 +744,9 @@ public class PVScreen extends WEScreen {
         }
     }
 
-    public int drawDynamicNameSign(DrawContext context, String input, int x, int y) {
-        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
-        int strWidth = textRenderer.getWidth(input) + 10;
+    public int drawDynamicNameSign(GuiGraphicsExtractor context, String input, int x, int y) {
+        Font textRenderer = Minecraft.getInstance().font;
+        int strWidth = textRenderer.width(input) + 10;
         int strMidWidth = strWidth - 15;
         int amount = Math.max(0, Math.ceilDiv(strMidWidth, 10));
         DarkModeToggleWidget.drawImageWithFade(tabLeftDark, tabLeft, x, y, 30, 60, ui);
@@ -782,7 +780,7 @@ public class PVScreen extends WEScreen {
         }
 
         @Override
-        protected void drawBackground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             if(currentTab == Tab.General) {
                 DarkModeToggleWidget.drawImageWithFade(backgroundTextureDark, backgroundTexture, x, y, width, height, ui);
             } else {
@@ -791,7 +789,7 @@ public class PVScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {}
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {}
 
     }
 
@@ -834,7 +832,7 @@ public class PVScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             CustomColor tabStringColor;
             if (tab.equals(currentTab) || hovered) {
                 tabStringColor = CustomColor.fromHexString("FFFF00");
@@ -862,12 +860,12 @@ public class PVScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
 
         }
 
         @Override
-        protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
 
         }
 
@@ -883,11 +881,11 @@ public class PVScreen extends WEScreen {
     }
 
     public static class DarkModeToggleWidget extends Widget {
-        static Identifier darkmodeToggleBackground = Identifier.of("wynnextras", "textures/gui/profileviewer/darkmodetogglebackground.png");
-        static Identifier darkmodeToggleBackgroundDark = Identifier.of("wynnextras", "textures/gui/profileviewer/darkmodetogglebackground_dark.png");
+        static Identifier darkmodeToggleBackground = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/darkmodetogglebackground.png");
+        static Identifier darkmodeToggleBackgroundDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/darkmodetogglebackground_dark.png");
 
-        static Identifier sun = Identifier.of("wynnextras", "textures/gui/profileviewer/sun.png");
-        static Identifier moon = Identifier.of("wynnextras", "textures/gui/profileviewer/moon.png");
+        static Identifier sun = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/sun.png");
+        static Identifier moon = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/moon.png");
 
         public Runnable action;
 
@@ -917,7 +915,7 @@ public class PVScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             drawImageWithFade(darkmodeToggleBackgroundDark, darkmodeToggleBackground, x, y, width, height, ui);
 
             float progress = Math.abs(currentX - 7.5f);

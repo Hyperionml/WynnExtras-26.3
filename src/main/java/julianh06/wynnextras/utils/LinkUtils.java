@@ -6,7 +6,7 @@ import net.minecraft.util.Util;
 public class LinkUtils {
     public static void openLink(String url) {
         try {
-            Util.getOperatingSystem().open(java.net.URI.create(url));
+            com.mojang.blaze3d.Blaze3D.openUri(java.net.URI.create(url));
         } catch (Exception e) {
             WynnExtras.LOGGER.error("[WynnExtras] Error while opening link: " + e.getMessage());
         }

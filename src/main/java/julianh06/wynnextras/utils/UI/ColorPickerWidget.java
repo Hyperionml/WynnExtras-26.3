@@ -4,11 +4,11 @@ import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.utils.render.HorizontalAlignment;
 import julianh06.wynnextras.utils.render.VerticalAlignment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.math.MathHelper;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -118,14 +118,14 @@ public class ColorPickerWidget extends Widget {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         drawConfigClosed(mouseX, mouseY);
         if (open) renderPicker(ctx, pickerX(), pickerY(), mouseX, mouseY);
     }
 
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
-        if (!visible || !enabled || button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
+        if (!visible || !enabled || button != InputCompat.MOUSE_BUTTON_LEFT) return false;
         int[] toggle = toggleBounds();
         if (isIn(mx, my, toggle[0], toggle[1], toggle[2], toggle[3])) {
             open = !open;
@@ -208,32 +208,32 @@ public class ColorPickerWidget extends Widget {
     protected boolean onKeyPressed(int keyCode, int scanCode, int modifiers) {
         if (!open || !hexFocused) return false;
 
-        boolean ctrl = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0;
-        MinecraftClient client = MinecraftClient.getInstance();
+        boolean ctrl = (modifiers & InputCompat.MOD_CONTROL) != 0;
+        Minecraft client = Minecraft.getInstance();
 
-        if (ctrl && keyCode == GLFW.GLFW_KEY_V) {
-            String clipboard = client.keyboard.getClipboard();
+        if (ctrl && keyCode == InputCompat.KEY_V) {
+            String clipboard = client.keyboardHandler.getClipboard();
             if (clipboard != null && !clipboard.isEmpty()) insertHexText(clipboard);
             applyHexInput();
             return true;
         }
-        if (ctrl && keyCode == GLFW.GLFW_KEY_C) {
-            client.keyboard.setClipboard(hexInput);
+        if (ctrl && keyCode == InputCompat.KEY_C) {
+            client.keyboardHandler.setClipboard(hexInput);
             return true;
         }
-        if (ctrl && keyCode == GLFW.GLFW_KEY_X) {
-            client.keyboard.setClipboard(hexInput);
+        if (ctrl && keyCode == InputCompat.KEY_X) {
+            client.keyboardHandler.setClipboard(hexInput);
             hexInput = "";
             hexCursor = 0;
             hexSelectAll = false;
             return true;
         }
-        if (ctrl && keyCode == GLFW.GLFW_KEY_A) {
+        if (ctrl && keyCode == InputCompat.KEY_A) {
             hexCursor = hexInput.length();
             hexSelectAll = true;
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+        if (keyCode == InputCompat.KEY_BACKSPACE) {
             if (hexSelectAll) {
                 hexInput = "";
                 hexCursor = 0;
@@ -245,7 +245,7 @@ public class ColorPickerWidget extends Widget {
             }
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_DELETE) {
+        if (keyCode == InputCompat.KEY_DELETE) {
             if (hexSelectAll) {
                 hexInput = "";
                 hexCursor = 0;
@@ -256,27 +256,27 @@ public class ColorPickerWidget extends Widget {
             }
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_LEFT) {
+        if (keyCode == InputCompat.KEY_LEFT) {
             hexSelectAll = false;
             if (hexCursor > 0) hexCursor--;
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_RIGHT) {
+        if (keyCode == InputCompat.KEY_RIGHT) {
             hexSelectAll = false;
             if (hexCursor < hexInput.length()) hexCursor++;
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_HOME) {
+        if (keyCode == InputCompat.KEY_HOME) {
             hexSelectAll = false;
             hexCursor = 0;
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_END) {
+        if (keyCode == InputCompat.KEY_END) {
             hexSelectAll = false;
             hexCursor = hexInput.length();
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER || keyCode == GLFW.GLFW_KEY_ESCAPE) {
+        if (keyCode == InputCompat.KEY_ENTER || keyCode == InputCompat.KEY_KP_ENTER || keyCode == InputCompat.KEY_ESCAPE) {
             hexFocused = false;
             return true;
         }
@@ -295,7 +295,7 @@ public class ColorPickerWidget extends Widget {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        if (!visible || !enabled || !open || button != GLFW.GLFW_MOUSE_BUTTON_LEFT || dragMode == 0) return false;
+        if (!visible || !enabled || !open || button != InputCompat.MOUSE_BUTTON_LEFT || dragMode == 0) return false;
         int px = pickerX();
         int py = pickerY();
         if (dragMode == 1) updateHue(mouseY, hueBarBounds(px, py));
@@ -311,7 +311,7 @@ public class ColorPickerWidget extends Widget {
         return true;
     }
 
-    private void renderPicker(DrawContext ctx, int px, int py, int mouseX, int mouseY) {
+    private void renderPicker(GuiGraphicsExtractor ctx, int px, int py, int mouseX, int mouseY) {
         renderConfigPickerFrame(px, py);
 
         int[] sv = svBoxBounds(px, py);
@@ -448,19 +448,19 @@ public class ColorPickerWidget extends Widget {
     }
 
     private void updateHue(double my, int[] hb) {
-        colorH = MathHelper.clamp((float) (my - ui.sy(hb[1])) / Math.max(1, ui.sh(hb[3])) * 360f, 0f, 360f);
+        colorH = Mth.clamp((float) (my - ui.sy(hb[1])) / Math.max(1, ui.sh(hb[3])) * 360f, 0f, 360f);
         applyCurrentColor();
     }
 
     private void updateSv(double mx, double my, int[] sv) {
-        colorS = MathHelper.clamp((float) (mx - ui.sx(sv[0])) / Math.max(1, ui.sw(sv[2])), 0f, 1f);
-        colorV = 1f - MathHelper.clamp((float) (my - ui.sy(sv[1])) / Math.max(1, ui.sh(sv[3])), 0f, 1f);
+        colorS = Mth.clamp((float) (mx - ui.sx(sv[0])) / Math.max(1, ui.sw(sv[2])), 0f, 1f);
+        colorV = 1f - Mth.clamp((float) (my - ui.sy(sv[1])) / Math.max(1, ui.sh(sv[3])), 0f, 1f);
         applyCurrentColor();
     }
 
     private void updateAlpha(double mx, int[] ab) {
         if (alphaConsumer == null) return;
-        alphaConsumer.accept(MathHelper.clamp((float) (mx - ui.sx(ab[0])) / Math.max(1, ui.sw(ab[2])), 0f, 1f));
+        alphaConsumer.accept(Mth.clamp((float) (mx - ui.sx(ab[0])) / Math.max(1, ui.sw(ab[2])), 0f, 1f));
     }
 
     private void renderAlphaSlider(int px, int py) {
@@ -482,7 +482,7 @@ public class ColorPickerWidget extends Widget {
     }
 
     private float currentAlpha() {
-        return alphaSupplier == null ? 1f : MathHelper.clamp(alphaSupplier.get(), 0f, 1f);
+        return alphaSupplier == null ? 1f : Mth.clamp(alphaSupplier.get(), 0f, 1f);
     }
 
     private void setColor(int rgb) {
@@ -503,20 +503,20 @@ public class ColorPickerWidget extends Widget {
         setColor(hsvToRgb(colorH, colorS, colorV));
     }
 
-    private void renderHexField(DrawContext ctx, int px, int py) {
+    private void renderHexField(GuiGraphicsExtractor ctx, int px, int py) {
         int[] hf = hexFieldBounds(px, py);
         boolean validHex = parseHexInput() != null;
-        var tr = net.minecraft.client.MinecraftClient.getInstance().textRenderer;
+        var tr = net.minecraft.client.Minecraft.getInstance().font;
         int textColor = validHex ? 0xFFFFFFFF : 0xFFFF6666;
         ui.drawRect(hf[0], hf[1], hf[2], hf[3], CustomColor.fromInt(hexFocused ? 0xFFFFAA00 : 0xFFAAAAAA));
         ui.drawRect(hf[0] + u(1), hf[1] + u(1), hf[2] - u(2), hf[3] - u(2), CustomColor.fromInt(0xFF111111));
         if (hexFocused && hexSelectAll && !hexInput.isEmpty()) {
-            ui.drawRect(hf[0] + u(3), hf[1] + u(3), Math.min(hf[2] - u(6), Math.round(tr.getWidth(hexInput) * textWidthScale()) + u(2)), hf[3] - u(6), CustomColor.fromInt(0xFF335577));
+            ui.drawRect(hf[0] + u(3), hf[1] + u(3), Math.min(hf[2] - u(6), Math.round(tr.width(hexInput) * textWidthScale()) + u(2)), hf[3] - u(6), CustomColor.fromInt(0xFF335577));
         }
         ui.drawText(hexInput, hf[0] + u(4), hf[1] + u(4), CustomColor.fromInt(textColor), HorizontalAlignment.LEFT, VerticalAlignment.TOP, t(1.1f));
         if (hexFocused && !hexSelectAll && (System.currentTimeMillis() / 500) % 2 == 0) {
             int cursor = Math.max(0, Math.min(hexCursor, hexInput.length()));
-            int cx = hf[0] + u(4) + Math.min(hf[2] - u(8), Math.round(tr.getWidth(hexInput.substring(0, cursor)) * textWidthScale()));
+            int cx = hf[0] + u(4) + Math.min(hf[2] - u(8), Math.round(tr.width(hexInput.substring(0, cursor)) * textWidthScale()));
             ui.drawRect(cx, hf[1] + u(4), u(1), hf[3] - u(8), CustomColor.fromInt(0xFFFFFFFF));
         }
     }
@@ -561,10 +561,10 @@ public class ColorPickerWidget extends Widget {
     }
 
     private int cursorForMouse(double mx, int textX) {
-        var tr = net.minecraft.client.MinecraftClient.getInstance().textRenderer;
+        var tr = net.minecraft.client.Minecraft.getInstance().font;
         int cursor = 0;
         while (cursor < hexInput.length()) {
-            int charMid = textX + Math.round(tr.getWidth(hexInput.substring(0, cursor + 1)) * textWidthScale()) - Math.round(tr.getWidth(String.valueOf(hexInput.charAt(cursor))) * textWidthScale()) / 2;
+            int charMid = textX + Math.round(tr.width(hexInput.substring(0, cursor + 1)) * textWidthScale()) - Math.round(tr.width(String.valueOf(hexInput.charAt(cursor))) * textWidthScale()) / 2;
             if (mx < charMid) break;
             cursor++;
         }

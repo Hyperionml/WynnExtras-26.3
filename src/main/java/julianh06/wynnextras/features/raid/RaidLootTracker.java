@@ -2,19 +2,17 @@ package julianh06.wynnextras.features.raid;
 
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.CustomModelDataComponent;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomModelData;
 import java.util.List;
 import java.util.Map;
 
@@ -40,10 +38,10 @@ public class RaidLootTracker {
 
     public static void register() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            MinecraftClient mc = MinecraftClient.getInstance();
-            if (mc.player == null || mc.world == null) return;
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player == null || mc.level == null) return;
 
-            Screen screen = mc.currentScreen;
+            Screen screen = mc.gui.screen();
             if (screen == null) {
                 loggedThisChest = false;
                 return;
@@ -54,12 +52,12 @@ public class RaidLootTracker {
                 return;
             }
 
-            if(!(screen instanceof HandledScreen<?> handledScreen)) {
+            if(!(screen instanceof AbstractContainerScreen<?> handledScreen)) {
                 loggedThisChest = false;
                 return;
             }
 
-            if(!handledScreen.getScreenHandler().getSlot(4).hasStack()) {
+            if(!handledScreen.getMenu().getSlot(4).hasItem()) {
                 loggedThisChest = false;
                 return;
             }
@@ -76,9 +74,9 @@ public class RaidLootTracker {
         WynnExtrasConfig config = WynnExtrasConfig.INSTANCE;
         if (!config.toggleRaidLootTracker) return;
 
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        ScreenHandler handler = mc.player.currentScreenHandler;
+        AbstractContainerMenu handler = mc.player.containerMenu;
 
         RaidLootData data = RaidLootConfig.INSTANCE.data;
         data.initSession();
@@ -96,10 +94,10 @@ public class RaidLootTracker {
             Slot slot = handler.getSlot(i);
             if (slot == null) continue;
 
-            ItemStack stack = slot.getStack();
+            ItemStack stack = slot.getItem();
             if (stack == null || stack.isEmpty()) continue;
 
-            String name = cleanName(stack.getName().getString());
+            String name = cleanName(stack.getHoverName().getString());
             int count = stack.getCount();
 
             // ===== Emeralds =====
@@ -252,7 +250,7 @@ public class RaidLootTracker {
     }
 
     private static String detectRaid() {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return "UNKNOWN";
 
         double px = mc.player.getX();
@@ -276,16 +274,16 @@ public class RaidLootTracker {
     }
 
     private static void sendChatDebug(RaidLootData d, String raidName) {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
 
-        mc.player.sendMessage(
-                Text.literal("§6Raid: §e" + raidName),
+        julianh06.wynnextras.compat.client.ClientMessages.display(
+                Component.literal("§6Raid: §e" + raidName),
                 false
         );
 
-        mc.player.sendMessage(
-                Text.literal(
+        julianh06.wynnextras.compat.client.ClientMessages.display(
+                Component.literal(
                         "§aEmeralds: §e" +
                                 d.getStacks() + " STX " +
                                 d.getRemainingLiquidEmeralds() + " LE " +
@@ -294,8 +292,8 @@ public class RaidLootTracker {
                 false
         );
 
-        mc.player.sendMessage(
-                Text.literal(
+        julianh06.wynnextras.compat.client.ClientMessages.display(
+                Component.literal(
                         "§aAmplifiers: §e" +
                                 d.getTotalAmplifiers() +
                                 " §7(I: " + d.amplifierTier1 +
@@ -306,8 +304,8 @@ public class RaidLootTracker {
                 false
         );
 
-        mc.player.sendMessage(
-                Text.literal(
+        julianh06.wynnextras.compat.client.ClientMessages.display(
+                Component.literal(
                         "§bCrafter Bags: §e" + d.totalBags +
                                 " §7(Stuffed: " + d.stuffedBags +
                                 " | Packed: " + d.packedBags +
@@ -316,8 +314,8 @@ public class RaidLootTracker {
                 false
         );
 
-        mc.player.sendMessage(
-                Text.literal(
+        julianh06.wynnextras.compat.client.ClientMessages.display(
+                Component.literal(
                         "§dTomes: §e" + d.totalTomes +
                                 " §7(Mythic: " + d.mythicTomes +
                                 " | Fabled: " + d.fabledTomes + ")"
@@ -325,15 +323,15 @@ public class RaidLootTracker {
                 false
         );
 
-        mc.player.sendMessage(
-                Text.literal(
+        julianh06.wynnextras.compat.client.ClientMessages.display(
+                Component.literal(
                         "§6Charms: §e" + d.totalCharms
                 ),
                 false
         );
 
-        mc.player.sendMessage(
-                Text.literal(
+        julianh06.wynnextras.compat.client.ClientMessages.display(
+                Component.literal(
                         "§5Aspects: §e" + d.totalAspects +
                                 " §7(§5" + d.mythicAspects +
                                 " §c" + d.fabledAspects +
@@ -349,12 +347,12 @@ public class RaidLootTracker {
 
     private static boolean isMythicTome(ItemStack stack) {
         try {
-            CustomModelDataComponent customModelData = stack.getComponents().get(DataComponentTypes.CUSTOM_MODEL_DATA);
+            CustomModelData customModelData = stack.getComponents().get(DataComponents.CUSTOM_MODEL_DATA);
             if (customModelData != null && customModelData.strings().contains("item_tier_mythic")) {
                 return true;
             }
 
-            Identifier tooltipStyle = stack.getComponents().get(DataComponentTypes.TOOLTIP_STYLE);
+            Identifier tooltipStyle = stack.getComponents().get(DataComponents.TOOLTIP_STYLE);
             if (tooltipStyle != null && "mythic".equals(tooltipStyle.getPath())) {
                 return true;
             }
@@ -362,15 +360,15 @@ public class RaidLootTracker {
         return false;
     }
 
-    private static boolean hasTextColor(Text text, String hexCode) {
+    private static boolean hasTextColor(Component text, String hexCode) {
         if (text == null) return false;
 
         TextColor color = text.getStyle().getColor();
-        if (color != null && hexCode.equalsIgnoreCase(color.getHexCode())) {
+        if (color != null && hexCode.equalsIgnoreCase(color.formatValue())) {
             return true;
         }
 
-        for (Text sibling : text.getSiblings()) {
+        for (Component sibling : text.getSiblings()) {
             if (hasTextColor(sibling, hexCode)) {
                 return true;
             }

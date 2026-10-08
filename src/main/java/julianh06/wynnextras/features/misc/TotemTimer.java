@@ -3,28 +3,27 @@ package julianh06.wynnextras.features.misc;
 import julianh06.wynnextras.wynncraft.item.GearType;
 import julianh06.wynnextras.wynncraft.item.WynnItemParser;
 import julianh06.wynnextras.utils.MinecraftUtils;
-import net.minecraft.item.ItemStack;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.client.sound.SoundInstance;
-import net.minecraft.client.sound.SoundInstanceListener;
-import net.minecraft.client.sound.WeightedSoundSet;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.StyleSpriteSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Box;
-
+import julianh06.wynnextras.compat.client.HudRenderCallback;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.resources.sounds.SoundInstance;
+import net.minecraft.client.sounds.SoundEventListener;
+import net.minecraft.client.sounds.WeighedSoundEvents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.AABB;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,7 +31,7 @@ import java.util.regex.Pattern;
 public class TotemTimer {
     private static int lastSelectedSlot = -1;
     private static final Style EFFECT_ICON_STYLE = Style.EMPTY.withFont(
-            new StyleSpriteSource.Font(Identifier.of("minecraft", "common")));
+            new FontDescription.Resource(Identifier.fromNamespaceAndPath("minecraft", "common")));
     private static final Pattern EFFECT_VALUE = Pattern.compile(
             "([^\\p{L}\\p{N}\\s.+~'\\-])\\ufe0f?\\s*(~?\\d+(?:\\.\\d+)?(?:[kKmMbB]|s)?)",
             Pattern.CASE_INSENSITIVE);
@@ -162,8 +161,8 @@ public class TotemTimer {
         return getEffectDisplayText(totem).getString();
     }
 
-    public static Text getEffectDisplayText(TotemInfo totem) {
-        MutableText result = Text.empty();
+    public static Component getEffectDisplayText(TotemInfo totem) {
+        MutableComponent result = Component.empty();
         boolean first = true;
         for (String effectId : WynnExtrasConfig.INSTANCE.totemTimerActiveEffects) {
             String value = totem.effectTexts().get(effectId);
@@ -181,7 +180,7 @@ public class TotemTimer {
             String icon = effect.icon();
             String effectValue = value.trim();
             if (effectValue.startsWith(icon)) effectValue = effectValue.substring(icon.length()).trim();
-            result.append(Text.literal(icon).setStyle(EFFECT_ICON_STYLE));
+            result.append(Component.literal(icon).setStyle(EFFECT_ICON_STYLE));
             if (!effectValue.isEmpty()) result.append(" " + effectValue);
         }
         return result;
@@ -191,13 +190,13 @@ public class TotemTimer {
         return getHudText(totem).getString();
     }
 
-    public static Text getHudText(TotemInfo totem) {
+    public static Component getHudText(TotemInfo totem) {
         WynnExtrasConfig config = WynnExtrasConfig.INSTANCE;
-        Text effectDisplay = getEffectDisplayText(totem);
-        if (effectDisplay.getString().isEmpty()) return Text.empty();
+        Component effectDisplay = getEffectDisplayText(totem);
+        if (effectDisplay.getString().isEmpty()) return Component.empty();
         if (config.totemTimerOwnOnly && config.totemTimerTimeOnly) return effectDisplay;
-        if (config.totemTimerOwnOnly) return Text.literal("Totem: ").append(effectDisplay);
-        return Text.literal(totem.owner() + "'s Totem: ").append(effectDisplay);
+        if (config.totemTimerOwnOnly) return Component.literal("Totem: ").append(effectDisplay);
+        return Component.literal(totem.owner() + "'s Totem: ").append(effectDisplay);
     }
 
     public static boolean isWarningActive() {
@@ -206,10 +205,10 @@ public class TotemTimer {
 
     public static void register() {
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
-            client.getSoundManager().registerListener(new SoundInstanceListener() {
+            client.getSoundManager().addListener(new SoundEventListener() {
                 @Override
-                public void onSoundPlayed(SoundInstance sound, WeightedSoundSet soundSet, float range) {
-                    onSound(sound.getId().getPath());
+                public void onPlaySound(SoundInstance sound, WeighedSoundEvents soundSet, float range) {
+                    onSound(sound.getIdentifier().getPath());
                 }
             });
         });
@@ -220,8 +219,8 @@ public class TotemTimer {
             if (client.player.getInventory() != null) {
                 int currentSlot = client.player.getInventory().getSelectedSlot();
                 if (lastSelectedSlot != -1 && currentSlot != lastSelectedSlot) {
-                    ItemStack prevStack = client.player.getInventory().getStack(lastSelectedSlot);
-                    ItemStack newStack = client.player.getInventory().getStack(currentSlot);
+                    ItemStack prevStack = client.player.getInventory().getItem(lastSelectedSlot);
+                    ItemStack newStack = client.player.getInventory().getItem(currentSlot);
                     if (isRelik(prevStack) && isRelik(newStack)) {
                         estimatedTotems.clear();
                         estimatedTotemEffects.clear();
@@ -233,7 +232,7 @@ public class TotemTimer {
 
             warningActive = false;
             if (!WynnExtrasConfig.INSTANCE.totemTimerEnabled) { totems.clear(); return; }
-            if (client.world == null || client.player == null) { totems.clear(); return; }
+            if (client.level == null || client.player == null) { totems.clear(); return; }
 
             tickCounter++;
             WynnExtrasConfig c = WynnExtrasConfig.INSTANCE;
@@ -252,7 +251,7 @@ public class TotemTimer {
             }
             if (warningActive && c.totemTimerWarningSound) {
                 MinecraftUtils.playSoundAmbient(
-                    SoundEvent.of(Identifier.of("block.note_block.pling")),
+                    SoundEvent.createVariableRangeEvent(Identifier.parse("block.note_block.pling")),
                     c.totemTimerWarningSoundVolume / 100, 2.0f
                 );
             }
@@ -261,20 +260,20 @@ public class TotemTimer {
 
             totems.clear();
             double px = client.player.getX(), py = client.player.getY(), pz = client.player.getZ();
-            Box searchBox = new Box(px - 64, py - 32, pz - 64, px + 64, py + 32, pz + 64);
+            AABB searchBox = new AABB(px - 64, py - 32, pz - 64, px + 64, py + 32, pz + 64);
 
-            List<DisplayEntity.TextDisplayEntity> allTdes = new ArrayList<>();
-            for (Entity e : client.world.getNonSpectatingEntities(Entity.class, searchBox)) {
-                if (e instanceof DisplayEntity.TextDisplayEntity tde) allTdes.add(tde);
+            List<Display.TextDisplay> allTdes = new ArrayList<>();
+            for (Entity e : client.level.getEntitiesOfClass(Entity.class, searchBox)) {
+                if (e instanceof Display.TextDisplay tde) allTdes.add(tde);
             }
 
             Map<String, Integer> ownerCounts = new HashMap<>();
             Set<UUID> visibleTotems = new HashSet<>();
             lastFoundKeys.clear();
 
-            for (DisplayEntity.TextDisplayEntity tde : allTdes) {
+            for (Display.TextDisplay tde : allTdes) {
                 String raw = tde.getText().getString();
-                String text = Formatting.strip(raw);
+                String text = ChatFormatting.stripFormatting(raw);
                 if (text == null || (!text.contains("'s Totem") && !text.contains("' Totem"))) continue;
                 if (text.contains("Totem of Tales")) continue;
 
@@ -285,7 +284,7 @@ public class TotemTimer {
                 String owner = text.substring(lineStart + 1, idx).trim();
                 if (owner.isEmpty()) owner = "?";
 
-                UUID entityId = tde.getUuid();
+                UUID entityId = tde.getUUID();
                 visibleTotems.add(entityId);
 
                 if (c.totemTimerOwnOnly && playerName != null && !owner.equals(playerName)) continue;
@@ -311,9 +310,9 @@ public class TotemTimer {
                     double tx = tde.getX(), ty = tde.getY(), tz = tde.getZ();
                     double bestDist2 = Double.MAX_VALUE;
                     String closestText = null;
-                    for (DisplayEntity.TextDisplayEntity other : allTdes) {
+                    for (Display.TextDisplay other : allTdes) {
                         if (other == tde) continue;
-                        String otherRaw = Formatting.strip(other.getText().getString());
+                        String otherRaw = ChatFormatting.stripFormatting(other.getText().getString());
                         if (otherRaw == null || otherRaw.isBlank()) continue;
                         double dx = other.getX() - tx, dy = other.getY() - ty, dz = other.getZ() - tz;
                         double dist2 = dx * dx + dy * dy + dz * dz;
@@ -405,21 +404,21 @@ public class TotemTimer {
         });
     }
 
-    private static void renderHud(DrawContext ctx, RenderTickCounter tickCounter) {
+    private static void renderHud(GuiGraphicsExtractor ctx, DeltaTracker tickCounter) {
         if (!WynnExtrasConfig.INSTANCE.totemTimerEnabled) return;
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        if (mc.options.hudHidden) return;
+        if (mc.gui.hud.isHidden()) return;
         WynnExtrasConfig c = WynnExtrasConfig.INSTANCE;
 
         if (!totems.isEmpty()) {
             float ts = c.totemTimerScale;
             int lineH = (int) (10 * ts);
-            int baseX = c.totemTimerX == -1 ? mc.getWindow().getScaledWidth() / 2 : c.totemTimerX;
+            int baseX = c.totemTimerX == -1 ? mc.getWindow().getGuiScaledWidth() / 2 : c.totemTimerX;
             int baseY = c.totemTimerY;
             int i = 0;
             for (TotemInfo t : totems) {
-                Text line = getHudText(t);
+                Component line = getHudText(t);
                 if (line.getString().isEmpty()) continue;
 
                 Integer override = WynnExtrasConfig.INSTANCE.hudColorOverrides.get("totem");
@@ -427,12 +426,12 @@ public class TotemTimer {
                 int color = t.estimated() ? 0xFFAAAAAA
                         : (useSolid ? (override | 0xFF000000) : timeColor(t.timeText()));
 
-                int tw = mc.textRenderer.getWidth(line);
-                int th = mc.textRenderer.fontHeight;
+                int tw = mc.font.width(line);
+                int th = mc.font.lineHeight;
 
                 WynnExtrasConfig.Align align = c.totemTimerAlignment;
 
-                int previewTw = mc.textRenderer.getWidth("PlayerName's Totem: 38s");
+                int previewTw = mc.font.width("PlayerName's Totem: 38s");
 
                 int textOffsetX;
                 if (align == WynnExtrasConfig.Align.LEFT) {
@@ -443,11 +442,11 @@ public class TotemTimer {
                     textOffsetX = -tw / 2;
                 }
 
-                ctx.getMatrices().pushMatrix();
-                ctx.getMatrices().translate(baseX, baseY + i * lineH);
-                ctx.getMatrices().scale(ts, ts);
-                ctx.drawText(mc.textRenderer, line, textOffsetX, -th / 2, color, true);
-                ctx.getMatrices().popMatrix();
+                ctx.pose().pushMatrix();
+                ctx.pose().translate(baseX, baseY + i * lineH);
+                ctx.pose().scale(ts, ts);
+                ctx.text(mc.font, line, textOffsetX, -th / 2, color, true);
+                ctx.pose().popMatrix();
                 i++;
             }
         }
@@ -455,15 +454,15 @@ public class TotemTimer {
         if (warningActive && c.totemTimerWarningText) {
             String alarmText = "RECAST TOTEM!";
             float as = c.totemWarningScale;
-            int wx = c.totemWarningX == -1 ? mc.getWindow().getScaledWidth() / 2 : c.totemWarningX;
+            int wx = c.totemWarningX == -1 ? mc.getWindow().getGuiScaledWidth() / 2 : c.totemWarningX;
             int wy = c.totemWarningY;
 
-            int tw = mc.textRenderer.getWidth(alarmText);
-            int th = mc.textRenderer.fontHeight;
+            int tw = mc.font.width(alarmText);
+            int th = mc.font.lineHeight;
 
             WynnExtrasConfig.Align align = c.totemWarningAlignment;
 
-            int previewTw = mc.textRenderer.getWidth("RECAST TOTEM!");
+            int previewTw = mc.font.width("RECAST TOTEM!");
 
             int textOffsetX;
             if (align == WynnExtrasConfig.Align.LEFT) {
@@ -476,11 +475,11 @@ public class TotemTimer {
 
             int color = 0xFF000000 | WynnExtrasConfig.INSTANCE.totemTimerWarningTextColor.getRGB();
 
-            ctx.getMatrices().pushMatrix();
-            ctx.getMatrices().translate(wx, wy);
-            ctx.getMatrices().scale(as, as);
-            ctx.drawText(mc.textRenderer, alarmText, textOffsetX, -th / 2, color, true);
-            ctx.getMatrices().popMatrix();
+            ctx.pose().pushMatrix();
+            ctx.pose().translate(wx, wy);
+            ctx.pose().scale(as, as);
+            ctx.text(mc.font, alarmText, textOffsetX, -th / 2, color, true);
+            ctx.pose().popMatrix();
         }
     }
 }

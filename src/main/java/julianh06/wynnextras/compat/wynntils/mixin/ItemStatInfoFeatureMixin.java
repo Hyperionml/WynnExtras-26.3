@@ -4,8 +4,8 @@ import julianh06.wynnextras.compat.wynntils.WynntilsTooltipAdapter;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.features.inventory.TradeMarketComparisonPanel;
 import julianh06.wynnextras.features.inventory.WeightDisplay;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
@@ -25,9 +25,9 @@ public class ItemStatInfoFeatureMixin {
         if (currentHoveredStack == null) return;
         WeightDisplay.setCurrentHoveredStack(currentHoveredStack);
 
-        List<Text> eventTooltips = WynntilsTooltipAdapter.getTooltips(event);
+        List<Component> eventTooltips = WynntilsTooltipAdapter.getTooltips(event);
         if (!eventTooltips.isEmpty()) {
-            List<Text> tooltips = new ArrayList<>(eventTooltips);
+            List<Component> tooltips = new ArrayList<>(eventTooltips);
             TradeMarketComparisonPanel.cacheHoveredTooltip(currentHoveredStack, tooltips);
         }
         if (eventTooltips.isEmpty()) return;
@@ -55,38 +55,38 @@ public class ItemStatInfoFeatureMixin {
         int idx = Math.min(itemData.index(), scaleData.data().size() - 1);
         WeightDisplay.WeightData currentProfile = itemData.data().get(idx);
 
-        List<Text> tooltipList = new ArrayList<>(eventTooltips);
+        List<Component> tooltipList = new ArrayList<>(eventTooltips);
 
         if (tooltipList.size() >= 4 && WynnExtrasConfig.INSTANCE.showWeight) {
-            List<Text> scoreBlock = new ArrayList<>();
-            scoreBlock.add(Text.empty());
+            List<Component> scoreBlock = new ArrayList<>();
+            scoreBlock.add(Component.empty());
             WynnExtrasConfig.MythicScaleSource renderedSource = null;
             for (int j = 0; j < scaleData.data().size(); j++) {
                 WeightDisplay.WeightData wd = scaleData.data().get(j);
                 if (WeightDisplay.isShowingBothScaleSources(cleanName) && wd.source() != renderedSource) {
                     renderedSource = wd.source();
-                    scoreBlock.add(Text.literal("  ↳ " + renderedSource)
-                            .styled(s -> s.withColor(0xAAAAAA)));
+                    scoreBlock.add(Component.literal("  ↳ " + renderedSource)
+                            .withStyle(s -> s.withColor(0xAAAAAA)));
                 }
                 boolean cur = (j == idx);
                 float score = wd.score();
-                Text scoreText = Text.literal(String.format(" [%.1f%%]", score))
-                        .styled(s -> s.withColor(WeightDisplay.getScaleColor(score)).withBold(cur));
+                Component scoreText = Component.literal(String.format(" [%.1f%%]", score))
+                        .withStyle(s -> s.withColor(WeightDisplay.getScaleColor(score)).withBold(cur));
                 String indent = WeightDisplay.isShowingBothScaleSources(cleanName) ? "    ↳ " : "  ↳ ";
-                Text label = Text.literal(indent + WeightDisplay.getScaleLabel(wd.weightName()))
-                        .styled(s -> s.withColor(cur ? 0xFFFFFF : 0xAAAAAA).withBold(cur))
+                Component label = Component.literal(indent + WeightDisplay.getScaleLabel(wd.weightName()))
+                        .withStyle(s -> s.withColor(cur ? 0xFFFFFF : 0xAAAAAA).withBold(cur))
                         .copy().append(scoreText);
                 scoreBlock.add(label);
             }
             if (scaleData.data().size() > 1) {
-                scoreBlock.add(Text.literal("  ↳ Use ↑/↓ (W/S) to cycle").styled(s -> s.withColor(0x555555)));
+                scoreBlock.add(Component.literal("  ↳ Use ↑/↓ (W/S) to cycle").withStyle(s -> s.withColor(0x555555)));
             }
             if (WeightDisplay.shouldShowScaleSourceControls(cleanName)) {
-                scoreBlock.add(Text.literal("  ↳ Use ←/→ (A/D) to switch source")
-                        .styled(s -> s.withColor(0x555555)));
-                scoreBlock.add(Text.literal("  ↳ Currently using: "
+                scoreBlock.add(Component.literal("  ↳ Use ←/→ (A/D) to switch source")
+                        .withStyle(s -> s.withColor(0x555555)));
+                scoreBlock.add(Component.literal("  ↳ Currently using: "
                                 + WeightDisplay.getSelectedScaleSource(cleanName))
-                        .styled(s -> s.withColor(0x555555)));
+                        .withStyle(s -> s.withColor(0x555555)));
             }
             tooltipList.addAll(4, scoreBlock);
         }
@@ -100,8 +100,8 @@ public class ItemStatInfoFeatureMixin {
                 String apiName = WeightDisplay.resolveIdentKey(parts[0], parts[1])[0];
                 Float scale = currentProfile.identifications().getOrDefault(apiName, 0f);
                 if (scale == null || scale == 0f) continue;
-                tooltipList.add(i + 1, Text.literal(String.format("  ↳ Weight: %.1f%%", scale * 100))
-                        .styled(s -> s.withColor(0x555555)));
+                tooltipList.add(i + 1, Component.literal(String.format("  ↳ Weight: %.1f%%", scale * 100))
+                        .withStyle(s -> s.withColor(0x555555)));
                 added++;
             }
         }

@@ -1,11 +1,10 @@
 package julianh06.wynnextras.compat.wynntils;
 
-import net.minecraft.util.Formatting;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.ChatFormatting;
 
 public final class WynntilsGuildAdapter {
     public record Resource(String symbol, String name, int generation, int current, int max, boolean stored) {}
@@ -86,13 +85,13 @@ public final class WynntilsGuildAdapter {
             if (defenceLevel <= veryLow) return null;
             Map<?, ?> generators = asMap(invoke(info, "getGenerators"));
             Map<?, ?> storage = asMap(invoke(info, "getStorage"));
-            if (generators.size() > 3) return List.of(Formatting.RED + "Unknown " + Formatting.GRAY + "(Rainbow territory)");
+            if (generators.size() > 3) return List.of(ChatFormatting.RED + "Unknown " + ChatFormatting.GRAY + "(Rainbow territory)");
             Integer producedEmeralds = mapNumber(generators, "EMERALDS");
-            if (producedEmeralds == null) return List.of(Formatting.RED + "Unknown " + Formatting.GRAY + "(Missing generation info)");
+            if (producedEmeralds == null) return List.of(ChatFormatting.RED + "Unknown " + ChatFormatting.GRAY + "(Missing generation info)");
 
             int[] used = estimateUsedResources(defenceLevel, producedEmeralds, storage,
                     Boolean.TRUE.equals(invoke(info, "isHeadquarters")));
-            if (used == null) return List.of(Formatting.RED + "Unknown " + Formatting.GRAY + "(Invalid storage info)");
+            if (used == null) return List.of(ChatFormatting.RED + "Unknown " + ChatFormatting.GRAY + "(Invalid storage info)");
 
             int currentEmeralds = capped(storage, "EMERALDS", "current");
             int predicted = Math.clamp((int) Math.round(currentEmeralds / (producedEmeralds / 60d) * 60), 0, 60);
@@ -128,14 +127,14 @@ public final class WynntilsGuildAdapter {
             double connectionBoost = 1 + 0.3 * uniqueConnections(info, 1);
             if (Boolean.TRUE.equals(invoke(info, "isHeadquarters"))) connectionBoost *= 1.5 + 0.25 * uniqueConnections(info, 3);
             List<String> result = new ArrayList<>();
-            if (fallback) result.add(Formatting.YELLOW + "Warning: using fallback time");
-            result.add(Formatting.WHITE + "Ⓑ " + format("%.0f", values[0] * connectionBoost) + "-"
+            if (fallback) result.add(ChatFormatting.YELLOW + "Warning: using fallback time");
+            result.add(ChatFormatting.WHITE + "Ⓑ " + format("%.0f", values[0] * connectionBoost) + "-"
                     + format("%.0f", values[0] * connectionBoost * 1.5) + " Damage" + tier(tiers[0])
-                    + Formatting.DARK_GRAY + " (x" + String.format("%.2f", connectionBoost) + ")");
-            result.add(Formatting.YELLOW + "Ⓙ " + format("%.2f", values[2]) + " Attacks/s" + tier(tiers[2]));
-            result.add(Formatting.GOLD + "Ⓒ " + format("%.0f", values[1] * connectionBoost / 1000) + "k HP" + tier(tiers[1]));
-            result.add(Formatting.AQUA + "Ⓚ " + format("%.0f", values[3]) + "% Defence" + tier(tiers[3]));
-            result.add(Formatting.DARK_GRAY + "Next resource move prediction: " + (60 - predicted) + "s");
+                    + ChatFormatting.DARK_GRAY + " (x" + String.format("%.2f", connectionBoost) + ")");
+            result.add(ChatFormatting.YELLOW + "Ⓙ " + format("%.2f", values[2]) + " Attacks/s" + tier(tiers[2]));
+            result.add(ChatFormatting.GOLD + "Ⓒ " + format("%.0f", values[1] * connectionBoost / 1000) + "k HP" + tier(tiers[1]));
+            result.add(ChatFormatting.AQUA + "Ⓚ " + format("%.0f", values[3]) + "% Defence" + tier(tiers[3]));
+            result.add(ChatFormatting.DARK_GRAY + "Next resource move prediction: " + (60 - predicted) + "s");
             return result;
         } catch (Throwable ignored) {
             return null;
@@ -209,7 +208,7 @@ public final class WynntilsGuildAdapter {
     }
     private static int valueOrZero(Integer value) { return value == null ? 0 : value; }
     private static String format(String pattern, double value) { return value < 0 ? "(???)" : String.format(pattern, value); }
-    private static String tier(int tier) { return tier < 0 ? "" : Formatting.GRAY + " (" + tier + ")"; }
+    private static String tier(int tier) { return tier < 0 ? "" : ChatFormatting.GRAY + " (" + tier + ")"; }
 
     private static Object invoke(Object target, String name, Object... args) {
         if (target == null) return null;

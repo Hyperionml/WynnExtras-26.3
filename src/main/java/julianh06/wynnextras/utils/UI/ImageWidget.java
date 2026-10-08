@@ -1,7 +1,7 @@
 package julianh06.wynnextras.utils.UI;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
 
 public class ImageWidget extends Widget{
     Identifier image;
@@ -18,7 +18,7 @@ public class ImageWidget extends Widget{
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         ui.drawImage(image, x, y, width, height);
     }
 }

@@ -1,9 +1,8 @@
 package julianh06.wynnextras.compat.wynntils;
 
-import net.minecraft.client.render.entity.state.EntityRenderState;
-
 import java.lang.reflect.Method;
 import java.util.Optional;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
 
 public final class WynntilsNametagAdapter {
     private record NametagEventMethods(Class<?> eventClass, Method getEntityRenderState) {}

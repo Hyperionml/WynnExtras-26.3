@@ -1,54 +1,53 @@
 package julianh06.wynnextras.utils;
 
 import julianh06.wynnextras.mixin.Accessor.HandledScreenAccessor;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.screen.slot.Slot;
-
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.inventory.Slot;
 import java.lang.reflect.Field;
 
 public final class HandledScreenAccess {
     private HandledScreenAccess() {}
 
-    public static int x(HandledScreen<?> screen) {
+    public static int x(AbstractContainerScreen<?> screen) {
         if (screen instanceof HandledScreenAccessor accessor) return accessor.getX();
-        return getInt(screen, 0, "x", "field_2776", "z");
+        return getInt(screen, 0, "leftPos", "x", "field_2776", "z");
     }
 
-    public static int y(HandledScreen<?> screen) {
+    public static int y(AbstractContainerScreen<?> screen) {
         if (screen instanceof HandledScreenAccessor accessor) return accessor.getY();
-        return getInt(screen, 0, "y", "field_2800", "A");
+        return getInt(screen, 0, "topPos", "y", "field_2800", "A");
     }
 
-    public static int backgroundWidth(HandledScreen<?> screen) {
-        if (screen instanceof HandledScreenAccessor accessor) return accessor.getBackgroundWidth();
-        return getInt(screen, 176, "backgroundWidth", "field_2792", "d");
+    public static int backgroundWidth(AbstractContainerScreen<?> screen) {
+        if (screen instanceof HandledScreenAccessor accessor) return accessor.getImageWidth();
+        return getInt(screen, 176, "imageWidth", "backgroundWidth", "field_2792", "d");
     }
 
-    public static int backgroundHeight(HandledScreen<?> screen) {
-        if (screen instanceof HandledScreenAccessor accessor) return accessor.getBackgroundHeight();
-        return getInt(screen, 166, "backgroundHeight", "field_2779", "e");
+    public static int backgroundHeight(AbstractContainerScreen<?> screen) {
+        if (screen instanceof HandledScreenAccessor accessor) return accessor.getImageHeight();
+        return getInt(screen, 166, "imageHeight", "backgroundHeight", "field_2779", "e");
     }
 
-    public static Slot focusedSlot(HandledScreen<?> screen) {
+    public static Slot focusedSlot(AbstractContainerScreen<?> screen) {
         if (screen instanceof HandledScreenAccessor accessor) return accessor.getFocusedSlot();
-        Object value = get(screen, Slot.class, "focusedSlot", "field_2787", "y");
+        Object value = get(screen, Slot.class, "hoveredSlot", "focusedSlot", "field_2787", "y");
         return value instanceof Slot slot ? slot : null;
     }
 
-    public static void setFocusedSlot(HandledScreen<?> screen, Slot slot) {
+    public static void setFocusedSlot(AbstractContainerScreen<?> screen, Slot slot) {
         if (screen instanceof HandledScreenAccessor accessor) {
             accessor.setFocusedSlot(slot);
             return;
         }
-        set(screen, Slot.class, slot, "focusedSlot", "field_2787", "y");
+        set(screen, Slot.class, slot, "hoveredSlot", "focusedSlot", "field_2787", "y");
     }
 
-    private static int getInt(HandledScreen<?> screen, int fallback, String... names) {
+    private static int getInt(AbstractContainerScreen<?> screen, int fallback, String... names) {
         Object value = get(screen, int.class, names);
         return value instanceof Integer i ? i : fallback;
     }
 
-    private static Object get(HandledScreen<?> screen, Class<?> type, String... names) {
+    private static Object get(AbstractContainerScreen<?> screen, Class<?> type, String... names) {
         Field field = findField(screen.getClass(), type, names);
         if (field == null) return null;
         try {
@@ -59,7 +58,7 @@ public final class HandledScreenAccess {
         }
     }
 
-    private static void set(HandledScreen<?> screen, Class<?> type, Object value, String... names) {
+    private static void set(AbstractContainerScreen<?> screen, Class<?> type, Object value, String... names) {
         Field field = findField(screen.getClass(), type, names);
         if (field == null) return;
         try {

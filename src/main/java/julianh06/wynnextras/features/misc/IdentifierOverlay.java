@@ -2,6 +2,10 @@ package julianh06.wynnextras.features.misc;
 
 import julianh06.wynnextras.wynncraft.menu.MenuType;
 import julianh06.wynnextras.wynncraft.menu.WynncraftMenuService;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.utils.render.RenderUtils;
@@ -9,23 +13,19 @@ import julianh06.wynnextras.mixin.Accessor.HandledScreenAccessor;
 import julianh06.wynnextras.utils.UI.WEMenuExtension;
 import julianh06.wynnextras.utils.UI.WEScreen;
 import julianh06.wynnextras.utils.UI.Widget;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
 
 public class IdentifierOverlay extends WEMenuExtension {
     SourceOfThruthOpenerWidget sourceOfThruthOpenerWidget = null;
 
     @Override
-    protected void drawBackground(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
 
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         if (!WynncraftMenuService.isCurrent(MenuType.ITEM_IDENTIFIER)) return;
-        if(MinecraftClient.getInstance().currentScreen == null) return;
+        if(Minecraft.getInstance().gui.screen() == null) return;
 
         if(sourceOfThruthOpenerWidget == null) {
             sourceOfThruthOpenerWidget = new SourceOfThruthOpenerWidget(0, 0, 0, 0);
@@ -33,14 +33,14 @@ public class IdentifierOverlay extends WEMenuExtension {
         }
 
         Screen screen = MinecraftUtils.screen();
-        if (!(screen instanceof HandledScreen<?> containerScreen)) return;
+        if (!(screen instanceof AbstractContainerScreen<?> containerScreen)) return;
         int yPos = ((HandledScreenAccessor) containerScreen).getY() - 35;
 
         sourceOfThruthOpenerWidget.setBounds(screenWidth / 2 - 67, yPos, 133, 20);
     }
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
 
     }
 
@@ -50,7 +50,7 @@ public class IdentifierOverlay extends WEMenuExtension {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawCenteredText("Should i keep gambling?", x + width / 2f, y - 8, 1f);
             ui.drawButton(x, y, width, height, hovered);
             ui.drawCenteredText("Find out here!", x + width / 2f, y + height / 2f, 1f);
@@ -58,7 +58,7 @@ public class IdentifierOverlay extends WEMenuExtension {
 
         @Override
         protected boolean onClick(int button) {
-            MinecraftUtils.mc().currentScreen = null;
+            MinecraftUtils.mc().gui.setScreen(null);
             WEScreen.open(SourceOfThruth::new);
             return true;
         }

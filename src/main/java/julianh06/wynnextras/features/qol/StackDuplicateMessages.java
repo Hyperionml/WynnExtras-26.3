@@ -2,12 +2,11 @@ package julianh06.wynnextras.features.qol;
 
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.mixin.Accessor.ChatHudAccessor;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.hud.ChatHud;
-import net.minecraft.client.gui.hud.ChatHudLine;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.multiplayer.chat.GuiMessage;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.ChatComponent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -20,23 +19,23 @@ public class StackDuplicateMessages {
     private static int lastStackedCount = 1;
     private static int lastStackedTick = -1;
 
-    public static Text process(Text message) {
+    public static Component process(Component message) {
         if (!WynnExtrasConfig.INSTANCE.stackDuplicateMessages) return message;
         try {
-            ChatHud chatHud = MinecraftClient.getInstance().inGameHud.getChatHud();
+            ChatComponent chatHud = Minecraft.getInstance().gui.hud.getChat();
             ChatHudAccessor acc = (ChatHudAccessor) chatHud;
-            List<ChatHudLine> messages = acc.getMessages();
-            List<ChatHudLine.Visible> visible = acc.getVisibleMessages();
+            List<GuiMessage> messages = acc.getMessages();
+            List<GuiMessage.Line> visible = acc.getVisibleMessages();
             String newMsg = strip(message.getString());
             if (newMsg.isEmpty() || messages.isEmpty()) return message;
 
             int windowTicks = Math.max(1, WynnExtrasConfig.INSTANCE.stackDuplicateWindowMinutes) * 60 * 20;
-            int currentTick = MinecraftClient.getInstance().inGameHud.getTicks();
+            int currentTick = Minecraft.getInstance().gui.hud.getGuiTicks();
 
             // Scan the window for an exact-match duplicate of the incoming message.
             int matchIdx = -1;
             for (int i = 0; i < messages.size(); i++) {
-                if (currentTick - messages.get(i).creationTick() > windowTicks) break;
+                if (currentTick - messages.get(i).addedTime() > windowTicks) break;
                 if (strip(messages.get(i).content().getString()).equals(newMsg)) {
                     matchIdx = i;
                     break;
@@ -77,8 +76,8 @@ public class StackDuplicateMessages {
             lastStackedCount = newCount;
             lastStackedTick = currentTick;
 
-            MutableText wrapped = Text.empty().append(message);
-            wrapped.append(Text.literal((message.getString().endsWith(" ") ? "" : " ") + String.format("§7(%d)", newCount)));
+            MutableComponent wrapped = Component.empty().append(message);
+            wrapped.append(Component.literal((message.getString().endsWith(" ") ? "" : " ") + String.format("§7(%d)", newCount)));
             return wrapped;
         } catch (Exception ignored) {}
         return message;
@@ -90,7 +89,7 @@ public class StackDuplicateMessages {
     // by zero or more endOfEntry=false continuation lines. To locate messages[matchIdx]
     // we count endOfEntry=true markers; from that marker up to (but not including) the
     // next one belongs to this message.
-    private static void removeVisibleLinesForMessage(List<ChatHudLine.Visible> visible, int matchIdx) {
+    private static void removeVisibleLinesForMessage(List<GuiMessage.Line> visible, int matchIdx) {
         int msgIdx = -1;
         int start = -1;
         for (int i = 0; i < visible.size(); i++) {

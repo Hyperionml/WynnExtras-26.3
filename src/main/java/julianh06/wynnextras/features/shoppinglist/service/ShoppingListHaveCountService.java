@@ -10,19 +10,18 @@ import julianh06.wynnextras.features.shoppinglist.cart.ShoppingEntry;
 import julianh06.wynnextras.features.shoppinglist.model.RequirementType;
 import julianh06.wynnextras.features.shoppinglist.util.IngredientNormalizer;
 import julianh06.wynnextras.features.shoppinglist.util.ShoppingListMaterialNameNormalizer;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.tooltip.TooltipType;
-import net.minecraft.registry.Registries;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.Container;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -55,7 +54,7 @@ public class ShoppingListHaveCountService {
     }
 
     public StackSnapshot snapshot(ItemStack stack) {
-        return toSnapshot(stack, MinecraftClient.getInstance().player);
+        return toSnapshot(stack, Minecraft.getInstance().player);
     }
 
     public ShoppingListHaveCount count(ShoppingEntry entry, SourceSnapshot snapshot) {
@@ -111,8 +110,8 @@ public class ShoppingListHaveCountService {
 
     public SourceSnapshot snapshot() {
         try {
-            MinecraftClient client = MinecraftClient.getInstance();
-            PlayerEntity player = client == null ? null : client.player;
+            Minecraft client = Minecraft.getInstance();
+            Player player = client == null ? null : client.player;
             InventorySource inventorySource = liveInventorySource(player);
             if (!inventorySource.liveInventoryAvailable() && BankOverlay.hasValidCurrentCharacterId()) {
                 inventorySource = savedInventorySource(CharacterBankData.INSTANCE, player);
@@ -307,22 +306,22 @@ public class ShoppingListHaveCountService {
         return IngredientNormalizer.key(ShoppingListTextCleaner.clean(value));
     }
 
-    private InventorySource liveInventorySource(PlayerEntity player) {
+    private InventorySource liveInventorySource(Player player) {
         if (player == null) {
             return new InventorySource(List.of(), false);
         }
 
         List<ItemStack> stacks = new ArrayList<>();
-        stacks.addAll(player.getInventory().getMainStacks());
-        stacks.add(player.getOffHandStack());
-        stacks.add(player.getEquippedStack(EquipmentSlot.HEAD));
-        stacks.add(player.getEquippedStack(EquipmentSlot.CHEST));
-        stacks.add(player.getEquippedStack(EquipmentSlot.LEGS));
-        stacks.add(player.getEquippedStack(EquipmentSlot.FEET));
+        stacks.addAll(player.getInventory().getNonEquipmentItems());
+        stacks.add(player.getOffhandItem());
+        stacks.add(player.getItemBySlot(EquipmentSlot.HEAD));
+        stacks.add(player.getItemBySlot(EquipmentSlot.CHEST));
+        stacks.add(player.getItemBySlot(EquipmentSlot.LEGS));
+        stacks.add(player.getItemBySlot(EquipmentSlot.FEET));
         return new InventorySource(toSnapshots(stacks, player), true);
     }
 
-    private InventorySource savedInventorySource(BankData data, PlayerEntity player) {
+    private InventorySource savedInventorySource(BankData data, Player player) {
         if (data == null) {
             return new InventorySource(List.of(), false);
         }
@@ -337,7 +336,7 @@ public class ShoppingListHaveCountService {
         return new InventorySource(toSnapshots(stacks, player), false);
     }
 
-    private Map<Integer, List<StackSnapshot>> bankPageSnapshots(BankData data, PlayerEntity player) {
+    private Map<Integer, List<StackSnapshot>> bankPageSnapshots(BankData data, Player player) {
         if (data == null || data.getBankPages() == null || data.getBankPages().isEmpty()) {
             return Map.of();
         }
@@ -351,7 +350,7 @@ public class ShoppingListHaveCountService {
             Map<Integer, List<StackSnapshot>> cachedPages,
             BankData expectedData,
             VisibleBankSource visibleSource,
-            PlayerEntity player) {
+            Player player) {
         if (expectedData == null || visibleSource == null || visibleSource.data() != expectedData
                 || visibleSource.stacks().isEmpty()) {
             return copyPages(cachedPages);
@@ -368,8 +367,8 @@ public class ShoppingListHaveCountService {
         return Map.copyOf(merged);
     }
 
-    private VisibleBankSource visibleBankSource(MinecraftClient client, PlayerEntity player) {
-        if (client == null || player == null || !(client.currentScreen instanceof HandledScreen<?> handledScreen)) {
+    private VisibleBankSource visibleBankSource(Minecraft client, Player player) {
+        if (client == null || player == null || !(client.gui.screen() instanceof AbstractContainerScreen<?> handledScreen)) {
             return VisibleBankSource.empty();
         }
         BankOverlay.updateOverlayType();
@@ -377,7 +376,7 @@ public class ShoppingListHaveCountService {
             return VisibleBankSource.empty();
         }
 
-        List<ItemStack> stacks = visibleContainerStacks(handledScreen.getScreenHandler(), player.getInventory());
+        List<ItemStack> stacks = visibleContainerStacks(handledScreen.getMenu(), player.getInventory());
         if (stacks.isEmpty()) {
             return VisibleBankSource.empty();
         }
@@ -389,17 +388,17 @@ public class ShoppingListHaveCountService {
         return BankOverlay.activeInv >= 0 ? BankOverlay.activeInv : VISIBLE_PAGE_KEY;
     }
 
-    private static List<ItemStack> visibleContainerStacks(ScreenHandler screenHandler, Inventory playerInventory) {
+    private static List<ItemStack> visibleContainerStacks(AbstractContainerMenu screenHandler, Container playerInventory) {
         if (screenHandler == null || playerInventory == null || screenHandler.slots == null) {
             return List.of();
         }
 
         List<ItemStack> stacks = new ArrayList<>(45);
         for (Slot slot : screenHandler.slots) {
-            if (slot == null || slot.inventory == playerInventory) {
+            if (slot == null || slot.container == playerInventory) {
                 continue;
             }
-            stacks.add(slot.getStack().copy());
+            stacks.add(slot.getItem().copy());
             if (stacks.size() >= 45) {
                 break;
             }
@@ -407,7 +406,7 @@ public class ShoppingListHaveCountService {
         return stacks.size() < 45 ? List.of() : List.copyOf(stacks);
     }
 
-    private List<StackSnapshot> toSnapshots(Collection<ItemStack> stacks, PlayerEntity player) {
+    private List<StackSnapshot> toSnapshots(Collection<ItemStack> stacks, Player player) {
         if (stacks == null || stacks.isEmpty()) {
             return List.of();
         }
@@ -422,12 +421,12 @@ public class ShoppingListHaveCountService {
         return List.copyOf(snapshots);
     }
 
-    private StackSnapshot toSnapshot(ItemStack stack, PlayerEntity player) {
+    private StackSnapshot toSnapshot(ItemStack stack, Player player) {
         if (stack == null || stack.isEmpty() || stack.getCount() <= 0) {
             return null;
         }
 
-        String displayName = stack.getName().getString();
+        String displayName = stack.getHoverName().getString();
         StackSnapshotKey key = stackSnapshotKey(stack, displayName);
         StackSnapshot cached = stackSnapshotCache.get(key);
         if (cached != null) {
@@ -467,10 +466,10 @@ public class ShoppingListHaveCountService {
         return ShoppingListMaterialNameNormalizer.needsLoreForTier(displayName);
     }
 
-    private static List<String> tooltipLines(ItemStack stack, PlayerEntity player) {
+    private static List<String> tooltipLines(ItemStack stack, Player player) {
         List<String> loreLines = new ArrayList<>();
         try {
-            for (Text line : stack.getTooltip(Item.TooltipContext.DEFAULT, player, TooltipType.BASIC)) {
+            for (Component line : stack.getTooltipLines(Item.TooltipContext.EMPTY, player, TooltipFlag.NORMAL)) {
                 loreLines.add(line.getString());
             }
         } catch (RuntimeException ignored) {
@@ -519,8 +518,8 @@ public class ShoppingListHaveCountService {
 
     public SourceSignature sourceSignature() {
         try {
-            MinecraftClient client = MinecraftClient.getInstance();
-            PlayerEntity player = client == null ? null : client.player;
+            Minecraft client = Minecraft.getInstance();
+            Player player = client == null ? null : client.player;
             VisibleBankSource visibleSource = visibleBankSource(client, player);
             long visibleSignature = visibleBankSignature(visibleSource);
             long accountSignature = combinedSignature(
@@ -553,19 +552,19 @@ public class ShoppingListHaveCountService {
         return signature;
     }
 
-    private static long inventorySignature(PlayerEntity player) {
+    private static long inventorySignature(Player player) {
         if (player == null) {
             return 0;
         }
 
         long signature = 1;
         List<ItemStack> stacks = new ArrayList<>();
-        stacks.addAll(player.getInventory().getMainStacks());
-        stacks.add(player.getOffHandStack());
-        stacks.add(player.getEquippedStack(EquipmentSlot.HEAD));
-        stacks.add(player.getEquippedStack(EquipmentSlot.CHEST));
-        stacks.add(player.getEquippedStack(EquipmentSlot.LEGS));
-        stacks.add(player.getEquippedStack(EquipmentSlot.FEET));
+        stacks.addAll(player.getInventory().getNonEquipmentItems());
+        stacks.add(player.getOffhandItem());
+        stacks.add(player.getItemBySlot(EquipmentSlot.HEAD));
+        stacks.add(player.getItemBySlot(EquipmentSlot.CHEST));
+        stacks.add(player.getItemBySlot(EquipmentSlot.LEGS));
+        stacks.add(player.getItemBySlot(EquipmentSlot.FEET));
         for (ItemStack stack : stacks) {
             signature = signature * 31 + stackSignature(stack);
         }
@@ -628,13 +627,13 @@ public class ShoppingListHaveCountService {
         if (stack == null || stack.isEmpty()) {
             return 0;
         }
-        return 31L * (31L * Registries.ITEM.getRawId(stack.getItem()) + stack.getCount())
+        return 31L * (31L * BuiltInRegistries.ITEM.getId(stack.getItem()) + stack.getCount())
                 + componentHash(stack);
     }
 
     private static StackSnapshotKey stackSnapshotKey(ItemStack stack, String displayName) {
         return new StackSnapshotKey(
-                Registries.ITEM.getRawId(stack.getItem()),
+                BuiltInRegistries.ITEM.getId(stack.getItem()),
                 stack.getCount(),
                 displayName,
                 componentHash(stack));

@@ -2,7 +2,7 @@ package julianh06.wynnextras.features.aspects.pages;
 
 import julianh06.wynnextras.features.aspects.AspectScreen;
 import julianh06.wynnextras.utils.UI.Widget;
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public class PageWidget extends Widget {
     protected AspectScreen parent;
@@ -13,13 +13,13 @@ public class PageWidget extends Widget {
     }
 
     @Override
-    protected void drawBackground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {}
+    protected void drawBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {}
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {}
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {}
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {}
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {}
 
     @Override
     protected boolean onClick(int button) { return false; }

@@ -1,6 +1,10 @@
 package julianh06.wynnextras.features.abilitytree;
 
 import julianh06.wynnextras.wynncraft.state.CharacterState;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
 import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.core.WynnExtras;
@@ -10,11 +14,6 @@ import julianh06.wynnextras.features.profileviewer.data.AbilityTreeCache;
 import julianh06.wynnextras.features.profileviewer.data.AbilityTreeData;
 import julianh06.wynnextras.features.profileviewer.tabs.TreeTabWidget;
 import julianh06.wynnextras.utils.UI.*;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
 import java.util.*;
 
 import static julianh06.wynnextras.features.profileviewer.PVScreen.*;
@@ -33,11 +32,11 @@ public class TreeScreen extends WEScreen {
 
     static int leftScrollOffset, rightScrollOffset;
 
-    Identifier abilityTreeBackground = Identifier.of("wynnextras", "textures/gui/treeloader/abilitytreebackground.png");
-    static Identifier trashcan = Identifier.of("wynnextras", "textures/gui/treeloader/trashcan.png");
+    Identifier abilityTreeBackground = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/treeloader/abilitytreebackground.png");
+    static Identifier trashcan = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/treeloader/trashcan.png");
 
     public TreeScreen() {
-        super(Text.of("Ability Tree Screen"));
+        super(Component.nullToEmpty("Ability Tree Screen"));
         this.trees = TreeData.trees;
         treeSearchBar = null;
     }
@@ -171,7 +170,7 @@ public class TreeScreen extends WEScreen {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         ensureTreeSearchBar();
 
         PVScreen.mouseX = mouseX;
@@ -215,7 +214,7 @@ public class TreeScreen extends WEScreen {
     }
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         int sectionWidth = 900;
         int x = (int) (screenWidth * ui.getScaleFactor() / 2 - sectionWidth) - 20;
         int y = 0;
@@ -259,7 +258,7 @@ public class TreeScreen extends WEScreen {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         for(ClassListWidget widget : classListWidgets) {
             for(TreeListElement element : widget.elements) {
                 if(element.nameInput == null) continue;
@@ -270,7 +269,7 @@ public class TreeScreen extends WEScreen {
         scrollOffset = 0;
         TreeData.saveAll();
         TreeData.loadAll();
-        super.close();
+        super.onClose();
     }
 
 //    public static void onClick() {
@@ -285,10 +284,10 @@ public class TreeScreen extends WEScreen {
 //    }
 
     public static class ClassListWidget extends Widget {
-        Identifier arrowClosedWhite = Identifier.of("wynnextras", "textures/gui/treeloader/arrow_closed_white.png");
-        Identifier arrowClosedGray = Identifier.of("wynnextras", "textures/gui/treeloader/arrow_closed_gray.png");
-        Identifier arrowOpenedWhite = Identifier.of("wynnextras", "textures/gui/treeloader/arrow_opened_white.png");
-        Identifier arrowOpenedGray = Identifier.of("wynnextras", "textures/gui/treeloader/arrow_opened_gray.png");
+        Identifier arrowClosedWhite = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/treeloader/arrow_closed_white.png");
+        Identifier arrowClosedGray = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/treeloader/arrow_closed_gray.png");
+        Identifier arrowOpenedWhite = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/treeloader/arrow_opened_white.png");
+        Identifier arrowOpenedGray = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/treeloader/arrow_opened_gray.png");
 
 
         String playerClass;
@@ -318,11 +317,11 @@ public class TreeScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             //ui.drawRect(x, y, width, height, CustomColor.fromHexString("909090"));
             ui.drawCenteredText(playerClass, x + width / 2f, y + 25, active ? CustomColor.fromHexString("FFFFFF") : CustomColor.fromHexString("909090"));
-            ui.drawRect(x, y + 22.5f, width / 2f - MinecraftUtils.mc().textRenderer.getWidth(Text.of("     " + playerClass + "     ")), 5, active ? CustomColor.fromHexString("FFFFFF") : CustomColor.fromHexString("909090"));
-            ui.drawRect(x + width / 2f + MinecraftUtils.mc().textRenderer.getWidth(Text.of("     " + playerClass + "     ")), y + 22.5f, width / 2f - MinecraftUtils.mc().textRenderer.getWidth(Text.of("     " + playerClass + "     ")) - 50, 5, active ? CustomColor.fromHexString("FFFFFF") : CustomColor.fromHexString("909090"));
+            ui.drawRect(x, y + 22.5f, width / 2f - MinecraftUtils.mc().font.width(Component.nullToEmpty("     " + playerClass + "     ")), 5, active ? CustomColor.fromHexString("FFFFFF") : CustomColor.fromHexString("909090"));
+            ui.drawRect(x + width / 2f + MinecraftUtils.mc().font.width(Component.nullToEmpty("     " + playerClass + "     ")), y + 22.5f, width / 2f - MinecraftUtils.mc().font.width(Component.nullToEmpty("     " + playerClass + "     ")) - 50, 5, active ? CustomColor.fromHexString("FFFFFF") : CustomColor.fromHexString("909090"));
             ui.drawImage(expanded ? (active ? arrowOpenedWhite : arrowOpenedGray)
                     : (active ? arrowClosedWhite : arrowClosedGray),x + width - 45, y + 5, 40, 40);
             if(!expanded) {
@@ -393,12 +392,12 @@ public class TreeScreen extends WEScreen {
         }
 
         @Override
-        protected void drawBackground(DrawContext context, int mouseX, int mouseY, float tickDelta) {
+        protected void drawBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float tickDelta) {
             //ui.drawRect(x - 7, y - 7, width + 14, height + 14, CustomColor.fromHexString("9b785a"));
         }
 
         @Override
-        protected void drawContent(DrawContext context, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor context, int mouseX, int mouseY, float tickDelta) {
             if(nameInput == null) {
                 nameInput = new TextInputWidget(x, y, width - 140, 50, 10, 13);
                 nameInput.setInput(data.visibleName);
@@ -505,7 +504,7 @@ public class TreeScreen extends WEScreen {
                     MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
                     TreeData tree1 = TreeData.getTree(treeName);
                     if (tree1 == null) {
-                        MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.of("This tree doesn't exist.")));
+                        MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty("This tree doesn't exist.")));
                         return;
                     }
 
@@ -515,7 +514,7 @@ public class TreeScreen extends WEScreen {
                     if (AbilityTreeCache.getClassTree(classKey) == null || AbilityTreeCache.getClassMap(classKey) == null) {
                         AbilityTreeCache.loadClassTree(classKey);
                         MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(
-                                Text.of("Loading ability data for " + tree1.className + " from the Wynn API, please click Load again in a moment.")
+                                Component.nullToEmpty("Loading ability data for " + tree1.className + " from the Wynn API, please click Load again in a moment.")
                         ));
                         return;  // <-- do NOT proceed, data isn't ready
                     }
@@ -526,7 +525,7 @@ public class TreeScreen extends WEScreen {
                         return; // planner already printed the reason
                     }
 
-                    MinecraftUtils.mc().setScreen(null);
+                    MinecraftUtils.mc().gui.setScreen(null);
                     TreeLoader.resetAll();
                     TreeLoader.wasStarted = true;
                     TreeLoader.resetTree = true;
@@ -547,7 +546,7 @@ public class TreeScreen extends WEScreen {
             }
 
                 @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 ui.drawButton(x, y, width, height, hovered);
                 //ui.drawRect(x, y, width, height);
                 ui.drawCenteredText("Load Tree" + (withSkillpoints ? " and Skillpoints" : ""), x + width / 2f, y + height / 2f);
@@ -576,7 +575,7 @@ public class TreeScreen extends WEScreen {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
 
                 ui.drawButton(x, y, width, height, hovered);
                 //ui.drawRect(x, y, width, height);
@@ -603,7 +602,7 @@ public class TreeScreen extends WEScreen {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 ui.drawButton(x, y, width, height, hovered);
                 //ui.drawText("DELETE", x + width - 65, y + 12, CustomColor.fromHexString("FF0000"), HorizontalAlignment.CENTER, VerticalAlignment.TOP, 3f);
                 ui.drawImage(trashcan, x + 10, y + 10, 30, 30);
@@ -645,7 +644,7 @@ public class TreeScreen extends WEScreen {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 ui.drawButton(x, y, width, height, hovered);
                 ui.drawCenteredText(yesno ? "YES" : "NO", x + 50, y + 25, CustomColor.fromHexString("FFFFFF"), 2.75f);
                 //ui.drawImage(trashcan, x + 10, y + 10, 30, 30);

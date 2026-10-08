@@ -4,8 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import julianh06.wynnextras.core.WynnExtras;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -96,9 +95,9 @@ public final class BadgeProfileData {
     }
 
     private static Path profilePath() {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc == null || mc.player == null) return null;
-        String uuid = mc.player.getUuid().toString();
+        String uuid = mc.player.getUUID().toString();
         return FabricLoader.getInstance().getConfigDir()
                 .resolve("wynnextras")
                 .resolve(uuid)
@@ -106,13 +105,13 @@ public final class BadgeProfileData {
     }
 
     private static String currentUuid() {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc == null || mc.player == null) return null;
-        return mc.player.getUuidAsString().replace("-", "").toLowerCase();
+        return mc.player.getStringUUID().replace("-", "").toLowerCase();
     }
 
     private static String currentUsername() {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc == null || mc.player == null) return null;
         return mc.player.getGameProfile().name();
     }

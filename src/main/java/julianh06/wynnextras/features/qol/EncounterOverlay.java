@@ -1,15 +1,14 @@
 package julianh06.wynnextras.features.qol;
 
 import julianh06.wynnextras.config.WynnExtrasConfig;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.SlotActionType;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.item.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -54,16 +53,16 @@ public class EncounterOverlay {
 
     /** Live re-scan that doesn't update the latch. */
     private static List<Option> scanOptionsRaw() {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return List.of();
-        ScreenHandler menu = mc.player.currentScreenHandler;
+        AbstractContainerMenu menu = mc.player.containerMenu;
         if (menu == null) return List.of();
         List<Option> found = new ArrayList<>();
         int max = Math.min(menu.slots.size(), 54);
         for (int i = 0; i < max; i++) {
-            ItemStack s = menu.getSlot(i).getStack();
+            ItemStack s = menu.getSlot(i).getItem();
             if (s.isEmpty()) continue;
-            String name = s.getName().getString();
+            String name = s.getHoverName().getString();
             for (String[] enc : ENCOUNTERS) {
                 if (name.contains(enc[0])) {
                     found.add(new Option(enc[1], i, name));
@@ -78,8 +77,8 @@ public class EncounterOverlay {
      *  (adds new entries, refreshes existing ones) but never drops slots — those
      *  are only cleared when the screen closes via {@link #resetLatch}. */
     public static List<Option> scanOptions() {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        Screen screen = mc.currentScreen;
+        Minecraft mc = Minecraft.getInstance();
+        Screen screen = mc.gui.screen();
         if (screen == null || !isEncounterScreen(screen)) {
             resetLatch();
             return List.of();
@@ -105,7 +104,7 @@ public class EncounterOverlay {
 
     public static void clearLatchIfNoContainerOpen() {
         if (latchedTitle == null && latchedScreen == null && latchedOptions.isEmpty()) return;
-        if (!(MinecraftClient.getInstance().currentScreen instanceof HandledScreen<?>)) {
+        if (!(Minecraft.getInstance().gui.screen() instanceof AbstractContainerScreen<?>)) {
             resetLatch();
         }
     }
@@ -134,14 +133,14 @@ public class EncounterOverlay {
         return scanOptions().size() >= 2;
     }
 
-    public static void render(DrawContext ctx, Screen screen, int mouseX, int mouseY) {
+    public static void render(GuiGraphicsExtractor ctx, Screen screen, int mouseX, int mouseY) {
         if (!WynnExtrasConfig.INSTANCE.encounterOverlayEnabled) return;
         if (!isEncounterScreen(screen)) return;
         List<Option> options = scanOptions();
         if (options.isEmpty()) return;
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        TextRenderer tr = mc.textRenderer;
+        Minecraft mc = Minecraft.getInstance();
+        Font tr = mc.font;
         int screenW = screen.width;
         int screenH = screen.height;
 
@@ -149,8 +148,8 @@ public class EncounterOverlay {
         ctx.fill(0, 0, screenW, screenH, 0xDD000000);
 
         String header = "Encounter Selection";
-        int hw = tr.getWidth(header);
-        ctx.drawText(tr, header, screenW / 2 - hw / 2, 24, 0xFFFFFFFF, true);
+        int hw = tr.width(header);
+        ctx.text(tr, header, screenW / 2 - hw / 2, 24, 0xFFFFFFFF, true);
 
         int count = options.size();
         for (int i = 0; i < count; i++) {
@@ -171,17 +170,17 @@ public class EncounterOverlay {
 
             // Scale the element name to fill about 30% of the panel height.
             float nameScale = Math.max(3.0f, Math.min(h / 40f, w / 60f));
-            ctx.getMatrices().pushMatrix();
-            ctx.getMatrices().translate(x + w / 2f, y + h / 2f - 12);
-            ctx.getMatrices().scale(nameScale, nameScale);
-            int nw = tr.getWidth(opt.element);
-            int nh = tr.fontHeight;
-            ctx.drawText(tr, opt.element, -nw / 2, -nh / 2, 0xFF000000, false);
-            ctx.getMatrices().popMatrix();
+            ctx.pose().pushMatrix();
+            ctx.pose().translate(x + w / 2f, y + h / 2f - 12);
+            ctx.pose().scale(nameScale, nameScale);
+            int nw = tr.width(opt.element);
+            int nh = tr.lineHeight;
+            ctx.text(tr, opt.element, -nw / 2, -nh / 2, 0xFF000000, false);
+            ctx.pose().popMatrix();
 
             // Full item name under the element.
-            int iw = tr.getWidth(opt.itemName);
-            ctx.drawText(tr, opt.itemName, x + w / 2 - iw / 2, y + h - 22, 0xFFFFFFFF, true);
+            int iw = tr.width(opt.itemName);
+            ctx.text(tr, opt.itemName, x + w / 2 - iw / 2, y + h - 22, 0xFFFFFFFF, true);
         }
     }
 
@@ -197,10 +196,10 @@ public class EncounterOverlay {
         for (int i = 0; i < count; i++) {
             int[] b = panelBounds(i, count, screenW, screenH);
             if (mouseX >= b[0] && mouseX < b[0] + b[2] && mouseY >= b[1] && mouseY < b[1] + b[3]) {
-                MinecraftClient mc = MinecraftClient.getInstance();
-                ScreenHandler handler = mc.player != null ? mc.player.currentScreenHandler : null;
-                if (handler == null || mc.interactionManager == null) return true;
-                mc.interactionManager.clickSlot(handler.syncId, options.get(i).slot, 0, SlotActionType.PICKUP, mc.player);
+                Minecraft mc = Minecraft.getInstance();
+                AbstractContainerMenu handler = mc.player != null ? mc.player.containerMenu : null;
+                if (handler == null || mc.gameMode == null) return true;
+                mc.gameMode.handleContainerInput(handler.containerId, options.get(i).slot, 0, ContainerInput.PICKUP, mc.player);
                 return true;
             }
         }

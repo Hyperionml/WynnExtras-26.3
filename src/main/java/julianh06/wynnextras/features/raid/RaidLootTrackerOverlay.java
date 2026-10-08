@@ -8,14 +8,13 @@ import julianh06.wynnextras.utils.render.TextShadow;
 import julianh06.wynnextras.utils.render.VerticalAlignment;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.core.WynnExtras;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
-import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.text.Text;
-
+import julianh06.wynnextras.compat.client.HudRenderCallback;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.network.chat.Component;
 import java.util.*;
 
 public class RaidLootTrackerOverlay {
@@ -160,7 +159,7 @@ public class RaidLootTrackerOverlay {
     }
 
     private static boolean isNearLootChest() {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return false;
 
         double px = mc.player.getX();
@@ -174,13 +173,13 @@ public class RaidLootTrackerOverlay {
         return false;
     }
 
-    private static void render(DrawContext context, RenderTickCounter tickCounter) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.player == null || mc.world == null) return;
+    private static void render(GuiGraphicsExtractor context, DeltaTracker tickCounter) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) return;
 
         // Don't render via HUD callback when screen is open
-        if (mc.currentScreen != null) return;
-        if (mc.options.hudHidden) return;
+        if (mc.gui.screen() != null) return;
+        if (mc.gui.hud.isHidden()) return;
 
         WynnExtrasConfig config = WynnExtrasConfig.INSTANCE;
         if (!config.toggleRaidLootTracker) return;
@@ -193,15 +192,15 @@ public class RaidLootTrackerOverlay {
 
     private static final String RAID_CHEST_TITLE = "\uDAFF\uDFEA\uE00E";
 
-    public static void renderOnScreen(DrawContext context, int mouseX, int mouseY) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.player == null || mc.world == null) return;
-        if (mc.currentScreen == null) return;
+    public static void renderOnScreen(GuiGraphicsExtractor context, int mouseX, int mouseY) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) return;
+        if (mc.gui.screen() == null) return;
 
         // Show in player's inventory, chat screen, or raid chest
-        boolean isInventory = mc.currentScreen instanceof InventoryScreen;
-        boolean isChat = mc.currentScreen instanceof ChatScreen;
-        boolean isRaidChest = mc.currentScreen.getTitle().getString().equals(RAID_CHEST_TITLE);
+        boolean isInventory = mc.gui.screen() instanceof InventoryScreen;
+        boolean isChat = mc.gui.screen() instanceof ChatScreen;
+        boolean isRaidChest = mc.gui.screen().getTitle().getString().equals(RAID_CHEST_TITLE);
         if (!isInventory && !isChat && !isRaidChest) return;
         if (isChat && !WynnExtrasConfig.INSTANCE.raidLootTrackerRenderInChat) return;
         if (isInventory && !WynnExtrasConfig.INSTANCE.raidLootTrackerRenderInInventory) return;
@@ -214,7 +213,7 @@ public class RaidLootTrackerOverlay {
         renderOverlay(context, config, isInventory || isChat, mouseX, mouseY);
     }
 
-    private static void renderOverlay(DrawContext context, WynnExtrasConfig config, boolean canEdit,
+    private static void renderOverlay(GuiGraphicsExtractor context, WynnExtrasConfig config, boolean canEdit,
                                       int mouseX, int mouseY) {
         linePositions.clear();
         RaidLootData data = RaidLootConfig.INSTANCE.data;
@@ -290,17 +289,17 @@ public class RaidLootTrackerOverlay {
         if (hoveredPowderTier >= 0) {
             drawPowderTooltip(context, displayData, hoveredPowderTier, mouseX, mouseY);
         } else if (showHiddenLines && !config.automaticAspectScanning && isAspectLine(hoveredLine)) {
-            context.drawTooltip(MinecraftClient.getInstance().textRenderer, List.of(
-                    Text.literal("§cAutomatic aspect scanning is disabled."),
-                    Text.literal("§7Aspect lines only show and update when it's enabled.")
+            context.setComponentTooltipForNextFrame(Minecraft.getInstance().font, List.of(
+                    Component.literal("§cAutomatic aspect scanning is disabled."),
+                    Component.literal("§7Aspect lines only show and update when it's enabled.")
             ), mouseX, mouseY);
         }
     }
 
-    private static int renderHeader(DrawContext context, WynnExtrasConfig config, boolean canEdit,
+    private static int renderHeader(GuiGraphicsExtractor context, WynnExtrasConfig config, boolean canEdit,
                                     String selectedFilter) {
         int y = yPos;
-        Text pillWithTitle = WynnExtras.addWynnExtrasPrefix(Text.literal("Raid Loot").styled(s -> s.withColor(TITLE_COLOR.asInt())));
+        Component pillWithTitle = WynnExtras.addWynnExtrasPrefix(Component.literal("Raid Loot").withStyle(s -> s.withColor(TITLE_COLOR.asInt())));
         FontRenderer.getInstance().renderText(
                 context, StyledText.fromComponent(pillWithTitle),
                 xPos, y, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP,
@@ -355,7 +354,7 @@ public class RaidLootTrackerOverlay {
         return y + LINE_HEIGHT + 3;
     }
 
-    private static int renderDataLines(DrawContext context, WynnExtrasConfig config,
+    private static int renderDataLines(GuiGraphicsExtractor context, WynnExtrasConfig config,
                                        RaidLootData.RaidSpecificLoot displayData, int completions,
                                        boolean compact, boolean showHiddenLines, int y,
                                        long stacks, long le, long eb) {
@@ -422,7 +421,7 @@ public class RaidLootTrackerOverlay {
     }
 
 
-    private static int drawLine(DrawContext context, String lineId, String label, String value,
+    private static int drawLine(GuiGraphicsExtractor context, String lineId, String label, String value,
                                 CustomColor color, int y, boolean inInventory) {
         boolean isHidden = hiddenLines.contains(lineId);
 
@@ -441,7 +440,7 @@ public class RaidLootTrackerOverlay {
         return y + LINE_HEIGHT;
     }
 
-    private static int drawCompactLine(DrawContext context, String lineId, String label, String value,
+    private static int drawCompactLine(GuiGraphicsExtractor context, String lineId, String label, String value,
                                        CustomColor color, int y, boolean inInventory) {
         boolean isHidden = hiddenLines.contains(lineId);
         if (isHidden && !inInventory) return y;
@@ -459,7 +458,7 @@ public class RaidLootTrackerOverlay {
         return y + LINE_HEIGHT;
     }
 
-    private static int drawDisabledLine(DrawContext context, String lineId, String label, String value, int y) {
+    private static int drawDisabledLine(GuiGraphicsExtractor context, String lineId, String label, String value, int y) {
         if (context != null) {
             linePositions.put(lineId, new int[]{y, y + LINE_HEIGHT});
             drawText(context, label + ":", xPos, y, HIDDEN_COLOR);
@@ -573,21 +572,21 @@ public class RaidLootTrackerOverlay {
         return (int) Math.ceil(max);
     }
 
-    private static void drawText(DrawContext context, String text, float x, float y, CustomColor color) {
+    private static void drawText(GuiGraphicsExtractor context, String text, float x, float y, CustomColor color) {
         FontRenderer.getInstance().renderText(
                 context, StyledText.fromString(text),
                 x, y, color, HorizontalAlignment.LEFT, VerticalAlignment.TOP,
                 TextShadow.OUTLINE, TEXT_SCALE);
     }
 
-    private static void drawTextRight(DrawContext context, String text, float x, float y, CustomColor color) {
+    private static void drawTextRight(GuiGraphicsExtractor context, String text, float x, float y, CustomColor color) {
         FontRenderer.getInstance().renderText(
                 context, StyledText.fromString(text),
                 x, y, color, HorizontalAlignment.RIGHT, VerticalAlignment.TOP,
                 TextShadow.OUTLINE, TEXT_SCALE);
     }
 
-    private static void drawTextStrikethrough(DrawContext context, String text, float x, float y, CustomColor color) {
+    private static void drawTextStrikethrough(GuiGraphicsExtractor context, String text, float x, float y, CustomColor color) {
         FontRenderer.getInstance().renderText(
                 context, StyledText.fromString("§m" + text),
                 x, y, color, HorizontalAlignment.LEFT, VerticalAlignment.TOP,
@@ -595,7 +594,7 @@ public class RaidLootTrackerOverlay {
     }
 
     private static float getTextWidth(String text) {
-        return FontRenderer.getInstance().getFont().getWidth(text) * TEXT_SCALE;
+        return FontRenderer.getInstance().getFont().width(text) * TEXT_SCALE;
     }
 
     private static boolean shouldRenderLine(String lineId, boolean showHiddenLines) {
@@ -637,15 +636,15 @@ public class RaidLootTrackerOverlay {
         return -1;
     }
 
-    private static void drawPowderTooltip(DrawContext context, RaidLootData.RaidSpecificLoot data,
+    private static void drawPowderTooltip(GuiGraphicsExtractor context, RaidLootData.RaidSpecificLoot data,
                                           int tier, int mouseX, int mouseY) {
-        List<Text> tooltip = new ArrayList<>();
-        tooltip.add(Text.literal("§6§lPowder Tier " + POWDER_TIER_NAMES[tier]));
+        List<Component> tooltip = new ArrayList<>();
+        tooltip.add(Component.literal("§6§lPowder Tier " + POWDER_TIER_NAMES[tier]));
         for (int element = 0; element < POWDER_ELEMENT_NAMES.length; element++) {
-            tooltip.add(Text.literal(POWDER_ELEMENT_COLORS[element] + POWDER_ELEMENT_NAMES[element]
+            tooltip.add(Component.literal(POWDER_ELEMENT_COLORS[element] + POWDER_ELEMENT_NAMES[element]
                     + ": §f" + data.getPowderCount(element, tier)));
         }
-        context.drawTooltip(MinecraftClient.getInstance().textRenderer, tooltip, mouseX, mouseY);
+        context.setComponentTooltipForNextFrame(Minecraft.getInstance().font, tooltip, mouseX, mouseY);
     }
 
     private static boolean isAspectLine(String lineId) {
@@ -653,7 +652,7 @@ public class RaidLootTrackerOverlay {
                 || LINE_ASPECTS_FABLED.equals(lineId) || LINE_ASPECTS_LEGENDARY.equals(lineId);
     }
 
-    private static void drawBackground(DrawContext context, int x1, int y1, int x2, int y2, int color) {
+    private static void drawBackground(GuiGraphicsExtractor context, int x1, int y1, int x2, int y2, int color) {
         int r = 3; // corner radius
         // Main center rectangle
         context.fill(x1 + r, y1, x2 - r, y2, color);
@@ -676,15 +675,15 @@ public class RaidLootTrackerOverlay {
         if (!config.toggleRaidLootTracker) return false;
 
         loadConfig();
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         int contentHeight = effectiveHeight;
 
         boolean inBounds = mouseX >= xPos - 2 && mouseX <= xPos + effectiveWidth + 2 &&
                 mouseY >= yPos - 2 && mouseY <= yPos + contentHeight + 4;
 
-        boolean inInventoryScreen = mc.currentScreen instanceof InventoryScreen;
-        boolean inChatScreen = mc.currentScreen instanceof ChatScreen;
-        boolean inRaidChest = mc.currentScreen != null && mc.currentScreen.getTitle().getString().equals(RAID_CHEST_TITLE);
+        boolean inInventoryScreen = mc.gui.screen() instanceof InventoryScreen;
+        boolean inChatScreen = mc.gui.screen() instanceof ChatScreen;
+        boolean inRaidChest = mc.gui.screen() != null && mc.gui.screen().getTitle().getString().equals(RAID_CHEST_TITLE);
         boolean canInteract = inInventoryScreen || inChatScreen || inRaidChest;
 
         if (action == 0) {
@@ -788,8 +787,8 @@ public class RaidLootTrackerOverlay {
     public static void handleMouseMove(double mouseX, double mouseY) {
         if (!isDragging) return;
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.currentScreen == null) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.gui.screen() == null) {
             isDragging = false;
             hasDragged = false;
             pendingArrowClick = ArrowClick.NONE;
@@ -810,8 +809,8 @@ public class RaidLootTrackerOverlay {
         yPos = (int) mouseY - dragOffsetY;
 
         if (mc.getWindow() != null) {
-            int screenWidth = mc.getWindow().getScaledWidth();
-            int screenHeight = mc.getWindow().getScaledHeight();
+            int screenWidth = mc.getWindow().getGuiScaledWidth();
+            int screenHeight = mc.getWindow().getGuiScaledHeight();
             xPos = Math.max(0, Math.min(xPos, screenWidth - effectiveWidth));
             yPos = Math.max(0, Math.min(yPos, screenHeight - 100));
         }

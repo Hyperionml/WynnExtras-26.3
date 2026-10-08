@@ -3,17 +3,17 @@ package julianh06.wynnextras.features.tetris;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.utils.UI.UIUtils;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.client.sound.SoundInstance;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.client.resources.sounds.SoundInstance;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.RandomSource;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -64,7 +64,7 @@ public class TetrisScreen extends Screen {
     private UIUtils ui;
 
     public TetrisScreen() {
-        super(Text.of("Tetris"));
+        super(Component.nullToEmpty("Tetris"));
         instance = this;
     }
 
@@ -76,8 +76,8 @@ public class TetrisScreen extends Screen {
     }
 
     @Override
-    protected void applyBlur(DrawContext context) {
-        if (!WynnExtrasConfig.INSTANCE.hideTetrisBackgroundBlur) super.applyBlur(context);
+    protected void extractBlurredBackground(GuiGraphicsExtractor context) {
+        if (!WynnExtrasConfig.INSTANCE.hideTetrisBackgroundBlur) super.extractBlurredBackground(context);
     }
 
     private void updateBounds() {
@@ -88,8 +88,8 @@ public class TetrisScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        try { if (client != null) applyBlur(context); } catch (Exception ignored) {}
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        try { if (minecraft != null) extractBlurredBackground(context); } catch (Exception ignored) {}
 
         if (ui == null) ui = new UIUtils(context, 1.0, 0, 0);
         else ui.updateContext(context, 1.0, 0, 0);
@@ -98,9 +98,9 @@ public class TetrisScreen extends Screen {
 
         if (!gameOver) runGameLogic();
 
-        context.getMatrices().pushMatrix();
-        context.getMatrices().translate(boardOffsetX, boardOffsetY);
-        context.getMatrices().scale(boardScale, boardScale);
+        context.pose().pushMatrix();
+        context.pose().translate(boardOffsetX, boardOffsetY);
+        context.pose().scale(boardScale, boardScale);
 
         drawBoard(context);
 
@@ -118,7 +118,7 @@ public class TetrisScreen extends Screen {
             drawGameOver(context);
         }
 
-        context.getMatrices().popMatrix();
+        context.pose().popMatrix();
     }
 
     private void runGameLogic() {
@@ -194,16 +194,16 @@ public class TetrisScreen extends Screen {
         pieceTouchedGround = false;
         lockResets = 0;
         lockStartMax = 0;
-        MinecraftUtils.playSoundUI(SoundEvents.BLOCK_GLASS_PLACE);
+        MinecraftUtils.playSoundUI(SoundEvents.GLASS_PLACE);
         int tSpinType = getTSpinType();
         lastActionWasRotation = false;
         removeLayer();
         if (linesCleared > 0) {
             float pitch = Math.min(2.0f, 1.0f + comboCount * 0.1f);
-            MinecraftClient.getInstance().getSoundManager().play(new PositionedSoundInstance(
-                SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP.id(), SoundCategory.MASTER,
-                1.0f, pitch, Random.create(), false, 0,
-                SoundInstance.AttenuationType.NONE, 0, 0, 0, true
+            Minecraft.getInstance().getSoundManager().play(new SimpleSoundInstance(
+                SoundEvents.EXPERIENCE_ORB_PICKUP.location(), SoundSource.MASTER,
+                1.0f, pitch, RandomSource.create(), false, 0,
+                SoundInstance.Attenuation.NONE, 0, 0, 0, true
             ));
         }
         int level = currentLevel();
@@ -396,14 +396,14 @@ public class TetrisScreen extends Screen {
 
     // --- Rendering ---
 
-    private void drawPanel(DrawContext ctx, int x, int y, int w, int h, int accent) {
+    private void drawPanel(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int accent) {
         ctx.fill(x, y, x + w, y + h, 0xFF4d3c2d);
         ctx.fill(x, y, x + 3, y + h, accent);
         ctx.fill(x + 3, y, x + w, y + 1, 0xFF876141);
         ctx.fill(x, y + h - 1, x + w, y + h, 0xFF1a1410);
     }
 
-    private void drawBoard(DrawContext ctx) {
+    private void drawBoard(GuiGraphicsExtractor ctx) {
         ctx.fill(fromX, fromY, toX, toY, 0xFF0e0b08);
         ctx.fill(fromX - 2, fromY - 1, fromX, toY + 1, 0xFF0872bc); // left accent
         ctx.fill(fromX, fromY - 1, toX + 1, fromY, 0xFF876141);      // top highlight
@@ -411,19 +411,19 @@ public class TetrisScreen extends Screen {
         ctx.fill(fromX - 2, toY, toX + 1, toY + 1, 0xFF1a1410);      // bottom shadow
     }
 
-    private void drawBlocks(DrawContext ctx) {
+    private void drawBlocks(GuiGraphicsExtractor ctx) {
         for (TetrisNode node : TetrisNode.nodes) {
             ctx.fill(node.getX(), node.getY(), node.getX() + 10, node.getY() - 10, node.getColor());
         }
     }
 
-    private void drawGrid(DrawContext ctx) {
+    private void drawGrid(GuiGraphicsExtractor ctx) {
         int gridColor = new Color(58, 45, 36, 90).getRGB();
         for (int i = 1; i < 10; i++) ctx.fill(fromX + i * 10, fromY, fromX + i * 10 + 1, toY, gridColor);
         for (int i = 1; i < 20; i++) ctx.fill(fromX, fromY + i * 10, toX, fromY + i * 10 + 1, gridColor);
     }
 
-    private void drawGhost(DrawContext ctx) {
+    private void drawGhost(GuiGraphicsExtractor ctx) {
         if (currentPiece == null || !currentPiece.canGoDown()) return;
         currentPiece.setDownPosition();
         for (TetrisNode node : currentPiece.getFamily()) {
@@ -440,37 +440,37 @@ public class TetrisScreen extends Screen {
         return (ms / 1000) + "." + String.format("%03d", ms % 1000) + "s";
     }
 
-    private void drawHud(DrawContext ctx) {
+    private void drawHud(GuiGraphicsExtractor ctx) {
         int level = currentLevel();
         long elapsed = System.currentTimeMillis() - sprintStartTime;
 
         int holdX = fromX - 72, holdY = fromY, holdW = 62, holdH = 48;
         drawPanel(ctx, holdX, holdY, holdW, holdH, 0xFF0f9bd7); // cyan — I piece
-        ctx.drawText(textRenderer, "Hold", holdX + 6, holdY + 5, 0xFFe8dcc8, false);
+        ctx.text(font, "Hold", holdX + 6, holdY + 5, 0xFFe8dcc8, false);
         if (!holdShape.equals(" ")) drawPiecePreview(ctx, holdShape.charAt(0), holdX + 4, holdY + 18);
 
         int scoreX = fromX - 72, scoreY = fromY + 54, scoreW = 62, scoreH = 95;
         drawPanel(ctx, scoreX, scoreY, scoreW, scoreH, 0xFFcca76f); // gold
         if (sprintMode) {
-            ctx.drawText(textRenderer, "Lines", scoreX + 6, scoreY + 5, 0xFFe8dcc8, false);
-            ctx.drawText(textRenderer, Math.max(0, 40 - totalLines) + " left", scoreX + 6, scoreY + 18, 0xFFcca76f, false);
-            ctx.drawText(textRenderer, "Time", scoreX + 6, scoreY + 36, 0xFFe8dcc8, false);
-            ctx.drawText(textRenderer, formatTime(elapsed), scoreX + 6, scoreY + 49, 0xFFcca76f, false);
+            ctx.text(font, "Lines", scoreX + 6, scoreY + 5, 0xFFe8dcc8, false);
+            ctx.text(font, Math.max(0, 40 - totalLines) + " left", scoreX + 6, scoreY + 18, 0xFFcca76f, false);
+            ctx.text(font, "Time", scoreX + 6, scoreY + 36, 0xFFe8dcc8, false);
+            ctx.text(font, formatTime(elapsed), scoreX + 6, scoreY + 49, 0xFFcca76f, false);
             int best = WynnExtrasConfig.INSTANCE.tetrisBest40LinesMs;
-            ctx.drawText(textRenderer, "Best", scoreX + 6, scoreY + 67, 0xFF9a8b70, false);
-            ctx.drawText(textRenderer, best > 0 ? formatTime(best) : "-", scoreX + 6, scoreY + 80, 0xFF9a8b70, false);
+            ctx.text(font, "Best", scoreX + 6, scoreY + 67, 0xFF9a8b70, false);
+            ctx.text(font, best > 0 ? formatTime(best) : "-", scoreX + 6, scoreY + 80, 0xFF9a8b70, false);
         } else {
-            ctx.drawText(textRenderer, "Score", scoreX + 6, scoreY + 5, 0xFFe8dcc8, false);
-            ctx.drawText(textRenderer, String.valueOf(score), scoreX + 6, scoreY + 18, 0xFFcca76f, false);
-            ctx.drawText(textRenderer, "Best", scoreX + 6, scoreY + 36, 0xFFe8dcc8, false);
-            ctx.drawText(textRenderer, String.valueOf(WynnExtrasConfig.INSTANCE.tetrisBestScore), scoreX + 6, scoreY + 49, 0xFFcca76f, false);
-            ctx.drawText(textRenderer, "Lvl " + level, scoreX + 6, scoreY + 67, 0xFF9a8b70, false);
-            ctx.drawText(textRenderer, totalLines + " lines", scoreX + 6, scoreY + 80, 0xFF9a8b70, false);
+            ctx.text(font, "Score", scoreX + 6, scoreY + 5, 0xFFe8dcc8, false);
+            ctx.text(font, String.valueOf(score), scoreX + 6, scoreY + 18, 0xFFcca76f, false);
+            ctx.text(font, "Best", scoreX + 6, scoreY + 36, 0xFFe8dcc8, false);
+            ctx.text(font, String.valueOf(WynnExtrasConfig.INSTANCE.tetrisBestScore), scoreX + 6, scoreY + 49, 0xFFcca76f, false);
+            ctx.text(font, "Lvl " + level, scoreX + 6, scoreY + 67, 0xFF9a8b70, false);
+            ctx.text(font, totalLines + " lines", scoreX + 6, scoreY + 80, 0xFF9a8b70, false);
         }
 
         int nextX = toX + 10, nextY = fromY, nextW = 62, nextH = 200;
         drawPanel(ctx, nextX, nextY, nextW, nextH, 0xFF4a8c3a); // green — S piece
-        ctx.drawText(textRenderer, "Next", nextX + 6, nextY + 5, 0xFFe8dcc8, false);
+        ctx.text(font, "Next", nextX + 6, nextY + 5, 0xFFe8dcc8, false);
 
         List<Character> nextPieces = generator.bag.subList(0, Math.min(5, generator.bag.size()));
         int previewY = nextY + 20;
@@ -480,12 +480,12 @@ public class TetrisScreen extends Screen {
         }
 
         if (System.currentTimeMillis() < flashUntil) {
-            int textW = textRenderer.getWidth(flashMessage);
-            ctx.drawText(textRenderer, flashMessage, fromX + (toX - fromX) / 2 - textW / 2, toY + 8, 0xFFcca76f, true);
+            int textW = font.width(flashMessage);
+            ctx.text(font, flashMessage, fromX + (toX - fromX) / 2 - textW / 2, toY + 8, 0xFFcca76f, true);
         }
     }
 
-    private void drawKeybindPanel(DrawContext ctx) {
+    private void drawKeybindPanel(GuiGraphicsExtractor ctx) {
         WynnExtrasConfig config = WynnExtrasConfig.INSTANCE;
         int panelX = fromX - 122, panelY = fromY + 155, panelW = 112, panelH = 65;
         drawPanel(ctx, panelX, panelY, panelW, panelH, 0xFF0872bc);
@@ -508,17 +508,17 @@ public class TetrisScreen extends Screen {
         drawScaledText(ctx, "Rebind: WE Config > Keybinds > Tetris", leftX, panelY + 58, panelW - 10, 0.55f, 0xFF9a8b70);
     }
 
-    private void drawScaledText(DrawContext ctx, String text, int x, int y, int maxWidth, float maxScale, int color) {
-        int textWidth = textRenderer.getWidth(text);
+    private void drawScaledText(GuiGraphicsExtractor ctx, String text, int x, int y, int maxWidth, float maxScale, int color) {
+        int textWidth = font.width(text);
         float scale = textWidth > 0 ? Math.min(maxScale, maxWidth / (float) textWidth) : maxScale;
-        ctx.getMatrices().pushMatrix();
-        ctx.getMatrices().translate(x, y);
-        ctx.getMatrices().scale(scale, scale);
-        ctx.drawText(textRenderer, text, 0, 0, color, false);
-        ctx.getMatrices().popMatrix();
+        ctx.pose().pushMatrix();
+        ctx.pose().translate(x, y);
+        ctx.pose().scale(scale, scale);
+        ctx.text(font, text, 0, 0, color, false);
+        ctx.pose().popMatrix();
     }
 
-    private void drawGameOver(DrawContext ctx) {
+    private void drawGameOver(GuiGraphicsExtractor ctx) {
         ctx.fill(fromX, fromY, toX, toY, 0x99000000);
 
         int panelW = 120, panelH = 105;
@@ -531,25 +531,25 @@ public class TetrisScreen extends Screen {
         if (sprintMode && sprintEndTime > 0) {
             long elapsed = sprintEndTime - sprintStartTime;
             int best = WynnExtrasConfig.INSTANCE.tetrisBest40LinesMs;
-            ctx.drawText(textRenderer, "40 Lines!", tx, panelY + 8, 0xFFe8dcc8, true);
-            ctx.drawText(textRenderer, "Time:  " + formatTime(elapsed), tx, panelY + 24, 0xFFcca76f, false);
-            ctx.drawText(textRenderer, "Best:  " + (best > 0 ? formatTime(best) : "-"), tx, panelY + 38, 0xFFcca76f, false);
-            ctx.drawText(textRenderer, keyName(WynnExtrasConfig.INSTANCE.tetrisToggleModeKey) + ": Classic", tx, panelY + 55, 0xFF9a8b70, false);
+            ctx.text(font, "40 Lines!", tx, panelY + 8, 0xFFe8dcc8, true);
+            ctx.text(font, "Time:  " + formatTime(elapsed), tx, panelY + 24, 0xFFcca76f, false);
+            ctx.text(font, "Best:  " + (best > 0 ? formatTime(best) : "-"), tx, panelY + 38, 0xFFcca76f, false);
+            ctx.text(font, keyName(WynnExtrasConfig.INSTANCE.tetrisToggleModeKey) + ": Classic", tx, panelY + 55, 0xFF9a8b70, false);
         } else if (sprintMode) {
-            ctx.drawText(textRenderer, "40 Lines", tx, panelY + 8, 0xFFe8dcc8, true);
+            ctx.text(font, "40 Lines", tx, panelY + 8, 0xFFe8dcc8, true);
             int best = WynnExtrasConfig.INSTANCE.tetrisBest40LinesMs;
-            ctx.drawText(textRenderer, "Best:  " + (best > 0 ? formatTime(best) : "-"), tx, panelY + 24, 0xFFcca76f, false);
-            ctx.drawText(textRenderer, keyName(WynnExtrasConfig.INSTANCE.tetrisToggleModeKey) + ": Classic", tx, panelY + 55, 0xFF9a8b70, false);
+            ctx.text(font, "Best:  " + (best > 0 ? formatTime(best) : "-"), tx, panelY + 24, 0xFFcca76f, false);
+            ctx.text(font, keyName(WynnExtrasConfig.INSTANCE.tetrisToggleModeKey) + ": Classic", tx, panelY + 55, 0xFF9a8b70, false);
         } else {
-            ctx.drawText(textRenderer, "Game Over!", tx, panelY + 8, 0xFFe8dcc8, true);
-            ctx.drawText(textRenderer, "Score: " + score, tx, panelY + 24, 0xFFcca76f, false);
-            ctx.drawText(textRenderer, "Best:  " + WynnExtrasConfig.INSTANCE.tetrisBestScore, tx, panelY + 38, 0xFFcca76f, false);
-            ctx.drawText(textRenderer, keyName(WynnExtrasConfig.INSTANCE.tetrisToggleModeKey) + ": Sprint", tx, panelY + 55, 0xFF9a8b70, false);
+            ctx.text(font, "Game Over!", tx, panelY + 8, 0xFFe8dcc8, true);
+            ctx.text(font, "Score: " + score, tx, panelY + 24, 0xFFcca76f, false);
+            ctx.text(font, "Best:  " + WynnExtrasConfig.INSTANCE.tetrisBestScore, tx, panelY + 38, 0xFFcca76f, false);
+            ctx.text(font, keyName(WynnExtrasConfig.INSTANCE.tetrisToggleModeKey) + ": Sprint", tx, panelY + 55, 0xFF9a8b70, false);
         }
-        ctx.drawText(textRenderer, keyName(WynnExtrasConfig.INSTANCE.tetrisStartKey) + " / " + keyName(WynnExtrasConfig.INSTANCE.tetrisRestartKey), tx, panelY + 70, 0xFF9a8b70, false);
+        ctx.text(font, keyName(WynnExtrasConfig.INSTANCE.tetrisStartKey) + " / " + keyName(WynnExtrasConfig.INSTANCE.tetrisRestartKey), tx, panelY + 70, 0xFF9a8b70, false);
     }
 
-    private void fillBlock(DrawContext ctx, int x, int y, int color) {
+    private void fillBlock(GuiGraphicsExtractor ctx, int x, int y, int color) {
         ctx.fill(x, y, x + 10, y + 10, color | 0xFF000000);
     }
 
@@ -566,7 +566,7 @@ public class TetrisScreen extends Screen {
         };
     }
 
-    private void drawPiecePreview(DrawContext ctx, char shape, int ox, int oy) {
+    private void drawPiecePreview(GuiGraphicsExtractor ctx, char shape, int ox, int oy) {
         int c = pieceColor(shape);
         switch (shape) {
             case 'O' -> { fillBlock(ctx, ox + 11, oy + 5, c); fillBlock(ctx, ox + 21, oy + 5, c); fillBlock(ctx, ox + 11, oy + 15, c); fillBlock(ctx, ox + 21, oy + 15, c); }
@@ -582,8 +582,8 @@ public class TetrisScreen extends Screen {
     // --- Input ---
 
     @Override
-    public boolean keyPressed(KeyInput input) {
-        int keyCode = input.key();
+    public boolean keyPressed(KeyEvent input) {
+        int keyCode = julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key());
         if (matchesKey(keyCode, WynnExtrasConfig.INSTANCE.tetrisStartKey) && gameOver) {
             startGame();
             return true;
@@ -664,8 +664,8 @@ public class TetrisScreen extends Screen {
     }
 
     @Override
-    public boolean keyReleased(KeyInput input) {
-        int keyCode = input.key();
+    public boolean keyReleased(KeyEvent input) {
+        int keyCode = julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key());
         if (matchesKey(keyCode, WynnExtrasConfig.INSTANCE.tetrisMoveRightKey, WynnExtrasConfig.INSTANCE.tetrisMoveRightAltKey)) {
             rightPressed = false;
             return true;
@@ -690,29 +690,29 @@ public class TetrisScreen extends Screen {
 
     private static boolean matchesKey(int keyCode, int... configuredKeys) {
         for (int configuredKey : configuredKeys) {
-            if (configuredKey != GLFW.GLFW_KEY_UNKNOWN && keyCode == configuredKey) return true;
+            if (configuredKey != InputCompat.KEY_UNKNOWN && keyCode == configuredKey) return true;
         }
         return false;
     }
 
     private static String keyName(int key) {
-        if (key == GLFW.GLFW_KEY_UNKNOWN) return "UNBOUND";
-        String name = GLFW.glfwGetKeyName(key, 0);
+        if (key == InputCompat.KEY_UNKNOWN) return "UNBOUND";
+        String name = InputCompat.keyName(key, 0);
         if (name != null) return name.toUpperCase();
         return switch (key) {
-            case GLFW.GLFW_KEY_SPACE -> "SPACE";
-            case GLFW.GLFW_KEY_TAB -> "TAB";
-            case GLFW.GLFW_KEY_ENTER -> "ENTER";
-            case GLFW.GLFW_KEY_LEFT_SHIFT -> "LSHIFT";
-            case GLFW.GLFW_KEY_RIGHT_SHIFT -> "RSHIFT";
-            case GLFW.GLFW_KEY_LEFT_ALT -> "LALT";
-            case GLFW.GLFW_KEY_RIGHT_ALT -> "RALT";
-            case GLFW.GLFW_KEY_LEFT_CONTROL -> "LCTRL";
-            case GLFW.GLFW_KEY_RIGHT_CONTROL -> "RCTRL";
-            case GLFW.GLFW_KEY_UP -> "UP";
-            case GLFW.GLFW_KEY_DOWN -> "DOWN";
-            case GLFW.GLFW_KEY_LEFT -> "LEFT";
-            case GLFW.GLFW_KEY_RIGHT -> "RIGHT";
+            case InputCompat.KEY_SPACE -> "SPACE";
+            case InputCompat.KEY_TAB -> "TAB";
+            case InputCompat.KEY_ENTER -> "ENTER";
+            case InputCompat.KEY_LEFT_SHIFT -> "LSHIFT";
+            case InputCompat.KEY_RIGHT_SHIFT -> "RSHIFT";
+            case InputCompat.KEY_LEFT_ALT -> "LALT";
+            case InputCompat.KEY_RIGHT_ALT -> "RALT";
+            case InputCompat.KEY_LEFT_CONTROL -> "LCTRL";
+            case InputCompat.KEY_RIGHT_CONTROL -> "RCTRL";
+            case InputCompat.KEY_UP -> "UP";
+            case InputCompat.KEY_DOWN -> "DOWN";
+            case InputCompat.KEY_LEFT -> "LEFT";
+            case InputCompat.KEY_RIGHT -> "RIGHT";
             default -> "KEY_" + key;
         };
     }
@@ -722,9 +722,9 @@ public class TetrisScreen extends Screen {
     }
 
     @Override
-    public boolean shouldPause() { return false; }
+    public boolean isPauseScreen() { return false; }
 
     public static void open() {
-        MinecraftClient.getInstance().send(() -> MinecraftClient.getInstance().setScreen(new TetrisScreen()));
+        Minecraft.getInstance().schedule(() -> Minecraft.getInstance().gui.setScreen(new TetrisScreen()));
     }
 }

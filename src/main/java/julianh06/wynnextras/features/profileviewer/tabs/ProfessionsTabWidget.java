@@ -1,28 +1,27 @@
 package julianh06.wynnextras.features.profileviewer.tabs;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.features.profileviewer.PV;
 import julianh06.wynnextras.features.profileviewer.PVScreen;
 import julianh06.wynnextras.features.profileviewer.data.Profession;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.util.Identifier;
-
 import java.util.Map;
 
 import static julianh06.wynnextras.features.profileviewer.PVScreen.getProfTexture;
 import static julianh06.wynnextras.features.profileviewer.PVScreen.selectedCharacter;
 
 public class ProfessionsTabWidget extends PVScreen.TabWidget {
-    static Identifier profBackgroundTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/profs/profbackground.png");
-    static Identifier profBackgroundTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/profs/profbackground_dark.png");
+    static Identifier profBackgroundTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/profs/profbackground.png");
+    static Identifier profBackgroundTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/profs/profbackground_dark.png");
 
     public ProfessionsTabWidget() {
         super(0, 0, 0, 0);
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if(PV.currentPlayerData == null) return;
         if(selectedCharacter == null) {
             ui.drawCenteredText("Select a character to view professions.", x + 900, y + 345, CustomColor.fromHexString("FF0000"), 5f);

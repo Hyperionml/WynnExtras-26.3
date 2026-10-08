@@ -1,14 +1,15 @@
 {
-  "required": false,
+  "required": true,
   "package": "julianh06.wynnextras.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_25",
   "injectors": {
-    "defaultRequire": 0
+    "defaultRequire": 1
   },
   "overwrites": {
     "requireAnnotations": true
   },
   "client": [
+    "KeyboardHandlerMixin",
     "BatchingRenderCommandQueueMixin",
     "ChatClickMixin",
     "ChatCopyMixin",
@@ -26,7 +27,6 @@
     "OrderedRenderCommandQueueImplMixin",
     "PerspectiveMixin",
     "PlayerListHudMixin",
-    "PlayerEntityRendererMixin",
     "RaidLootOverlayClickMixin",
     "RaidLootOverlayScreenMixin",
     "ScaleRarityBackgroundMixin",
@@ -41,10 +41,10 @@
     "Accessor.ItemRenderStateAccessor",
     "BankOverlay.DrawContextMixin",
     "BankOverlay.HandledScreenMixin",
-    "Invoker.GameRendererInvoker",
     "Invoker.GetTransformationInvoker",
     "Invoker.HandledScreenInvoker",
-    "Invoker.NativeImageInvoker"
+    "Invoker.NativeImageInvoker",
+    "Accessor.ItemLayerRenderStateAccessor"
   ],
   "mixins": [
     "ChatScreenMixin",

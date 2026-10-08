@@ -3,10 +3,10 @@ package julianh06.wynnextras.features.crafting;
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.features.crafting.model.*;
 import julianh06.wynnextras.utils.Pair;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import julianh06.wynnextras.features.crafting.data.CraftableType;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector4i;
 
@@ -27,13 +27,13 @@ public record CraftingResult(
 ) {
     private static final Map<String, Integer> WYNNBUILDER_STAT_ORDER = createWynnBuilderStatOrder();
 
-    public List<Text> getTooltip() {
-        List<Text> tooltip = new ArrayList<>();
-        tooltip.add(Text.literal("Crafting " + type.getDisplayName()).formatted(Formatting.DARK_AQUA));
+    public List<Component> getTooltip() {
+        List<Component> tooltip = new ArrayList<>();
+        tooltip.add(Component.literal("Crafting " + type.getDisplayName()).withStyle(ChatFormatting.DARK_AQUA));
         addBlank(tooltip);
 
         if (health != null && type.canHaveHealth()) {
-            tooltip.add(Text.literal("Health: " + health.low() + "-" + health.high()).formatted(Formatting.RED));
+            tooltip.add(Component.literal("Health: " + health.low() + "-" + health.high()).withStyle(ChatFormatting.RED));
             addBlank(tooltip);
         }
 
@@ -61,12 +61,12 @@ public record CraftingResult(
         return tooltip;
     }
 
-    private void addDamage(List<Text> tooltip) {
+    private void addDamage(List<Component> tooltip) {
         for (DamageType damageType : List.of(DamageType.NEUTRAL, DamageType.EARTH, DamageType.THUNDER,
                 DamageType.WATER, DamageType.FIRE, DamageType.AIR)) {
             Vector4i value = damage.get(damageType);
             if (value == null) continue;
-            MutableText append = applyElementFormatting(damageType.name()).append(" Damage: ")
+            MutableComponent append = applyElementFormatting(damageType.name()).append(" Damage: ")
                     .append(String.valueOf(value.x)).append("-")
                     .append(String.valueOf(value.y)).append("➜")
                     .append(String.valueOf(value.z)).append("-")
@@ -78,13 +78,13 @@ public record CraftingResult(
         }
     }
 
-    public void addReqs(List<Text> tooltip) {
+    public void addReqs(List<Component> tooltip) {
         if (requirements.classType().isPresent() && requirements.classType().get() != ClassType.NONE) {
-            MutableText suffix = Text.literal(
+            MutableComponent suffix = Component.literal(
                     requirements.classType().get().getActualName(false) + "/" +
                             requirements.classType().get().getActualName(true)
             );
-            tooltip.add(Text.literal("Class Req: ").append(suffix));
+            tooltip.add(Component.literal("Class Req: ").append(suffix));
         }
         addBaseFormat(tooltip, "Combat Level Min", new RangedValue(requirements.level() - 2, requirements.level()));
         for (Pair<Skill, Integer> req : requirements.skills()) {
@@ -94,19 +94,19 @@ public record CraftingResult(
         addBlank(tooltip);
     }
 
-    private void addIds(List<Text> tooltip) {
+    private void addIds(List<Component> tooltip) {
         for (StatPossibleValues id : sortedPossibleValues()) {
             String unit = id.statType().getUnit().getDisplayName();
 
             if (id.range().low() == 0 && id.range().high() == 0) continue;
 
-            Formatting lowColor = id.range().low() >= 0 || id.statType().displayAsInverted() ? Formatting.GREEN : Formatting.RED;
-            Formatting highColor = id.range().high() >= 0 || id.statType().displayAsInverted() ? Formatting.GREEN : Formatting.RED;
+            ChatFormatting lowColor = id.range().low() >= 0 || id.statType().displayAsInverted() ? ChatFormatting.GREEN : ChatFormatting.RED;
+            ChatFormatting highColor = id.range().high() >= 0 || id.statType().displayAsInverted() ? ChatFormatting.GREEN : ChatFormatting.RED;
 
-            Text lowText = Text.literal(id.range().low() + unit).formatted(lowColor);
-            Text highText = Text.literal(id.range().high() + unit).formatted(highColor);
+            Component lowText = Component.literal(id.range().low() + unit).withStyle(lowColor);
+            Component highText = Component.literal(id.range().high() + unit).withStyle(highColor);
 
-            tooltip.add(Text.literal("")
+            tooltip.add(Component.literal("")
                     .append(lowText)
                     .append(" ")
                     .append(applyElementFormatting(id.statType().getDisplayName()))
@@ -193,43 +193,43 @@ public record CraftingResult(
         if (order != null) result.put(alias, order);
     }
 
-    public void addBaseFormat(List<Text> tooltip, String name, RangedValue value) {
+    public void addBaseFormat(List<Component> tooltip, String name, RangedValue value) {
         String line = name + ": " + value.low() + "-" + value.high();
-        tooltip.add(Text.of(applyElementFormatting(line)));
+        tooltip.add(Component.translationArg(applyElementFormatting(line)));
     }
 
-    public void addBaseFormat(List<Text> tooltip, String name, int value) {
+    public void addBaseFormat(List<Component> tooltip, String name, int value) {
         String line = name + ": " + value;
-        tooltip.add(Text.of(applyElementFormatting(line)));
+        tooltip.add(Component.translationArg(applyElementFormatting(line)));
     }
 
-    public void addBlank(List<Text> tooltip) {
-        tooltip.add(Text.of(""));
+    public void addBlank(List<Component> tooltip) {
+        tooltip.add(Component.nullToEmpty(""));
     }
 
-    private MutableText applyElementFormatting(String text) {
-        MutableText result = Text.empty();
+    private MutableComponent applyElementFormatting(String text) {
+        MutableComponent result = Component.empty();
         String[] words = text.split(" ");
 
         for (int i = 0; i < words.length; i++) {
             String word = words[i];
-            Text wordText = switch (word) {
-                case "Earth" -> Text.literal("✤ ").formatted(Formatting.DARK_GREEN)
-                        .append(Text.literal(word));
-                case "Thunder" -> Text.literal("✦ ").formatted(Formatting.YELLOW)
-                        .append(Text.literal(word));
-                case "Water" -> Text.literal("❉ ").formatted(Formatting.AQUA)
-                        .append(Text.literal(word));
-                case "Fire" -> Text.literal("✹ ").formatted(Formatting.RED)
-                        .append(Text.literal(word));
-                case "Air" -> Text.literal("❋ ").formatted(Formatting.WHITE)
-                        .append(Text.literal(word));
-                case "Neutral" -> Text.literal("✣ ").formatted(Formatting.GOLD)
-                        .append(Text.literal(word));
-                case "NEUTRAL" -> Text.literal("✣ Neutral").formatted(Formatting.GOLD);
-                case "Health", "Health:" -> Text.literal("♥ ").formatted(Formatting.RED)
-                        .append(Text.literal(word));
-                default -> Text.literal(word);
+            Component wordText = switch (word) {
+                case "Earth" -> Component.literal("✤ ").withStyle(ChatFormatting.DARK_GREEN)
+                        .append(Component.literal(word));
+                case "Thunder" -> Component.literal("✦ ").withStyle(ChatFormatting.YELLOW)
+                        .append(Component.literal(word));
+                case "Water" -> Component.literal("❉ ").withStyle(ChatFormatting.AQUA)
+                        .append(Component.literal(word));
+                case "Fire" -> Component.literal("✹ ").withStyle(ChatFormatting.RED)
+                        .append(Component.literal(word));
+                case "Air" -> Component.literal("❋ ").withStyle(ChatFormatting.WHITE)
+                        .append(Component.literal(word));
+                case "Neutral" -> Component.literal("✣ ").withStyle(ChatFormatting.GOLD)
+                        .append(Component.literal(word));
+                case "NEUTRAL" -> Component.literal("✣ Neutral").withStyle(ChatFormatting.GOLD);
+                case "Health", "Health:" -> Component.literal("♥ ").withStyle(ChatFormatting.RED)
+                        .append(Component.literal(word));
+                default -> Component.literal(word);
             };
 
             result.append(wordText);
@@ -266,7 +266,7 @@ public record CraftingResult(
     @Override
     public @NotNull String toString() {
         StringBuilder sb = new StringBuilder();
-        for (Text line : getTooltip()) {
+        for (Component line : getTooltip()) {
             sb.append(line.getString()).append("\n");
         }
         return sb.toString();

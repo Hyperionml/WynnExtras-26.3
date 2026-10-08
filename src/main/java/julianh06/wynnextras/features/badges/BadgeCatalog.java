@@ -1,17 +1,16 @@
 package julianh06.wynnextras.features.badges;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.resources.Identifier;
 import julianh06.wynnextras.features.achievements.AchievementId;
 import julianh06.wynnextras.features.achievements.AchievementTracking;
 import julianh06.wynnextras.features.achievements.Achievements;
 import julianh06.wynnextras.utils.color.ShaderColor;
 import julianh06.wynnextras.utils.color.ShaderColorCatalog;
-import net.minecraft.text.Style;
-import net.minecraft.text.StyleSpriteSource;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
-import net.minecraft.util.Identifier;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +18,7 @@ public final class BadgeCatalog {
     public static final String DEFAULT_ICON_ID = "spark";
     public static final String DEFAULT_COLOR_ID = "orange";
     public static final String ORIGINAL_COLOR_ID = "original";
-    private static final Identifier BADGE_FONT = Identifier.of("wynnextras", "badges");
+    private static final Identifier BADGE_FONT = Identifier.fromNamespaceAndPath("wynnextras", "badges");
 
     private static final List<BadgeIcon> ICONS = List.of(
             new BadgeIcon(DEFAULT_ICON_ID, "\u2726", "Spark", null, null),
@@ -219,7 +218,7 @@ public final class BadgeCatalog {
         return rewards;
     }
 
-    public static Text badgeText(String iconId, String colorId) {
+    public static Component badgeText(String iconId, String colorId) {
         BadgeIcon icon = icon(iconId);
         BadgeColor color = color(colorId);
         if (!isCompatible(icon, color)) color = defaultColor();
@@ -227,17 +226,17 @@ public final class BadgeCatalog {
         String glyph = color.preservesOriginal() ? icon.originalGlyph() : icon.glyph();
         Style style = Style.EMPTY.withColor(TextColor.fromRgb(color.currentRgb()));
         if (icon.isCustom()) {
-            style = style.withFont(new StyleSpriteSource.Font(BADGE_FONT));
+            style = style.withFont(new FontDescription.Resource(BADGE_FONT));
         }
-        return Text.literal(glyph).setStyle(style);
+        return Component.literal(glyph).setStyle(style);
     }
 
-    public static Text colorPreviewText(String colorId) {
+    public static Component colorPreviewText(String colorId) {
         BadgeColor color = color(colorId);
-        return Text.literal("\u25CF").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(color.currentRgb())));
+        return Component.literal("\u25CF").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(color.currentRgb())));
     }
 
-    public static Text colorPreviewText(String iconId, String colorId) {
+    public static Component colorPreviewText(String iconId, String colorId) {
         BadgeColor color = color(colorId);
         return color.preservesOriginal() ? badgeText(iconId, colorId) : colorPreviewText(colorId);
     }

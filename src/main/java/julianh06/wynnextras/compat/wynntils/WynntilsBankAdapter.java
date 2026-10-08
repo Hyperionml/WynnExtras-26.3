@@ -1,11 +1,10 @@
 package julianh06.wynnextras.compat.wynntils;
 
 import julianh06.wynnextras.utils.render.Texture;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 import java.lang.reflect.Method;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -139,7 +138,7 @@ public final class WynntilsBankAdapter {
         return value instanceof Enum<?> enumValue ? enumValue.name() : fallback;
     }
 
-    public static boolean drawFeature(FeatureHandle feature, String method, DrawContext context, ItemStack stack,
+    public static boolean drawFeature(FeatureHandle feature, String method, GuiGraphicsExtractor context, ItemStack stack,
                                       int x, int y, Object... extra) {
         List<Object> args = new ArrayList<>(List.of(context, stack, x, y));
         for (Object value : extra) args.add(value);
@@ -246,21 +245,21 @@ public final class WynntilsBankAdapter {
         invoke(stack, "setAnnotation", annotation == null ? null : annotation.value);
     }
 
-    public static Text getOriginalName(ItemStack stack) {
+    public static Component getOriginalName(ItemStack stack) {
         Object styled = invoke(stack, "getOriginalName");
         Object component = invoke(styled, "getComponent");
-        return component instanceof Text text ? text : null;
+        return component instanceof Component text ? text : null;
     }
 
-    public static void setOriginalName(ItemStack stack, Text name) {
+    public static void setOriginalName(ItemStack stack, Component name) {
         try {
             Class<?> styled = WynntilsCompat.requireClass("com.wynntils.core.text.StyledText");
-            Object value = styled.getMethod("fromComponent", Text.class).invoke(null, name);
+            Object value = styled.getMethod("fromComponent", Component.class).invoke(null, name);
             invoke(stack, "setOriginalName", value);
         } catch (Throwable ignored) {}
     }
 
-    public static Optional<Integer> scrollButton(Object container, HandledScreen<?> screen, boolean previousPage) {
+    public static Optional<Integer> scrollButton(Object container, AbstractContainerScreen<?> screen, boolean previousPage) {
         Object result = invoke(container, "getScrollButton", screen, previousPage);
         if (!(result instanceof Optional<?> optional) || optional.isEmpty()) return Optional.empty();
         return optional.get() instanceof Integer value ? Optional.of(value) : Optional.empty();

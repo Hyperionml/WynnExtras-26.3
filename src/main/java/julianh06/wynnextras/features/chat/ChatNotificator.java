@@ -7,16 +7,16 @@ import julianh06.wynnextras.annotations.WEModule;
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.core.command.Command;
 import julianh06.wynnextras.event.ChatEvent;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
-import net.minecraft.util.Identifier;
+import julianh06.wynnextras.compat.client.HudRenderCallback;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.Locale;
@@ -57,7 +57,7 @@ public class ChatNotificator {
             "item bomb", "love bomb", "smoke bomb", "party bomb", "confetti", "glitter", "arrow bomb", "dxp weekend", "dxp month"
     };
 
-    public static void notify(Text message) {
+    public static void notify(Component message) {
         String text = message.getString();
         String lowerText = text.toLowerCase();
 
@@ -103,20 +103,20 @@ public class ChatNotificator {
         long now = System.currentTimeMillis();
         startTimeMs = now;
         expireTimeMs = now + WynnExtrasConfig.INSTANCE.textDurationInMs;
-        MinecraftUtils.playSoundAmbient(SoundEvent.of(Identifier.of(WynnExtrasConfig.INSTANCE.notificationSound.getSoundId())), WynnExtrasConfig.INSTANCE.soundVolume / 100, WynnExtrasConfig.INSTANCE.soundPitch / 100);
+        MinecraftUtils.playSoundAmbient(SoundEvent.createVariableRangeEvent(Identifier.parse(WynnExtrasConfig.INSTANCE.notificationSound.getSoundId())), WynnExtrasConfig.INSTANCE.soundVolume / 100, WynnExtrasConfig.INSTANCE.soundPitch / 100);
     }
 
-    private static void renderHud(DrawContext ctx, RenderTickCounter tickCounter) {
-        if (MinecraftClient.getInstance().options.hudHidden) return;
+    private static void renderHud(GuiGraphicsExtractor ctx, DeltaTracker tickCounter) {
+        if (Minecraft.getInstance().gui.hud.isHidden()) return;
         if (activeText == null) return;
         long now = System.currentTimeMillis();
         if (now >= expireTimeMs) {
             activeText = null;
             return;
         }
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        if (mc.options.hudHidden) return;
+        if (mc.gui.hud.isHidden()) return;
 
         WynnExtrasConfig c = WynnExtrasConfig.INSTANCE;
         long entranceDurationMs = c.notifierFadeInMs;
@@ -131,18 +131,18 @@ public class ChatNotificator {
                 : 0f;
 
         float scale = c.notifierScale;
-        int screenW = mc.getWindow().getScaledWidth();
-        int screenH = mc.getWindow().getScaledHeight();
+        int screenW = mc.getWindow().getGuiScaledWidth();
+        int screenH = mc.getWindow().getGuiScaledHeight();
 
         int cx = c.notifierX == -1 ? screenW / 2 : c.notifierX;
         int cy = c.notifierY == -1 ? (int) (screenH * 0.3f) : c.notifierY;
 
-        int tw = mc.textRenderer.getWidth(activeText);
-        int th = mc.textRenderer.fontHeight;
+        int tw = mc.font.width(activeText);
+        int th = mc.font.lineHeight;
 
         WynnExtrasConfig.Align align = c.notifierAlignment;
 
-        int previewTw = mc.textRenderer.getWidth("NOTIFICATION");
+        int previewTw = mc.font.width("NOTIFICATION");
 
         int textOffsetX;
         if (align == WynnExtrasConfig.Align.LEFT) {
@@ -301,12 +301,12 @@ public class ChatNotificator {
         }
         int centeredTextX = -tw / 2;
         float textCenterOffsetX = (textOffsetX - centeredTextX) * scale;
-        ctx.getMatrices().pushMatrix();
-        ctx.getMatrices().translate(cx + textCenterOffsetX + offsetX, cy + offsetY);
-        ctx.getMatrices().rotate(rotation);
-        ctx.getMatrices().scale(scale * animationScaleX, scale * animationScaleY);
-        ctx.drawText(mc.textRenderer, activeText, centeredTextX, -th / 2, CustomColor.fromInt(activeColor).withAlpha(alpha).asInt(), true);
-        ctx.getMatrices().popMatrix();
+        ctx.pose().pushMatrix();
+        ctx.pose().translate(cx + textCenterOffsetX + offsetX, cy + offsetY);
+        ctx.pose().rotate(rotation);
+        ctx.pose().scale(scale * animationScaleX, scale * animationScaleY);
+        ctx.text(mc.font, activeText, centeredTextX, -th / 2, CustomColor.fromInt(activeColor).withAlpha(alpha).asInt(), true);
+        ctx.pose().popMatrix();
         if (clip) ctx.disableScissor();
     }
 
@@ -339,7 +339,7 @@ public class ChatNotificator {
         return 1f - easeOutBounce(1f - progress);
     }
 
-    private static void handleBombshareSuggestion(Text message) {
+    private static void handleBombshareSuggestion(Component message) {
         if (!WynnExtrasConfig.INSTANCE.bombShareSuggestion) return;
 
         String msg = message.getString().toLowerCase();
@@ -367,23 +367,23 @@ public class ChatNotificator {
             boolean lootRelated = chatContent.contains("loot");
             boolean combatRelated = chatContent.contains("combat");
             String channel = detectBombshareChannel(message);
-            MinecraftClient.getInstance().send(() -> {
-                var text = WynnExtras.addWynnExtrasPrefix(Text.literal(""))
-                        .append(Text.literal("§e§n[Share all Bombs]").setStyle(Style.EMPTY
+            Minecraft.getInstance().schedule(() -> {
+                var text = WynnExtras.addWynnExtrasPrefix(Component.literal(""))
+                        .append(Component.literal("§e§n[Share all Bombs]").setStyle(Style.EMPTY
                                 .withClickEvent(new ClickEvent.RunCommand("/we bombshare " + channel))))
-                        .append(Text.literal("  "));
+                        .append(Component.literal("  "));
                 if (lootRelated) {
-                    text.append(Text.literal("§a§n[Loot only]").setStyle(Style.EMPTY
+                    text.append(Component.literal("§a§n[Loot only]").setStyle(Style.EMPTY
                             .withClickEvent(new ClickEvent.RunCommand("/we bombshare " + channel + " loot"))));
                 } else if (combatRelated) {
-                    text.append(Text.literal("§a§n[Combat only]").setStyle(Style.EMPTY
+                    text.append(Component.literal("§a§n[Combat only]").setStyle(Style.EMPTY
                             .withClickEvent(new ClickEvent.RunCommand("/we bombshare " + channel + " combat"))));
                 } else {
-                    text.append(Text.literal("§a§n[Prof only]").setStyle(Style.EMPTY
+                    text.append(Component.literal("§a§n[Prof only]").setStyle(Style.EMPTY
                             .withClickEvent(new ClickEvent.RunCommand("/we bombshare " + channel + " prof"))));
                 }
-                text.append(Text.literal("  "))
-                        .append(Text.literal("§c§n[Disable]").setStyle(Style.EMPTY
+                text.append(Component.literal("  "))
+                        .append(Component.literal("§c§n[Disable]").setStyle(Style.EMPTY
                                 .withClickEvent(new ClickEvent.RunCommand("/we bombshare toggle"))));
                 MinecraftUtils.sendMessageToClient(text);
             });
@@ -391,10 +391,10 @@ public class ChatNotificator {
         }
     }
 
-    private static String detectBombshareChannel(Text message) {
+    private static String detectBombshareChannel(Component message) {
         TextColor firstColor = firstColor(message);
         if (firstColor != null) {
-            int rgb = firstColor.getRgb();
+            int rgb = firstColor.getValue();
             if (rgb == 0x55FFFF) return "guild";
             if (rgb == 0xFFFF55) return "party";
         }
@@ -409,9 +409,9 @@ public class ChatNotificator {
         return "all";
     }
 
-    private static TextColor firstColor(Text text) {
+    private static TextColor firstColor(Component text) {
         if (text.getStyle().getColor() != null) return text.getStyle().getColor();
-        for (Text sibling : text.getSiblings()) {
+        for (Component sibling : text.getSiblings()) {
             TextColor color = firstColor(sibling);
             if (color != null) return color;
         }

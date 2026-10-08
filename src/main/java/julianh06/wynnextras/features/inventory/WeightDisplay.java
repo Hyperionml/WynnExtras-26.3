@@ -9,18 +9,18 @@ import julianh06.wynnextras.features.crafting.data.WynnDataService;
 import julianh06.wynnextras.utils.HandledScreenAccess;
 import julianh06.wynnextras.utils.ItemUtils;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Style;
-import net.minecraft.text.StyleSpriteSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
-import org.lwjgl.glfw.GLFW;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -63,7 +63,7 @@ public class WeightDisplay {
     }
 
     private static boolean isContainerOpen() {
-        return MinecraftClient.getInstance().currentScreen instanceof HandledScreen<?>;
+        return Minecraft.getInstance().gui.screen() instanceof AbstractContainerScreen<?>;
     }
 
     public static void clearCycleInput() {
@@ -182,11 +182,11 @@ public class WeightDisplay {
              captureOriginalIdentifications(stack, cleanName);
 
              if (hasCycleInput()) {
-                 MinecraftClient mc = MinecraftClient.getInstance();
+                 Minecraft mc = Minecraft.getInstance();
                  boolean isHovered = false;
-                 if (mc.currentScreen instanceof HandledScreen<?> hs) {
+                 if (mc.gui.screen() instanceof AbstractContainerScreen<?> hs) {
                      Slot focused = HandledScreenAccess.focusedSlot(hs);
-                     isHovered = focused != null && ItemStack.areItemsAndComponentsEqual(focused.getStack(), stack);
+                     isHovered = focused != null && ItemStack.isSameItemSameComponents(focused.getItem(), stack);
                  }
                  if (isHovered) {
                      applyCycleInput(cleanName);
@@ -250,7 +250,7 @@ public class WeightDisplay {
         return new ItemData(key, calculatedList, 0);
     }
 
-    public static List<Text> appendChatItemAnnotations(String itemName, List<Text> tooltip) {
+    public static List<Component> appendChatItemAnnotations(String itemName, List<Component> tooltip) {
         if (!WynnExtrasConfig.INSTANCE.showWeight || itemName == null || tooltip == null || tooltip.isEmpty()) {
             return tooltip;
         }
@@ -266,17 +266,17 @@ public class WeightDisplay {
         ItemData scaleData = computeScale(cleanName, extractIdentificationsFromTooltip(tooltip, cleanName));
         if (scaleData == null || scaleData.data().isEmpty()) return tooltip;
 
-        List<Text> modified = new ArrayList<>(tooltip);
+        List<Component> modified = new ArrayList<>(tooltip);
         appendWeightAnnotations(modified, cleanName,
                 Math.min(itemData.index(), scaleData.data().size() - 1), scaleData,
                 findChatScaleInsertionIndex(tooltip));
         return modified;
     }
 
-    private static int findChatScaleInsertionIndex(List<Text> tooltip) {
+    private static int findChatScaleInsertionIndex(List<Component> tooltip) {
         int lastHeaderLine = -1;
         for (int i = 0; i < tooltip.size(); i++) {
-            Text line = tooltip.get(i);
+            Component line = tooltip.get(i);
             if (usesFont(line, "tooltip/emblem/", "tooltip/banner", "banner/")) {
                 lastHeaderLine = i;
             }
@@ -289,9 +289,9 @@ public class WeightDisplay {
         return Math.min(4, tooltip.size() - 1);
     }
 
-    private static boolean usesFont(Text line, String... fontPathPrefixes) {
+    private static boolean usesFont(Component line, String... fontPathPrefixes) {
         return line.visit((style, string) -> {
-            if (!(style.getFont() instanceof StyleSpriteSource.Font(Identifier font))) {
+            if (!(style.getFont() instanceof FontDescription.Resource(Identifier font))) {
                 return Optional.empty();
             }
             for (String prefix : fontPathPrefixes) {
@@ -321,13 +321,13 @@ public class WeightDisplay {
 
     private static Map<String, Float> extractIdentificationsFromLore(ItemStack stack, String itemName) {
         try {
-            var lore = stack.get(DataComponentTypes.LORE);
+            var lore = stack.get(DataComponents.LORE);
             if (lore == null || lore.lines().isEmpty()) {
                 return Map.of();
             }
 
             List<ParsedIdentification> parsed = new ArrayList<>();
-            for (Text line : lore.lines()) {
+            for (Component line : lore.lines()) {
                 String raw = line.getString();
                 java.util.regex.Matcher m = VANILLA_PATTERN.matcher(raw);
                 if (!m.matches()) continue;
@@ -368,10 +368,10 @@ public class WeightDisplay {
         }
     }
 
-    private static Map<String, Float> extractIdentificationsFromTooltip(List<Text> tooltip, String itemName) {
+    private static Map<String, Float> extractIdentificationsFromTooltip(List<Component> tooltip, String itemName) {
         try {
             List<ParsedIdentification> parsed = new ArrayList<>();
-            for (Text line : tooltip) {
+            for (Component line : tooltip) {
                 String[] stat = extractStatFromLine(line.getString());
                 if (stat == null) continue;
 
@@ -500,7 +500,7 @@ public class WeightDisplay {
     }
 
     public static String extractCleanName(ItemStack stack) {
-        return cleanName(stack.getName().getString());
+        return cleanName(stack.getHoverName().getString());
     }
 
     private static String cleanName(String name) {
@@ -518,9 +518,9 @@ public class WeightDisplay {
     }
 
     public static boolean isUnidentified(ItemStack stack) {
-        var lore = stack.get(DataComponentTypes.LORE);
+        var lore = stack.get(DataComponents.LORE);
         if (lore == null) return false;
-        for (Text line : lore.lines()) {
+        for (Component line : lore.lines()) {
             String s = line.getString();
             if (s.contains("This item's power has been sealed")) return true;
         }
@@ -759,22 +759,22 @@ public class WeightDisplay {
             clearCycleInput();
             return;
         }
-        if((event.getKey() == GLFW.GLFW_KEY_UP || event.getKey() == GLFW.GLFW_KEY_W) && event.getAction() == GLFW.GLFW_PRESS) {
+        if((event.getKey() == InputCompat.KEY_UP || event.getKey() == InputCompat.KEY_W) && event.getAction() == InputCompat.PRESS) {
             upPressed = true;
         }
-        if((event.getKey() == GLFW.GLFW_KEY_DOWN || event.getKey() == GLFW.GLFW_KEY_S) && event.getAction() == GLFW.GLFW_PRESS) {
+        if((event.getKey() == InputCompat.KEY_DOWN || event.getKey() == InputCompat.KEY_S) && event.getAction() == InputCompat.PRESS) {
             downPressed = true;
         }
-        if((event.getKey() == GLFW.GLFW_KEY_LEFT || event.getKey() == GLFW.GLFW_KEY_A) && event.getAction() == GLFW.GLFW_PRESS) {
+        if((event.getKey() == InputCompat.KEY_LEFT || event.getKey() == InputCompat.KEY_A) && event.getAction() == InputCompat.PRESS) {
             leftPressed = true;
         }
-        if((event.getKey() == GLFW.GLFW_KEY_RIGHT || event.getKey() == GLFW.GLFW_KEY_D) && event.getAction() == GLFW.GLFW_PRESS) {
+        if((event.getKey() == InputCompat.KEY_RIGHT || event.getKey() == InputCompat.KEY_D) && event.getAction() == InputCompat.PRESS) {
             rightPressed = true;
         }
     }
 
-    public static List<Text> modifyTooltip(List<Text> tooltips, ItemStack itemStack) {
-        List<Text> modified = new ArrayList<>();
+    public static List<Component> modifyTooltip(List<Component> tooltips, ItemStack itemStack) {
+        List<Component> modified = new ArrayList<>();
 
         String key = extractCleanName(itemStack);
         if (!isTrackedMythic(itemStack)) return tooltips;
@@ -782,7 +782,7 @@ public class WeightDisplay {
         ItemData scaleData = weightCacheByHash.getOrDefault(itemStack.getComponents().hashCode(), null);
 
         for (int i = 1; i < tooltips.size(); i++) {
-            Text line = tooltips.get(i);
+            Component line = tooltips.get(i);
             modified.add(line);
 
             if (i == 3 && WynnExtrasConfig.INSTANCE.showScales && WynnExtrasConfig.INSTANCE.showWeight && itemData != null && scaleData != null && !scaleData.data().isEmpty()) {
@@ -795,32 +795,32 @@ public class WeightDisplay {
                 for (WeightData data : scaleData.data()) {
                     if (isShowingBothScaleSources(key) && data.source() != renderedSource) {
                         renderedSource = data.source();
-                        modified.add(Text.literal("  ↳ " + renderedSource).formatted(Formatting.GRAY));
+                        modified.add(Component.literal("  ↳ " + renderedSource).withStyle(ChatFormatting.GRAY));
                     }
                     float score = data.score();
                     String scale = data.weightName();
                     boolean isCurrent = (index == aidx.get() && scaleData.data().size() > 1);
-                    Formatting labelColor = isCurrent ? Formatting.WHITE : Formatting.GRAY;
+                    ChatFormatting labelColor = isCurrent ? ChatFormatting.WHITE : ChatFormatting.GRAY;
 
-                    Text scoreText = Text.literal(String.format(" %.1f%%", score))
-                            .styled(s -> s.withColor(getScaleColor(score)));
+                    Component scoreText = Component.literal(String.format(" %.1f%%", score))
+                            .withStyle(s -> s.withColor(getScaleColor(score)));
 
                     String indent = isShowingBothScaleSources(key) ? "  ↳ " : "↳ ";
-                    Text statWeight = Text.literal(indent + getScaleLabel(scale))
-                            .formatted(labelColor)
-                            .styled(s -> isCurrent ? s.withBold(true) : s)
+                    Component statWeight = Component.literal(indent + getScaleLabel(scale))
+                            .withStyle(labelColor)
+                            .withStyle(s -> isCurrent ? s.withBold(true) : s)
                             .append(scoreText);
-                    modified.add(Text.literal("  ").append(statWeight));
+                    modified.add(Component.literal("  ").append(statWeight));
                     aidx.incrementAndGet();
                 }
                 if (scaleData.data().size() > 1) {
-                    modified.add(Text.literal("  ↳ Use ↑ / ↓ (W / S) to cycle").formatted(Formatting.DARK_GRAY));
+                    modified.add(Component.literal("  ↳ Use ↑ / ↓ (W / S) to cycle").withStyle(ChatFormatting.DARK_GRAY));
                 }
                 if (shouldShowScaleSourceControls(key)) {
-                    modified.add(Text.literal("  ↳ Use ← / → (A / D) to switch source")
-                            .formatted(Formatting.DARK_GRAY));
-                    modified.add(Text.literal("  ↳ Currently using: " + getSelectedScaleSource(key))
-                            .formatted(Formatting.DARK_GRAY));
+                    modified.add(Component.literal("  ↳ Use ← / → (A / D) to switch source")
+                            .withStyle(ChatFormatting.DARK_GRAY));
+                    modified.add(Component.literal("  ↳ Currently using: " + getSelectedScaleSource(key))
+                            .withStyle(ChatFormatting.DARK_GRAY));
                 }
             }
 
@@ -834,58 +834,58 @@ public class WeightDisplay {
             Float weight = itemData.data().get(itemData.index()).identifications().get(apiName);
             if (weight == null) continue;
 
-            modified.add(Text.literal(String.format("  ↳ Weight: %.2f%%", weight * 100))
-                    .formatted(Formatting.DARK_GRAY));
+            modified.add(Component.literal(String.format("  ↳ Weight: %.2f%%", weight * 100))
+                    .withStyle(ChatFormatting.DARK_GRAY));
         }
 
         return modified;
     }
 
-    public static void appendWeightAnnotations(List<Text> lines, String cleanName, int currentIdx, ItemData scaleData) {
+    public static void appendWeightAnnotations(List<Component> lines, String cleanName, int currentIdx, ItemData scaleData) {
         appendWeightAnnotations(lines, cleanName, currentIdx, scaleData, 4);
     }
 
-    private static void appendWeightAnnotations(List<Text> lines, String cleanName, int currentIdx,
+    private static void appendWeightAnnotations(List<Component> lines, String cleanName, int currentIdx,
                                                 ItemData scaleData, int scaleInsertionIndex) {
         ItemData itemData = getSelectedItemData(cleanName);
         if (itemData == null) return;
 
-        List<Text> original = new ArrayList<>(lines);
+        List<Component> original = new ArrayList<>(lines);
         lines.clear();
 
         WeightData currentProfile = itemData.data().get(currentIdx);
 
         for (int i = 0; i < original.size(); i++) {
-            Text line = original.get(i);
+            Component line = original.get(i);
             if (i == scaleInsertionIndex && WynnExtrasConfig.INSTANCE.showWeight) {
-                lines.add(Text.empty());
+                lines.add(Component.empty());
                 WynnExtrasConfig.MythicScaleSource renderedSource = null;
                 for (int j = 0; j < scaleData.data().size(); j++) {
                     WeightData wd = scaleData.data().get(j);
                     if (isShowingBothScaleSources(cleanName) && wd.source() != renderedSource) {
                         renderedSource = wd.source();
-                        lines.add(Text.literal("  ↳ " + renderedSource)
-                                .styled(s -> s.withColor(0xAAAAAA)));
+                        lines.add(Component.literal("  ↳ " + renderedSource)
+                                .withStyle(s -> s.withColor(0xAAAAAA)));
                     }
                     boolean cur = (j == currentIdx);
                     float score = wd.score();
-                    Text scoreText = Text.literal(String.format(" [%.1f%%]", score))
-                        .styled(s -> s.withColor(getScaleColor(score)).withBold(cur));
+                    Component scoreText = Component.literal(String.format(" [%.1f%%]", score))
+                        .withStyle(s -> s.withColor(getScaleColor(score)).withBold(cur));
                     String indent = isShowingBothScaleSources(cleanName) ? "    ↳ " : "  ↳ ";
-                    Text label = Text.literal(indent + getScaleLabel(wd.weightName()))
-                        .styled(s -> s.withColor(cur ? 0xFFFFFF : 0xAAAAAA).withBold(cur))
+                    Component label = Component.literal(indent + getScaleLabel(wd.weightName()))
+                        .withStyle(s -> s.withColor(cur ? 0xFFFFFF : 0xAAAAAA).withBold(cur))
                         .copy().append(scoreText);
                     lines.add(label);
                 }
                 if (scaleData.data().size() > 1) {
-                    lines.add(Text.literal("  ↳ Use ↑/↓ (W/S) to cycle").styled(s -> s.withColor(0x555555)));
+                    lines.add(Component.literal("  ↳ Use ↑/↓ (W/S) to cycle").withStyle(s -> s.withColor(0x555555)));
                 }
                 if (shouldShowScaleSourceControls(cleanName)) {
-                    lines.add(Text.literal("  ↳ Use ←/→ (A/D) to switch source")
-                            .styled(s -> s.withColor(0x555555)));
-                    lines.add(Text.literal("  ↳ Currently using: "
+                    lines.add(Component.literal("  ↳ Use ←/→ (A/D) to switch source")
+                            .withStyle(s -> s.withColor(0x555555)));
+                    lines.add(Component.literal("  ↳ Currently using: "
                                     + getSelectedScaleSource(cleanName))
-                            .styled(s -> s.withColor(0x555555)));
+                            .withStyle(s -> s.withColor(0x555555)));
                 }
             }
             lines.add(line);
@@ -900,8 +900,8 @@ public class WeightDisplay {
             Float scale = currentProfile.identifications.getOrDefault(statApiName, 0f);
             if (scale == null || scale == 0f) continue;
 
-            lines.add(Text.literal(String.format("  ↳ Weight: %.1f%%", scale * 100))
-                    .styled(s -> s.withColor(0x555555)));
+            lines.add(Component.literal(String.format("  ↳ Weight: %.1f%%", scale * 100))
+                    .withStyle(s -> s.withColor(0x555555)));
         }
     }
 }

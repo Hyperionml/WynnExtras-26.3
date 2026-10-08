@@ -1,6 +1,9 @@
 package julianh06.wynnextras.features.profileviewer;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.features.abilitytree.TreeData;
 import julianh06.wynnextras.features.abilitytree.TreeLoader;
@@ -8,19 +11,16 @@ import julianh06.wynnextras.features.profileviewer.data.AbilityMapData;
 import julianh06.wynnextras.features.profileviewer.data.AbilityTreeData;
 import julianh06.wynnextras.features.profileviewer.data.SkillPoints;
 import julianh06.wynnextras.utils.UI.Widget;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 
 public class SaveButtonWidget extends Widget {
     private String characterUUID;
     private Runnable action;
     public AbilityTreeData classTree = null;
 
-    static Identifier saveButtonTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/savebutton.png");
-    static Identifier saveButtonTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/savebutton_dark.png");
-    static Identifier saveButtonTextureHovered = Identifier.of("wynnextras", "textures/gui/profileviewer/savebuttonhovered.png");
-    static Identifier saveButtonTextureHoveredDark = Identifier.of("wynnextras", "textures/gui/profileviewer/savebuttonhovered_dark.png");
+    static Identifier saveButtonTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/savebutton.png");
+    static Identifier saveButtonTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/savebutton_dark.png");
+    static Identifier saveButtonTextureHovered = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/savebuttonhovered.png");
+    static Identifier saveButtonTextureHoveredDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/savebuttonhovered_dark.png");
 
     public void setClassTree(AbilityTreeData classTree) {
         this.classTree = classTree;
@@ -30,7 +30,7 @@ public class SaveButtonWidget extends Widget {
         super(0, 0, 0, 0);
         this.action = () -> {
             if(classTree == null) {
-                MinecraftUtils.sendMessageToClient(Text.of("Error while setting classtree, try again"));
+                MinecraftUtils.sendMessageToClient(Component.nullToEmpty("Error while setting classtree, try again"));
                 return;
             }
             TreeLoader.savePlayerAbilityTree(playerName, characterUUID, className.toLowerCase(), skillPoints, classMap, classTree, playerTree);
@@ -55,7 +55,7 @@ public class SaveButtonWidget extends Widget {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         //ui.drawRect(x, y, width, height, CustomColor.fromHexString("FFFFFF"));
         if(hovered) {
             PVScreen.DarkModeToggleWidget.drawImageWithFade(saveButtonTextureHoveredDark, saveButtonTextureHovered, x, y, width, height, ui);

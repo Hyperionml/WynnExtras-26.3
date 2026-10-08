@@ -2,12 +2,11 @@ package julianh06.wynnextras.wynncraft.item;
 
 import julianh06.wynnextras.features.crafting.data.WynnDataService;
 import julianh06.wynnextras.features.inventory.WeightDisplay;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,7 +33,7 @@ public final class IdentifierRollResolver {
 
     public static List<String> possibleItemNames(ItemStack stack) {
         WynnItemData input = WynnItemParser.parse(stack).orElse(null);
-        String fallbackName = cleanDisplayName(stack.getName().getString());
+        String fallbackName = cleanDisplayName(stack.getHoverName().getString());
         if (input == null || input.category() != ItemCategory.GEAR_BOX) return List.of(fallbackName);
 
         int[] levelRange = levelRange(input.lore());
@@ -118,7 +117,7 @@ public final class IdentifierRollResolver {
     }
 
     public static String cleanDisplayName(String value) {
-        String stripped = Formatting.strip(value == null ? "" : value);
+        String stripped = ChatFormatting.stripFormatting(value == null ? "" : value);
         if (stripped == null) return "";
         return stripped.replace("À", "")
                 .replaceAll("[^\\x20-\\x7E]", "")
@@ -128,7 +127,7 @@ public final class IdentifierRollResolver {
     }
 
     private static List<WynnDataService.ItemData> findItemData(ItemStack stack) {
-        String name = cleanDisplayName(stack.getName().getString());
+        String name = cleanDisplayName(stack.getHoverName().getString());
         List<WynnDataService.ItemData> matches = WynnDataService.getInstance().findByDisplayName(name);
         if (!matches.isEmpty()) return matches;
 
@@ -174,9 +173,9 @@ public final class IdentifierRollResolver {
 
     private static Map<String, ActualStat> actualStats(ItemStack stack) {
         Map<String, ActualStat> result = new LinkedHashMap<>();
-        LoreComponent lore = stack.get(DataComponentTypes.LORE);
+        ItemLore lore = stack.get(DataComponents.LORE);
         if (lore == null) return result;
-        for (Text text : lore.lines()) {
+        for (Component text : lore.lines()) {
             String[] parsed = WeightDisplay.extractStatFromLine(text.getString());
             String name;
             String unit;

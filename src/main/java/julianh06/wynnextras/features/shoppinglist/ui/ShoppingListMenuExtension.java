@@ -21,18 +21,17 @@ import julianh06.wynnextras.utils.UI.TextInputWidget;
 import julianh06.wynnextras.utils.UI.WEMenuExtension;
 import julianh06.wynnextras.utils.UI.Widget;
 import julianh06.wynnextras.utils.colors.CustomColor;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.gui.tooltip.HoveredTooltipPositioner;
-import net.minecraft.client.gui.tooltip.TooltipComponent;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import org.lwjgl.glfw.GLFW;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import julianh06.wynnextras.compat.client.InputCompat;
+import com.mojang.blaze3d.platform.InputConstants;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -245,12 +244,12 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
     }
 
     public static boolean isToggleKey(int keyCode) {
-        return WynnExtrasConfig.INSTANCE.shoppingListToggleKey != GLFW.GLFW_KEY_UNKNOWN
+        return WynnExtrasConfig.INSTANCE.shoppingListToggleKey != InputCompat.KEY_UNKNOWN
                 && keyCode == WynnExtrasConfig.INSTANCE.shoppingListToggleKey;
     }
 
     public static boolean handleGlobalMouseScrolled(double verticalAmount) {
-        Screen currentScreen = MinecraftClient.getInstance().currentScreen;
+        Screen currentScreen = Minecraft.getInstance().gui.screen();
         return currentScreen != null
                 && currentScreen == activeScreen
                 && activeScreenExtension != null
@@ -287,7 +286,7 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
     }
 
     public static void copyFromCommand() {
-        MinecraftClient.getInstance().keyboard.setClipboard(
+        Minecraft.getInstance().keyboardHandler.setClipboard(
                 ShoppingListFormatter.format(ShoppingListFeature.shoppingCartService().cart()));
     }
 
@@ -307,7 +306,7 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
         this.placementContext = placementContext == null ? ShoppingListPlacementContext.OTHER : placementContext;
     }
 
-    public boolean consumesHover(HandledScreen<?> screen, double mouseX, double mouseY) {
+    public boolean consumesHover(AbstractContainerScreen<?> screen, double mouseX, double mouseY) {
         if (!shouldRender(screenContext)) return false;
         computeScale();
         updatePanelBounds(screen);
@@ -315,18 +314,18 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
     }
 
     @Override
-    protected void drawBackground(DrawContext ctx, int mouseX, int mouseY, float delta) {}
+    protected void drawBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {}
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         if (!shouldRender(screenContext)) {
             setButtonsVisible(false);
             setEditorWidgetsVisible(false);
             rowHits.clear();
             return;
         }
-        Screen current = MinecraftClient.getInstance().currentScreen;
-        HandledScreen<?> handledScreen = current instanceof HandledScreen<?> screen ? screen : null;
+        Screen current = Minecraft.getInstance().gui.screen();
+        AbstractContainerScreen<?> handledScreen = current instanceof AbstractContainerScreen<?> screen ? screen : null;
         if (handledScreen == null
                 && screenContext != ShoppingListScreenContext.HUD
                 && screenContext != ShoppingListScreenContext.CHAT) {
@@ -363,7 +362,7 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
     }
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         if (!shouldRender(screenContext)) return;
         List<String> controlTooltip = hoveredControlTooltip();
         if (!controlTooltip.isEmpty()) {
@@ -385,7 +384,7 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
     @Override
     public boolean mouseClicked(double x, double y, int button) {
         if (!shouldRender(screenContext)) return false;
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && startResize(x, y)) {
+        if (button == InputCompat.MOUSE_BUTTON_LEFT && startResize(x, y)) {
             return true;
         }
         boolean editorWasOpen = isEditorOpen();
@@ -403,10 +402,10 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
         }
 
         if (isEditorOpen()) {
-            if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && handleSuggestionClick(x, y)) {
+            if (button == InputCompat.MOUSE_BUTTON_LEFT && handleSuggestionClick(x, y)) {
                 return true;
             }
-            if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && isHeaderDragArea(x, y)) {
+            if (button == InputCompat.MOUSE_BUTTON_LEFT && isHeaderDragArea(x, y)) {
                 draggingPanel = true;
                 panelDragMoved = false;
                 dragPlacementContext = placementContext;
@@ -416,11 +415,11 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
             return true;
         }
 
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && handleScrollbarClick(x, y)) {
+        if (button == InputCompat.MOUSE_BUTTON_LEFT && handleScrollbarClick(x, y)) {
             return true;
         }
 
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && isHeaderDragArea(x, y)) {
+        if (button == InputCompat.MOUSE_BUTTON_LEFT && isHeaderDragArea(x, y)) {
             draggingPanel = true;
             panelDragMoved = false;
             dragPlacementContext = placementContext;
@@ -431,7 +430,7 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
 
         RowHit rowHit = rowAt(x, y);
         if (rowHit != null) {
-            if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && rowHit.containsEdit(x, y)) {
+            if (button == InputCompat.MOUSE_BUTTON_LEFT && rowHit.containsEdit(x, y)) {
                 playButtonClickSound();
                 openEditEditor(rowHit.entry(), rowHit.baseAmount());
             } else {
@@ -449,16 +448,16 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
             cancelResize();
             return false;
         }
-        if (resizeEdges.active() && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (resizeEdges.active() && button == InputCompat.MOUSE_BUTTON_LEFT) {
             cancelResize();
             WynnExtrasConfig.save();
             return true;
         }
-        if (draggingScrollbar && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (draggingScrollbar && button == InputCompat.MOUSE_BUTTON_LEFT) {
             cancelScrollbarDrag();
             return true;
         }
-        if (draggingPanel && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (draggingPanel && button == InputCompat.MOUSE_BUTTON_LEFT) {
             draggingPanel = false;
             dragPlacementContext = ShoppingListPlacementContext.OTHER;
             if (panelDragMoved) {
@@ -477,15 +476,15 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
             cancelResize();
             return false;
         }
-        if (resizeEdges.active() && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (resizeEdges.active() && button == InputCompat.MOUSE_BUTTON_LEFT) {
             resizePanel((int) x, (int) y);
             return true;
         }
-        if (draggingScrollbar && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (draggingScrollbar && button == InputCompat.MOUSE_BUTTON_LEFT) {
             updateScrollOffsetFromThumb(y - scrollbarDragOffsetY);
             return true;
         }
-        if (draggingPanel && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (draggingPanel && button == InputCompat.MOUSE_BUTTON_LEFT) {
             movePanelTo((int) x - dragOffsetX, (int) y - dragOffsetY, dragPlacementContext);
             panelDragMoved = true;
             return true;
@@ -609,13 +608,13 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
             return false;
         }
         if (isEditorOpen()) {
-            if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            if (keyCode == InputCompat.KEY_ESCAPE) {
                 closeEditor();
                 return true;
             }
             if (editorConflict) {
-                if (keyCode == GLFW.GLFW_KEY_TAB) {
-                    cycleEditorFocus((modifiers & GLFW.GLFW_MOD_SHIFT) != 0,
+                if (keyCode == InputCompat.KEY_TAB) {
+                    cycleEditorFocus((modifiers & InputCompat.MOD_SHIFT) != 0,
                             List.of(editorConflictAddButton, editorConflictReplaceButton, editorConflictBackButton));
                     return true;
                 }
@@ -623,16 +622,16 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
                 return true;
             }
             if (editorNameInput.isFocused()
-                    && (keyCode == GLFW.GLFW_KEY_UP || keyCode == GLFW.GLFW_KEY_DOWN)) {
+                    && (keyCode == InputCompat.KEY_UP || keyCode == InputCompat.KEY_DOWN)) {
                 List<String> suggestions = editorSuggestions();
                 if (!suggestions.isEmpty()) {
-                    int direction = keyCode == GLFW.GLFW_KEY_UP ? -1 : 1;
+                    int direction = keyCode == InputCompat.KEY_UP ? -1 : 1;
                     selectedSuggestionIndex = Math.floorMod(selectedSuggestionIndex + direction, suggestions.size());
                     suggestionSelectionActive = true;
                 }
                 return true;
             }
-            if (keyCode == GLFW.GLFW_KEY_TAB) {
+            if (keyCode == InputCompat.KEY_TAB) {
                 List<Widget> controls = new ArrayList<>();
                 controls.add(editorTypeButton);
                 if (editorType == RequirementType.MATERIAL) controls.add(editorTierButton);
@@ -641,10 +640,10 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
                 controls.add(editorSaveButton);
                 if (editorMode == EditorMode.EDIT) controls.add(editorDeleteButton);
                 controls.add(editorCancelButton);
-                cycleEditorFocus((modifiers & GLFW.GLFW_MOD_SHIFT) != 0, controls);
+                cycleEditorFocus((modifiers & InputCompat.MOD_SHIFT) != 0, controls);
                 return true;
             }
-            if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+            if (keyCode == InputCompat.KEY_ENTER || keyCode == InputCompat.KEY_KP_ENTER) {
                 List<String> suggestions = editorSuggestions();
                 if (editorNameInput.isFocused() && suggestionSelectionActive && !suggestions.isEmpty()
                         && selectedSuggestionIndex >= 0 && selectedSuggestionIndex < suggestions.size()) {
@@ -668,7 +667,7 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
     }
 
     public static boolean handleGlobalCharTyped(char character) {
-        Screen currentScreen = MinecraftClient.getInstance().currentScreen;
+        Screen currentScreen = Minecraft.getInstance().gui.screen();
         if (currentScreen == null || currentScreen != activeScreen || activeScreenExtension == null
                 || !activeScreenExtension.isEditorOpen()) {
             return false;
@@ -678,8 +677,8 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
     }
 
     public static boolean handleGlobalKeyInput(int keyCode, int scanCode, int action, int modifiers) {
-        Screen currentScreen = MinecraftClient.getInstance().currentScreen;
-        if (currentScreen == null && action == GLFW.GLFW_PRESS && isToggleKey(keyCode)) {
+        Screen currentScreen = Minecraft.getInstance().gui.screen();
+        if (currentScreen == null && action == InputCompat.PRESS && isToggleKey(keyCode)) {
             toggleFromHotkey(ShoppingListScreenContext.HUD);
             return true;
         }
@@ -687,14 +686,14 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
                 || !activeScreenExtension.isEditorOpen()) {
             return false;
         }
-        if (action == GLFW.GLFW_PRESS || action == GLFW.GLFW_REPEAT) {
+        if (action == InputCompat.PRESS || action == InputCompat.REPEAT) {
             activeScreenExtension.keyPressed(keyCode, scanCode, modifiers);
             return true;
         }
         return false;
     }
 
-    private void updatePanelBounds(HandledScreen<?> screen) {
+    private void updatePanelBounds(AbstractContainerScreen<?> screen) {
         int screenX = screen == null ? 0 : HandledScreenAccess.x(screen);
         int screenY = screen == null ? 0 : HandledScreenAccess.y(screen);
         int guiWidth = screen == null ? 0 : HandledScreenAccess.backgroundWidth(screen);
@@ -1052,22 +1051,22 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
                 .toList();
     }
 
-    private void drawTooltip(DrawContext ctx, List<String> lines, int mouseX, int mouseY) {
+    private void drawTooltip(GuiGraphicsExtractor ctx, List<String> lines, int mouseX, int mouseY) {
         if (lines == null || lines.isEmpty()) return;
-        drawTextTooltip(ctx, lines.stream().map(Text::literal).toList(), mouseX, mouseY);
+        drawTextTooltip(ctx, lines.stream().map(Component::literal).toList(), mouseX, mouseY);
     }
 
-    private void drawTextTooltip(DrawContext ctx, List<? extends Text> lines, int mouseX, int mouseY) {
+    private void drawTextTooltip(GuiGraphicsExtractor ctx, List<? extends Component> lines, int mouseX, int mouseY) {
         if (lines == null || lines.isEmpty()) return;
-        ctx.drawTooltipImmediately(
-                MinecraftClient.getInstance().textRenderer,
+        ctx.tooltip(
+                Minecraft.getInstance().font,
                 lines.stream()
-                        .map(line -> TooltipComponent.of(line.asOrderedText()))
+                        .map(line -> ClientTooltipComponent.create(line.getVisualOrderText()))
                         .toList(),
                 mouseX,
                 mouseY,
-                HoveredTooltipPositioner.INSTANCE,
-                null);
+                DefaultTooltipPositioner.INSTANCE,
+                null, false);
     }
 
     private void layoutButtons() {
@@ -1365,11 +1364,11 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
     }
 
     private void handleRowClick(ShoppingListFormatter.Row row, int button) {
-        if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+        if (button == InputCompat.MOUSE_BUTTON_RIGHT) {
             ShoppingListTradeMarketSearchService.copied(row.tradeMarketQuery());
             return;
         }
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (button == InputCompat.MOUSE_BUTTON_LEFT) {
             switch (ShoppingListMenuRenderPolicy.primaryRowAction(screenContext)) {
                 case BANK_OVERLAY_SEARCH -> searchBankOverlay(row);
                 case TRADE_MARKET_SEARCH -> {
@@ -1404,8 +1403,8 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
     }
 
     private boolean isShiftDown() {
-        return InputUtil.isKeyPressed(MinecraftClient.getInstance().getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)
-                || InputUtil.isKeyPressed(MinecraftClient.getInstance().getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);
+        return InputConstants.isKeyDown(InputCompat.nativeKey(InputCompat.KEY_LEFT_SHIFT))
+                || InputConstants.isKeyDown(InputCompat.nativeKey(InputCompat.KEY_RIGHT_SHIFT));
     }
 
     private RowHit rowAt(double x, double y) {
@@ -1438,7 +1437,7 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
     }
 
     public static boolean isEditorTextInputFocused() {
-        Screen currentScreen = MinecraftClient.getInstance().currentScreen;
+        Screen currentScreen = Minecraft.getInstance().gui.screen();
         return currentScreen != null
                 && currentScreen == activeScreen
                 && activeScreenExtension != null
@@ -1661,7 +1660,7 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
     }
 
     private void importClipboard() {
-        String clipboard = MinecraftClient.getInstance().keyboard.getClipboard();
+        String clipboard = Minecraft.getInstance().keyboardHandler.getClipboard();
         ShoppingCartService.ImportResult result = service.importUrl(clipboard);
         if (!result.success()) {
             WynnExtras.sendMessageToClient("§cShopping list import failed: " + result.error());
@@ -1692,7 +1691,7 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
     }
 
     private boolean changeOutputCount(int button) {
-        if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+        if (button == InputCompat.MOUSE_BUTTON_RIGHT) {
             if (isShiftDown()) {
                 WynnExtrasConfig.INSTANCE.shoppingListCraftMultiplier = 1;
                 WynnExtrasConfig.save();
@@ -1704,7 +1703,7 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
             invalidateHaveCountCache();
             return true;
         }
-        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (button != InputCompat.MOUSE_BUTTON_LEFT) {
             return false;
         }
 
@@ -1791,7 +1790,7 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
         return x >= panelX && y >= panelY && x < panelX + panelW && y < panelY + panelH;
     }
 
-    private boolean updateScreenTransitionState(HandledScreen<?> screen, long nowMs) {
+    private boolean updateScreenTransitionState(AbstractContainerScreen<?> screen, long nowMs) {
         String nextKey = screenTransitionKey(screen, screenContext);
         if (!Objects.equals(currentScreenTransitionKey, nextKey)) {
             currentScreenTransitionKey = nextKey;
@@ -1815,14 +1814,14 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
                 + "|" + nullToEmpty(title);
     }
 
-    private static String screenTransitionKey(HandledScreen<?> screen, ShoppingListScreenContext context) {
+    private static String screenTransitionKey(AbstractContainerScreen<?> screen, ShoppingListScreenContext context) {
         String screenClass = screen == null ? "" : screen.getClass().getName();
         String title = screen == null || screen.getTitle() == null ? "" : screen.getTitle().getString();
         String handlerClass = "";
         int syncId = -1;
-        if (screen != null && screen.getScreenHandler() != null) {
-            handlerClass = screen.getScreenHandler().getClass().getName();
-            syncId = screen.getScreenHandler().syncId;
+        if (screen != null && screen.getMenu() != null) {
+            handlerClass = screen.getMenu().getClass().getName();
+            syncId = screen.getMenu().containerId;
         }
         return screenTransitionKey(screenClass, handlerClass, syncId, title, context);
     }
@@ -1974,13 +1973,13 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
     }
 
     private String trimToWidth(String text, int maxWidth, float textScale) {
-        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
+        Font textRenderer = Minecraft.getInstance().font;
         int logicalMaxWidth = Math.max(0, (int) (maxWidth / Math.max(0.01f, textScale)));
-        if (textRenderer.getWidth(text) <= logicalMaxWidth) return text;
+        if (textRenderer.width(text) <= logicalMaxWidth) return text;
         String suffix = "...";
-        int suffixWidth = textRenderer.getWidth(suffix);
-        if (logicalMaxWidth <= suffixWidth) return textRenderer.trimToWidth(text, logicalMaxWidth);
-        return textRenderer.trimToWidth(text, logicalMaxWidth - suffixWidth) + suffix;
+        int suffixWidth = textRenderer.width(suffix);
+        if (logicalMaxWidth <= suffixWidth) return textRenderer.plainSubstrByWidth(text, logicalMaxWidth);
+        return textRenderer.plainSubstrByWidth(text, logicalMaxWidth - suffixWidth) + suffix;
     }
 
     public record PositionState(boolean customPosition, int x, int y) {}
@@ -2069,7 +2068,7 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawVanillaPanelButton(x, y, width, height, BUTTON_NINE_SLICE_SCALE, BUTTON_CORNER_SIZE, hovered);
             String label = labelSupplier == null ? "" : labelSupplier.get();
             ui.drawCenteredText(label, x + width / 2f, y + height / 2f, CustomColor.fromHexString("FFFFFF"), 1f);
@@ -2077,7 +2076,7 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
 
         @Override
         protected boolean onClick(int button) {
-            if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
+            if (button != InputCompat.MOUSE_BUTTON_LEFT) return false;
             playButtonClickSound();
             action.run();
             return true;
@@ -2085,8 +2084,8 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
 
         @Override
         protected boolean onKeyPressed(int keyCode, int scanCode, int modifiers) {
-            if (!focused || (keyCode != GLFW.GLFW_KEY_ENTER && keyCode != GLFW.GLFW_KEY_KP_ENTER
-                    && keyCode != GLFW.GLFW_KEY_SPACE)) return false;
+            if (!focused || (keyCode != InputCompat.KEY_ENTER && keyCode != InputCompat.KEY_KP_ENTER
+                    && keyCode != InputCompat.KEY_SPACE)) return false;
             playButtonClickSound();
             action.run();
             return true;
@@ -2100,7 +2099,7 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
 
     private final class OutputButton extends Widget implements TooltipWidget {
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawVanillaPanelButton(x, y, width, height, BUTTON_NINE_SLICE_SCALE, BUTTON_CORNER_SIZE, hovered);
             ui.drawCenteredText(outputButtonLabel(), x + width / 2f, y + height / 2f,
                     CustomColor.fromHexString("FFFFFF"), 1);
@@ -2121,14 +2120,14 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
 
     private final class HeaderCloseButton extends Widget implements TooltipWidget {
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawVanillaPanelButton(x, y, width, height, BUTTON_NINE_SLICE_SCALE, BUTTON_CORNER_SIZE, hovered);
             ui.drawCenteredText("X", x + width / 2f, y + height / 2f, CustomColor.fromHexString("FFFFFF"), 0.75f);
         }
 
         @Override
         protected boolean onClick(int button) {
-            if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
+            if (button != InputCompat.MOUSE_BUTTON_LEFT) return false;
             playButtonClickSound();
             closeEditor();
             ShoppingListMenuExtension.close();
@@ -2138,11 +2137,11 @@ public class ShoppingListMenuExtension extends WEMenuExtension {
         @Override
         public String tooltipText() {
             int key = WynnExtrasConfig.INSTANCE.shoppingListToggleKey;
-            String keyName = key == GLFW.GLFW_KEY_UNKNOWN
+            String keyName = key == InputCompat.KEY_UNKNOWN
                     ? "NOT BOUND"
-                    : InputUtil.Type.KEYSYM.createFromCode(key).getLocalizedText().getString();
+                    : InputConstants.Type.KEYBOARD.getOrCreate(julianh06.wynnextras.compat.client.InputCompat.nativeKey(key)).getDisplayName().getString();
             String tooltip = CLOSE_TOOLTIP + "\n" + CLOSE_KEYBIND_TOOLTIP.formatted(keyName);
-            return key == GLFW.GLFW_KEY_UNKNOWN
+            return key == InputCompat.KEY_UNKNOWN
                     ? tooltip + "\n" + CLOSE_KEYBIND_CONFIG_TOOLTIP
                     : tooltip;
         }

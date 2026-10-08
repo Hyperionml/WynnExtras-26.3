@@ -1,8 +1,7 @@
 package julianh06.wynnextras.utils;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -23,8 +22,8 @@ public final class TickScheduler {
         ClientTickEvents.END_CLIENT_TICK.register(TickScheduler::tick);
     }
 
-    private static void tick(MinecraftClient client) {
-        if (client == null || client.world == null) return;
+    private static void tick(Minecraft client) {
+        if (client == null || client.level == null) return;
 
         for (Task task : TASKS.values()) {
             if (task.tick()) {

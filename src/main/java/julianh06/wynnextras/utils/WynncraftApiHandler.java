@@ -17,11 +17,15 @@ import julianh06.wynnextras.core.command.Command;
 import julianh06.wynnextras.features.aspects.LocalAspectStorage;
 import julianh06.wynnextras.features.guildviewer.data.GuildData;
 import julianh06.wynnextras.features.profileviewer.data.*;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
-import net.minecraft.text.*;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Pair;
-
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.resources.Identifier;
+import net.minecraft.network.chat.*;
+import julianh06.wynnextras.compat.client.Tuple;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -306,24 +310,24 @@ public class WynncraftApiHandler {
                 String key = StringArgumentType.getString(context, "key");
                 if(key.equals("clear")) {
                     WynncraftAuthManager.clearApiKey();
-                    MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.of("You have successfully cleared your api key.")));
+                    MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty("You have successfully cleared your api key.")));
                     return 1;
                 }
 
                 WynncraftAuthManager.setApiKey(key);
-                MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.of("You have successfully set your api key." +
+                MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty("You have successfully set your api key." +
                         " It has been saved in your config. Don't share it publicly.")));
                 return 1;
             },
             null,
-            List.of(ClientCommandManager.argument("key", StringArgumentType.word()))
+            List.of(ClientCommands.argument("key", StringArgumentType.word()))
     );
 
     private static Command apiKeyCmdNoArgs = new Command(
             "apikey",
             "",
             context -> {
-                MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.of("""
+                MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty("""
                         You can use either OAuth or an api key to authorize. OAuth is easier to setup but an api key
                         might give you more access (like for the semi-private stats of friends or guild members)
                         You can add an API key like this: "/WynnExtras apikey <your key>".
@@ -347,7 +351,7 @@ public class WynncraftApiHandler {
     public static CompletableFuture<String> fetchUUID(String playerName) {
         if (MinecraftUtils.player() != null
                 && playerName.equalsIgnoreCase(MinecraftUtils.player().getGameProfile().name())) {
-            return CompletableFuture.completedFuture(MinecraftUtils.player().getUuidAsString().replace("-", ""));
+            return CompletableFuture.completedFuture(MinecraftUtils.player().getStringUUID().replace("-", ""));
         }
 
         HttpRequest request = HttpRequest.newBuilder()
@@ -363,14 +367,14 @@ public class WynncraftApiHandler {
                     if (status == 429) {
                         if (BackendErrorLogger.error("mojang-profile-api", "Mojang API rate limit reached")) {
                             MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(
-                                    Text.of("§cMojang API rate limit reached. Please wait a moment.")));
+                                    Component.nullToEmpty("§cMojang API rate limit reached. Please wait a moment.")));
                         }
                         return null;
                     }
                     if (status != 200) {
                         if (BackendErrorLogger.error("mojang-profile-api", "Mojang API error: " + status)) {
                             MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(
-                                    Text.of("§cMojang API error (" + status + "). Please try again.")));
+                                    Component.nullToEmpty("§cMojang API error (" + status + "). Please try again.")));
                         }
                         return null;
                     }
@@ -559,7 +563,7 @@ public class WynncraftApiHandler {
         return fetchUUID(playerName).thenCompose(rawUUID -> {
             if (rawUUID == null) {
                 if (verbose) {
-                    MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.of("§cPlayername is incorrect or unknown.")));
+                    MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty("§cPlayername is incorrect or unknown.")));
                 }
                 return CompletableFuture.completedFuture(null);
             }
@@ -732,7 +736,7 @@ public class WynncraftApiHandler {
 
     public static CompletableFuture<FetchResult> fetchPlayerAspectData(String playerUUID) {
         if (playerUUID == null) {
-            MinecraftUtils.sendMessageToClient(Text.of("§cUUID is null!"));
+            MinecraftUtils.sendMessageToClient(Component.nullToEmpty("§cUUID is null!"));
             return CompletableFuture.completedFuture(null);
         }
 
@@ -803,7 +807,7 @@ public class WynncraftApiHandler {
 
     private static FetchResult loadLocalAspectData(String playerUUID) {
         if (MinecraftUtils.player() == null
-                || !MinecraftUtils.player().getUuidAsString().equalsIgnoreCase(playerUUID)) {
+                || !MinecraftUtils.player().getStringUUID().equalsIgnoreCase(playerUUID)) {
             return null;
         }
 
@@ -836,7 +840,7 @@ public class WynncraftApiHandler {
         return localFallback != null ? localFallback : new FetchResult(remoteStatus, null);
     }
 
-    public static void processAspects(Map<String, Pair<String, String>> map) {
+    public static void processAspects(Map<String, Tuple<String, String>> map) {
         if (MinecraftUtils.player() == null) {
             WynnExtras.LOGGER.error("Cannot upload aspects - player not loaded");
             return;
@@ -869,7 +873,7 @@ public class WynncraftApiHandler {
                 int skippedCount = 0;
                 for (String entry : map.keySet()) {
                     try {
-                        Pair<String, String> aspectData = map.get(entry);
+                        Tuple<String, String> aspectData = map.get(entry);
                         if (aspectData == null) {
                             WynnExtras.LOGGER.error("DEBUG: Null aspect data for: " + entry);
                             skippedCount++;
@@ -879,7 +883,7 @@ public class WynncraftApiHandler {
                         int amount = parseAspectAmount(aspectData);
                         JsonObject aspectJson = new JsonObject();
                         aspectJson.addProperty("name", entry);
-                        aspectJson.addProperty("rarity", aspectData.getRight());
+                        aspectJson.addProperty("rarity", aspectData.getB());
                         aspectJson.addProperty("amount", amount);
                         aspectsArray.add(aspectJson);
                         processedCount++;
@@ -1012,9 +1016,9 @@ public class WynncraftApiHandler {
                 });
     }
 
-    public static int parseAspectAmount(Pair<String, String> aspect) {
-        String tierText = aspect.getLeft();
-        String rarity = aspect.getRight();
+    public static int parseAspectAmount(Tuple<String, String> aspect) {
+        String tierText = aspect.getA();
+        String rarity = aspect.getB();
 
         int[] tier1 = {1, 1, 1};
         int[] tier2 = {4, 14, 4};
@@ -1415,7 +1419,7 @@ public class WynncraftApiHandler {
         WynncraftAuthManager.save();
     }
 
-    public static List<Text> parseStyledHtml(List<String> htmlLines) {
+    public static List<Component> parseStyledHtml(List<String> htmlLines) {
         return htmlLines.stream()
                 .map(line -> parseSpan(line, Style.EMPTY))
                 .collect(Collectors.toList());
@@ -1427,8 +1431,8 @@ public class WynncraftApiHandler {
     }
 
 
-    private static Text parseSpan(String html, Style inheritedStyle) {
-        MutableText result = null;
+    private static Component parseSpan(String html, Style inheritedStyle) {
+        MutableComponent result = null;
 
         int index = 0;
         while (index < html.length()) {
@@ -1436,7 +1440,7 @@ public class WynncraftApiHandler {
             if (spanStart == -1) {
                 String remaining = stripHtml(html.substring(index));
                 if (!remaining.isEmpty()) {
-                    MutableText piece = Text.literal(remaining).setStyle(inheritedStyle);
+                    MutableComponent piece = Component.literal(remaining).setStyle(inheritedStyle);
                     result = (result == null) ? piece : result.append(piece);
                 }
                 break;
@@ -1444,7 +1448,7 @@ public class WynncraftApiHandler {
 
             String before = stripHtml(html.substring(index, spanStart));
             if (!before.isEmpty()) {
-                MutableText piece = Text.literal(before).setStyle(inheritedStyle);
+                MutableComponent piece = Component.literal(before).setStyle(inheritedStyle);
                 result = (result == null) ? piece : result.append(piece);
             }
 
@@ -1479,20 +1483,20 @@ public class WynncraftApiHandler {
 
             if (classAttr != null && !classAttr.isEmpty()) {
                 if (classAttr.contains("font-common")) {
-                    newStyle = newStyle.withFont(new StyleSpriteSource.Font(Identifier.of("minecraft", "common")));
+                    newStyle = newStyle.withFont(new FontDescription.Resource(Identifier.fromNamespaceAndPath("minecraft", "common")));
                 } else if (classAttr.contains("font-ascii")) {
-                    newStyle = newStyle.withFont(new StyleSpriteSource.Font(Identifier.of("minecraft", "default")));
+                    newStyle = newStyle.withFont(new FontDescription.Resource(Identifier.fromNamespaceAndPath("minecraft", "default")));
                 }
             }
 
-            Text parsedInner = parseSpan(inner, newStyle);
-            MutableText piece = parsedInner instanceof MutableText ? (MutableText) parsedInner : Text.literal(parsedInner.getString()).setStyle(newStyle);
+            Component parsedInner = parseSpan(inner, newStyle);
+            MutableComponent piece = parsedInner instanceof MutableComponent ? (MutableComponent) parsedInner : Component.literal(parsedInner.getString()).setStyle(newStyle);
             result = (result == null) ? piece : result.append(piece);
 
             index = spanEnd + "</span>".length();
         }
 
-        return (result == null) ? Text.empty() : result;
+        return (result == null) ? Component.empty() : result;
     }
 
     public static String stripHtml(String input) {

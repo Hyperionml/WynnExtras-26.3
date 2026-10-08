@@ -1,9 +1,8 @@
 package julianh06.wynnextras.utils;
 
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.item.ItemStack;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.world.item.ItemStack;
 import java.lang.reflect.Method;
 
 public final class WynnModItemOverlayBridge {
@@ -15,15 +14,15 @@ public final class WynnModItemOverlayBridge {
 
     private WynnModItemOverlayBridge() {}
 
-    public static void renderPre(DrawContext context, ItemStack stack, int x, int y) {
+    public static void renderPre(GuiGraphicsExtractor context, ItemStack stack, int x, int y) {
         render(context, stack, x, y, renderItemPreMethod);
     }
 
-    public static void renderPost(DrawContext context, ItemStack stack, int x, int y) {
+    public static void renderPost(GuiGraphicsExtractor context, ItemStack stack, int x, int y) {
         render(context, stack, x, y, renderItemPostMethod);
     }
 
-    private static void render(DrawContext context, ItemStack stack, int x, int y, Method method) {
+    private static void render(GuiGraphicsExtractor context, ItemStack stack, int x, int y, Method method) {
         if (context == null || stack == null || stack.isEmpty()) return;
         if (!ensureInitialized() || method == null || itemOverlayFeature == null) return;
 
@@ -47,8 +46,8 @@ public final class WynnModItemOverlayBridge {
             Class<?> itemOverlayFeatureClass = Class.forName("com.wynnmod.feature.item.ItemOverlayFeature");
 
             Method getFeatureInstanceMethod = featureClass.getMethod("getInstance", Class.class);
-            renderItemPreMethod = itemOverlayFeatureClass.getDeclaredMethod("onRenderItemPre", DrawContext.class, ItemStack.class, int.class, int.class, boolean.class);
-            renderItemPostMethod = itemOverlayFeatureClass.getDeclaredMethod("onRenderItemPost", DrawContext.class, ItemStack.class, int.class, int.class, boolean.class);
+            renderItemPreMethod = itemOverlayFeatureClass.getDeclaredMethod("onRenderItemPre", GuiGraphicsExtractor.class, ItemStack.class, int.class, int.class, boolean.class);
+            renderItemPostMethod = itemOverlayFeatureClass.getDeclaredMethod("onRenderItemPost", GuiGraphicsExtractor.class, ItemStack.class, int.class, int.class, boolean.class);
             renderItemPreMethod.setAccessible(true);
             renderItemPostMethod.setAccessible(true);
             itemOverlayFeature = getFeatureInstanceMethod.invoke(null, itemOverlayFeatureClass);

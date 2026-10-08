@@ -25,15 +25,13 @@ import julianh06.wynnextras.features.misc.ProfessionOverlay;
 import julianh06.wynnextras.features.misc.SlotNumberDebugger;
 import julianh06.wynnextras.features.tetris.TetrisScreen;
 import julianh06.wynnextras.utils.UI.WEScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.sound.SoundEvents;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.sounds.SoundEvents;
 import java.util.*;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -42,7 +40,7 @@ public class CommandLoader implements WELoader {
     private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor();
     private static final Command HUD_EDIT_COMMAND = new Command(
             "gui", "", ctx -> {
-                MinecraftClient.getInstance().send(() -> MinecraftClient.getInstance().setScreen(new HudEditScreen()));
+                Minecraft.getInstance().schedule(() -> Minecraft.getInstance().gui.setScreen(new HudEditScreen()));
                 return 1;
             }, List.of("hud")
     );
@@ -52,25 +50,25 @@ public class CommandLoader implements WELoader {
 
             new CommandRegistrationEvent().post();
 
-            LiteralArgumentBuilder<FabricClientCommandSource> base = ClientCommandManager.literal("WynnExtras");
-            LiteralArgumentBuilder<FabricClientCommandSource> baseLowerCase = ClientCommandManager.literal("wynnextras");
-            LiteralArgumentBuilder<FabricClientCommandSource> alias = ClientCommandManager.literal("we");
+            LiteralArgumentBuilder<FabricClientCommandSource> base = ClientCommands.literal("WynnExtras");
+            LiteralArgumentBuilder<FabricClientCommandSource> baseLowerCase = ClientCommands.literal("wynnextras");
+            LiteralArgumentBuilder<FabricClientCommandSource> alias = ClientCommands.literal("we");
 
             base.executes(commandContext -> {
                 Screen configScreen = WynnExtrasConfig.createConfigScreen(null);
-                MinecraftClient.getInstance().send(() -> MinecraftClient.getInstance().setScreen(configScreen));
+                Minecraft.getInstance().schedule(() -> Minecraft.getInstance().gui.setScreen(configScreen));
                 return 1;
             });
 
             baseLowerCase.executes(commandContext -> {
                 Screen configScreen = WynnExtrasConfig.createConfigScreen(null);
-                MinecraftClient.getInstance().send(() -> MinecraftClient.getInstance().setScreen(configScreen));
+                Minecraft.getInstance().schedule(() -> Minecraft.getInstance().gui.setScreen(configScreen));
                 return 1;
             });
 
             alias.executes(commandContext -> {
                 Screen configScreen = WynnExtrasConfig.createConfigScreen(null);
-                MinecraftClient.getInstance().send(() -> MinecraftClient.getInstance().setScreen(configScreen));
+                Minecraft.getInstance().schedule(() -> Minecraft.getInstance().gui.setScreen(configScreen));
                 return 1;
             });
 
@@ -80,12 +78,12 @@ public class CommandLoader implements WELoader {
                 addCommandTrees(alias, cmd);
             }
 
-            var bombshare = ClientCommandManager.literal("bombshare")
+            var bombshare = ClientCommands.literal("bombshare")
                     .executes(ctx -> {
                         executeBombshare("g", null);
                         return 1;
                     })
-                    .then(ClientCommandManager.argument("channel", StringArgumentType.word())
+                    .then(ClientCommands.argument("channel", StringArgumentType.word())
                             .suggests((ctx, builder) -> {
                                 builder.suggest("all");
                                 builder.suggest("guild");
@@ -115,7 +113,7 @@ public class CommandLoader implements WELoader {
                                 }
                                 return 1;
                             })
-                            .then(ClientCommandManager.argument("filter", StringArgumentType.word())
+                            .then(ClientCommands.argument("filter", StringArgumentType.word())
                                     .suggests((ctx, builder) -> {
                                         builder.suggest("all");
                                         builder.suggest("prof");
@@ -147,7 +145,7 @@ public class CommandLoader implements WELoader {
             base = base.then(bombshare);
             alias = alias.then(bombshare);
 
-            var hide = ClientCommandManager.literal("hide")
+            var hide = ClientCommands.literal("hide")
                     .executes(ctx -> {
                         WynnExtrasConfig.INSTANCE.playerHiderToggle = !WynnExtrasConfig.INSTANCE.playerHiderToggle;
                         MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(
@@ -155,7 +153,7 @@ public class CommandLoader implements WELoader {
                         WynnExtrasConfig.save();
                         return 1;
                     })
-                    .then(ClientCommandManager.literal("war").executes(ctx -> {
+                    .then(ClientCommands.literal("war").executes(ctx -> {
                         WynnExtrasConfig.INSTANCE.hideAllPlayersInWar = !WynnExtrasConfig.INSTANCE.hideAllPlayersInWar;
                         MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(
                                 WynnExtrasConfig.INSTANCE.hideAllPlayersInWar
@@ -164,7 +162,7 @@ public class CommandLoader implements WELoader {
                         WynnExtrasConfig.save();
                         return 1;
                     }))
-                    .then(ClientCommandManager.literal("all").executes(ctx -> {
+                    .then(ClientCommands.literal("all").executes(ctx -> {
                         WynnExtrasConfig.INSTANCE.hideAllPlayers = !WynnExtrasConfig.INSTANCE.hideAllPlayers;
                         MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(
                                 WynnExtrasConfig.INSTANCE.hideAllPlayers
@@ -176,7 +174,7 @@ public class CommandLoader implements WELoader {
             base = base.then(hide);
             alias = alias.then(hide);
 
-//            var changelog = ClientCommandManager.literal("changelog").executes(ctx -> {
+//            var changelog = ClientCommands.literal("changelog").executes(ctx -> {
 //                MinecraftClient.getInstance().send(() ->
 //                        MinecraftClient.getInstance().setScreen(new julianh06.wynnextras.config.ChangelogScreen()));
 //                return 1;
@@ -184,7 +182,7 @@ public class CommandLoader implements WELoader {
 //            base = base.then(changelog);
 //            alias = alias.then(changelog);
 
-            var ignorelist = ClientCommandManager.literal("ignorelist").executes(ctx -> {
+            var ignorelist = ClientCommands.literal("ignorelist").executes(ctx -> {
                 Set<String> ignored = julianh06.wynnextras.features.raid.PartyIgnoreOnRaid.getTrackedIgnored();
                 if (ignored.isEmpty()) {
                     MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix("§7No players tracked as ignored yet. Run /ignore add <player> and the list will populate."));
@@ -203,13 +201,13 @@ public class CommandLoader implements WELoader {
             dispatcher.register(ChatCommands.registerAlias());
 
             dispatcher.register(
-                    ClientCommandManager.literal("pv")
+                    ClientCommands.literal("pv")
                             .executes(ctx -> {
                                 PV.open(MinecraftUtils.playerName());
                                 return 1;
                             })
                             .then(
-                                    ClientCommandManager.argument("player", StringArgumentType.word())
+                                    ClientCommands.argument("player", StringArgumentType.word())
                                             .executes(ctx -> {
                                                 String arg = StringArgumentType.getString(ctx, "player");
                                                 PV.open(arg);
@@ -219,27 +217,27 @@ public class CommandLoader implements WELoader {
             );
 
 //            dispatcher.register(
-//                    ClientCommandManager.literal("ri")
+//                    ClientCommands.literal("ri")
 //                            .executes(ctx -> { sendRaidInfo(MinecraftUtils.playerName()); return 1; })
-//                            .then(ClientCommandManager.argument("player", StringArgumentType.word())
+//                            .then(ClientCommands.argument("player", StringArgumentType.word())
 //                                    .executes(ctx -> { sendRaidInfo(StringArgumentType.getString(ctx, "player")); return 1; }))
 //            );
 //
 //            dispatcher.register(
-//                    ClientCommandManager.literal("stats")
+//                    ClientCommands.literal("stats")
 //                            .executes(ctx -> { sendStats(MinecraftUtils.playerName()); return 1; })
-//                            .then(ClientCommandManager.argument("player", StringArgumentType.word())
+//                            .then(ClientCommands.argument("player", StringArgumentType.word())
 //                                    .executes(ctx -> { sendStats(StringArgumentType.getString(ctx, "player")); return 1; }))
 //            );
 
             dispatcher.register(
-                    ClientCommandManager.literal("gv")
+                    ClientCommands.literal("gv")
                             .executes(ctx -> {
                                 GV.openOwnGuild();
                                 return 1;
                             })
                             .then(
-                                    ClientCommandManager.argument("prefix", StringArgumentType.word())
+                                    ClientCommands.argument("prefix", StringArgumentType.word())
                                             .executes(ctx -> {
                                                 String arg = StringArgumentType.getString(ctx, "prefix");
                                                 GV.open(arg);
@@ -249,12 +247,12 @@ public class CommandLoader implements WELoader {
             );
 
             dispatcher.register(
-                ClientCommandManager.literal("dwoc").executes(ctx -> {
+                ClientCommands.literal("dwoc").executes(ctx -> {
                     if (MinecraftUtils.player() == null) return 0;
-                    MinecraftUtils.player().networkHandler.sendChatCommand("emote explode");
+                    MinecraftUtils.player().connection.sendCommand("emote explode");
                     SCHEDULER.schedule(() -> {
-                        MinecraftClient.getInstance().execute(() -> {
-                            MinecraftUtils.playSoundUI(SoundEvents.ENTITY_GENERIC_EXPLODE.value());
+                        Minecraft.getInstance().execute(() -> {
+                            MinecraftUtils.playSoundUI(SoundEvents.GENERIC_EXPLODE.value());
                         });
                     }, 600, TimeUnit.MILLISECONDS);
                     return 1;
@@ -263,14 +261,14 @@ public class CommandLoader implements WELoader {
 
             // Raid Loot Tracker reset commands and debug commands - combined under single /we
             dispatcher.register(
-                    ClientCommandManager.literal("we")
-                            .then(ClientCommandManager.literal("raidloot")
-                                    .then(ClientCommandManager.literal("reset")
+                    ClientCommands.literal("we")
+                            .then(ClientCommands.literal("raidloot")
+                                    .then(ClientCommands.literal("reset")
                                             .executes(ctx -> {
                                                 MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix("§eUsage: /we raidloot reset <all|session|notg|nol|tcc|tna>"));
                                                 return 1;
                                             })
-                                            .then(ClientCommandManager.literal("all")
+                                            .then(ClientCommands.literal("all")
                                                     .executes(ctx -> {
                                                         RaidLootConfig.INSTANCE.data.resetAll();
                                                         RaidLootConfig.INSTANCE.save();
@@ -278,14 +276,14 @@ public class CommandLoader implements WELoader {
                                                         MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix("§aReset all raid loot data!"));
                                                         return 1;
                                                     }))
-                                            .then(ClientCommandManager.literal("session")
+                                            .then(ClientCommands.literal("session")
                                                     .executes(ctx -> {
                                                         RaidLootConfig.INSTANCE.data.resetSession();
                                                         RaidLootTrackerOverlay.refreshData();
                                                         MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix("§aReset session raid loot data!"));
                                                         return 1;
                                                     }))
-                                            .then(ClientCommandManager.literal("notg")
+                                            .then(ClientCommands.literal("notg")
                                                     .executes(ctx -> {
                                                         RaidLootConfig.INSTANCE.data.resetRaid("NOTG");
                                                         RaidLootConfig.INSTANCE.save();
@@ -293,7 +291,7 @@ public class CommandLoader implements WELoader {
                                                         MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix("§aReset NOTG raid loot data!"));
                                                         return 1;
                                                     }))
-                                            .then(ClientCommandManager.literal("nol")
+                                            .then(ClientCommands.literal("nol")
                                                     .executes(ctx -> {
                                                         RaidLootConfig.INSTANCE.data.resetRaid("NOL");
                                                         RaidLootConfig.INSTANCE.save();
@@ -301,7 +299,7 @@ public class CommandLoader implements WELoader {
                                                         MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix("§aReset NOL raid loot data!"));
                                                         return 1;
                                                     }))
-                                            .then(ClientCommandManager.literal("tcc")
+                                            .then(ClientCommands.literal("tcc")
                                                     .executes(ctx -> {
                                                         RaidLootConfig.INSTANCE.data.resetRaid("TCC");
                                                         RaidLootConfig.INSTANCE.save();
@@ -309,7 +307,7 @@ public class CommandLoader implements WELoader {
                                                         MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix("§aReset TCC raid loot data!"));
                                                         return 1;
                                                     }))
-                                            .then(ClientCommandManager.literal("tna")
+                                            .then(ClientCommands.literal("tna")
                                                     .executes(ctx -> {
                                                         RaidLootConfig.INSTANCE.data.resetRaid("TNA");
                                                         RaidLootConfig.INSTANCE.save();
@@ -319,41 +317,41 @@ public class CommandLoader implements WELoader {
                                                     }))
                                     )
                             )
-                            .then(ClientCommandManager.literal("tetris")
+                            .then(ClientCommands.literal("tetris")
                                     .executes(ctx -> {
                                         TetrisScreen.open();
                                         return 1;
                                     })
                             )
-                            .then(ClientCommandManager.literal("debug")
-                                    .then(ClientCommandManager.literal("slot")
+                            .then(ClientCommands.literal("debug")
+                                    .then(ClientCommands.literal("slot")
                                             .executes(ctx -> {
                                                 SlotNumberDebugger.toggle();
                                                 return 1;
                                             })
                                     )
-                                    .then(ClientCommandManager.literal("screen")
+                                    .then(ClientCommands.literal("screen")
                                             .executes(ctx -> {
                                                 ScreenTitleDebugger.toggleDebug();
                                                 return 1;
                                             })
                                     )
                             )
-                            .then(ClientCommandManager.literal("prof")
+                            .then(ClientCommands.literal("prof")
                                     .executes(ctx -> {
                                         WEScreen.open(ProfessionCalculatorScreen::new);
                                         return 1;
                                     })
                             )
-                            .then(ClientCommandManager.literal("profession")
-                                    .then(ClientCommandManager.literal("reload")
+                            .then(ClientCommands.literal("profession")
+                                    .then(ClientCommands.literal("reload")
                                             .executes(ctx -> {
                                                 ProfessionOverlay.reload();
                                                 MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix("§aProfession overlay reloaded! Session XP reset, re-fetching data..."));
                                                 return 1;
                                             })
                                     )
-                                    .then(ClientCommandManager.literal("exact")
+                                    .then(ClientCommands.literal("exact")
                                             .executes(ctx -> {
                                                 WynnExtrasConfig.INSTANCE.professionOverlayExactXp = !WynnExtrasConfig.INSTANCE.professionOverlayExactXp;
                                                 WynnExtrasConfig.save();
@@ -362,13 +360,13 @@ public class CommandLoader implements WELoader {
                                                 return 1;
                                             })
                                     )
-                                    .then(ClientCommandManager.literal("set")
+                                    .then(ClientCommands.literal("set")
                                             .executes(ctx -> {
                                                 MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix("§eUsage: /we profession set <profession> <amount>"));
                                                 return 1;
                                             })
-                                            .then(ClientCommandManager.argument("profession", StringArgumentType.word())
-                                                    .then(ClientCommandManager.argument("amount", FloatArgumentType.floatArg(0))
+                                            .then(ClientCommands.argument("profession", StringArgumentType.word())
+                                                    .then(ClientCommands.argument("amount", FloatArgumentType.floatArg(0))
                                                             .executes(ctx -> {
                                                                 String profName = StringArgumentType.getString(ctx, "profession");
                                                                 float amount = FloatArgumentType.getFloat(ctx, "amount");
@@ -390,12 +388,12 @@ public class CommandLoader implements WELoader {
                                                     )
                                             )
                                     )
-                                    .then(ClientCommandManager.literal("goal")
+                                    .then(ClientCommands.literal("goal")
                                             .executes(ctx -> {
                                                 MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix("§eUsage: /we profession goal <profession> <amount|clear>"));
                                                 return 1;
                                             })
-                                            .then(ClientCommandManager.argument("goalProfession", StringArgumentType.word())
+                                            .then(ClientCommands.argument("goalProfession", StringArgumentType.word())
                                                     .executes(ctx -> {
                                                         String profName = StringArgumentType.getString(ctx, "goalProfession");
                                                         WEProfessionType prof = WEProfessionType.fromString(profName);
@@ -412,7 +410,7 @@ public class CommandLoader implements WELoader {
                                                         }
                                                         return 1;
                                                     })
-                                                    .then(ClientCommandManager.literal("clear")
+                                                    .then(ClientCommands.literal("clear")
                                                             .executes(ctx -> {
                                                                 String profName = StringArgumentType.getString(ctx, "goalProfession");
                                                                 WEProfessionType prof = WEProfessionType.fromString(profName);
@@ -430,7 +428,7 @@ public class CommandLoader implements WELoader {
                                                                 return 1;
                                                             })
                                                     )
-                                                    .then(ClientCommandManager.argument("goalAmount", FloatArgumentType.floatArg(1))
+                                                    .then(ClientCommands.argument("goalAmount", FloatArgumentType.floatArg(1))
                                                             .executes(ctx -> {
                                                                 String profName = StringArgumentType.getString(ctx, "goalProfession");
                                                                 float amount = FloatArgumentType.getFloat(ctx, "goalAmount");
@@ -465,7 +463,7 @@ public class CommandLoader implements WELoader {
     }
 
     private LiteralArgumentBuilder<FabricClientCommandSource> buildCommandTree(Command cmd, String name) {
-        LiteralArgumentBuilder<FabricClientCommandSource> root = ClientCommandManager.literal(name);
+        LiteralArgumentBuilder<FabricClientCommandSource> root = ClientCommands.literal(name);
 
         ArgumentBuilder<FabricClientCommandSource, ?> current = root;
 
@@ -524,18 +522,18 @@ public class CommandLoader implements WELoader {
         if (!canShareBombs()) return;
         String message = buildBombshare(filter);
         if (chatPrefix == null) MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(message));
-        else if (MinecraftUtils.player() != null) MinecraftUtils.player().networkHandler.sendChatCommand(chatPrefix + " " + message);
+        else if (MinecraftUtils.player() != null) MinecraftUtils.player().connection.sendCommand(chatPrefix + " " + message);
     }
 
     private static void executeBombshareAll(Set<String> filter) {
         if (canShareBombs() && MinecraftUtils.player() != null) {
-            MinecraftUtils.player().networkHandler.sendChatMessage(buildBombshare(filter));
+            MinecraftUtils.player().connection.sendChat(buildBombshare(filter));
         }
     }
 
     private static void copyBombshareToClipboard(Set<String> filter) {
         if (!canShareBombs()) return;
-        MinecraftClient.getInstance().keyboard.setClipboard(buildBombshare(filter));
+        Minecraft.getInstance().keyboardHandler.setClipboard(buildBombshare(filter));
         MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix("Copied bombshare to clipboard."));
     }
 

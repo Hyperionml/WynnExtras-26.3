@@ -13,9 +13,8 @@ import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.core.command.Command;
 import julianh06.wynnextras.core.command.SubCommand;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Reader;
@@ -98,7 +97,7 @@ public class WynncraftAuthManager {
             "",
             context -> {
                 clearOAuth();
-                sendPrefixedMessage(Text.of("OAuth2 authorization cleared."));
+                sendPrefixedMessage(Component.nullToEmpty("OAuth2 authorization cleared."));
                 return 1;
             },
             null,
@@ -109,7 +108,7 @@ public class WynncraftAuthManager {
             "oauth",
             "",
             context -> {
-                sendPrefixedMessage(Text.of("""
+                sendPrefixedMessage(Component.nullToEmpty("""
                         You can use either OAuth or an api key to authorize. OAuth is easier to setup but an api key
                         might give you more access (like for the stats of friends or guild members)
                         Wynncraft OAuth2 commands:
@@ -223,7 +222,7 @@ public class WynncraftAuthManager {
         authData.oauthProfiles = null;
         save();
 
-        sendPrefixedMessage(Text.of("§cWynncraft OAuth2 authorization expired or was revoked. Run /we oauth login to reconnect."));
+        sendPrefixedMessage(Component.nullToEmpty("§cWynncraft OAuth2 authorization expired or was revoked. Run /we oauth login to reconnect."));
     }
 
     public static CompletableFuture<HttpResponse<String>> sendWynncraftRequest(HttpRequest request) {
@@ -250,7 +249,7 @@ public class WynncraftAuthManager {
     private static void startOAuthLogin() {
         String clientId = getOAuthClientId();
         if (clientId == null) {
-            sendPrefixedMessage(Text.of("§cWynncraft OAuth2 client id is not configured."));
+            sendPrefixedMessage(Component.nullToEmpty("§cWynncraft OAuth2 client id is not configured."));
             return;
         }
 
@@ -279,10 +278,10 @@ public class WynncraftAuthManager {
                 }
             });
 
-            sendPrefixedMessage(Text.of("Opened Wynncraft OAuth2 authorization in your browser."));
+            sendPrefixedMessage(Component.nullToEmpty("Opened Wynncraft OAuth2 authorization in your browser."));
         } catch (Exception e) {
             WynnExtras.LOGGER.error("[WynnExtras] Failed to start OAuth2 login", e);
-            sendPrefixedMessage(Text.of("§cFailed to start OAuth2 login. Check the log for details."));
+            sendPrefixedMessage(Component.nullToEmpty("§cFailed to start OAuth2 login. Check the log for details."));
         }
     }
 
@@ -307,13 +306,13 @@ public class WynncraftAuthManager {
 
         if (login == null || !login.state.equals(state)) {
             writeCallbackResponse(exchange, "WynnExtras OAuth2 login failed: invalid state. You can close this tab.");
-            sendPrefixedMessage(Text.of("§cOAuth2 login failed: invalid state."));
+            sendPrefixedMessage(Component.nullToEmpty("§cOAuth2 login failed: invalid state."));
             return;
         }
 
         if (error != null) {
             writeCallbackResponse(exchange, "WynnExtras OAuth2 login failed: " + error + ". You can close this tab.");
-            sendPrefixedMessage(Text.of("§cOAuth2 login failed: " + error + (errorDescription == null ? "" : " - " + errorDescription)));
+            sendPrefixedMessage(Component.nullToEmpty("§cOAuth2 login failed: " + error + (errorDescription == null ? "" : " - " + errorDescription)));
             login.close();
             pendingLogin = null;
             return;
@@ -321,7 +320,7 @@ public class WynncraftAuthManager {
 
         if (code == null || code.isBlank()) {
             writeCallbackResponse(exchange, "WynnExtras OAuth2 login failed: no code was returned. You can close this tab.");
-            sendPrefixedMessage(Text.of("§cOAuth2 login failed: no code returned."));
+            sendPrefixedMessage(Component.nullToEmpty("§cOAuth2 login failed: no code returned."));
             return;
         }
 
@@ -331,12 +330,12 @@ public class WynncraftAuthManager {
                 .thenCompose(success -> success ? fetchOAuthMe() : CompletableFuture.completedFuture(false))
                 .thenAccept(success -> {
                     if (success) {
-                        sendPrefixedMessage(Text.of("§aWynncraft OAuth2 authorization saved."));
+                        sendPrefixedMessage(Component.nullToEmpty("§aWynncraft OAuth2 authorization saved."));
                     }
                 })
                 .exceptionally(ex -> {
                     WynnExtras.LOGGER.error("[WynnExtras] OAuth2 login failed", ex);
-                    sendPrefixedMessage(Text.of("§cOAuth2 login failed. Check the log for details."));
+                    sendPrefixedMessage(Component.nullToEmpty("§cOAuth2 login failed. Check the log for details."));
                     return null;
                 });
 
@@ -369,9 +368,9 @@ public class WynncraftAuthManager {
                         WynnExtras.LOGGER.error("[WynnExtras] OAuth2 token exchange failed: " + response.statusCode() + " " + response.body());
                         String detail = parseOAuthErrorDetail(response.body());
                         if (detail.toLowerCase().contains("client secret")) {
-                            sendPrefixedMessage(Text.of("§cOAuth2 token exchange failed: the Wynncraft app is private. If you see this Julian probably fucked something up."));
+                            sendPrefixedMessage(Component.nullToEmpty("§cOAuth2 token exchange failed: the Wynncraft app is private. If you see this Julian probably fucked something up."));
                         } else {
-                            sendPrefixedMessage(Text.of("§cOAuth2 token exchange failed: " + response.statusCode() + (detail.isEmpty() ? "" : " - " + detail)));
+                            sendPrefixedMessage(Component.nullToEmpty("§cOAuth2 token exchange failed: " + response.statusCode() + (detail.isEmpty() ? "" : " - " + detail)));
                         }
                         return false;
                     }
@@ -455,7 +454,7 @@ public class WynncraftAuthManager {
         if (!hasOAuthToken()) {
             String apiKey = emptyToNull(WynncraftApiHandler.INSTANCE.API_KEY);
             if (apiKey == null) apiKey = emptyToNull(authData.apiKey);
-            sendPrefixedMessage(Text.of(
+            sendPrefixedMessage(Component.nullToEmpty(
                     apiKey == null
                             ? "No Wynncraft OAuth2 authorization or API key is set."
                             : "No OAuth2 authorization is set. Classic API key fallback is available."));
@@ -470,17 +469,17 @@ public class WynncraftAuthManager {
                     ? "none"
                     : String.join(", ", authData.oauthScopes);
 
-            sendPrefixedMessage(Text.of(
+            sendPrefixedMessage(Component.nullToEmpty(
                     (success ? "OAuth2 authorization is active." : "OAuth2 token is saved, but identity check failed.")
                             + "\nProfiles: " + profiles
                             + "\nScopes: " + scopes));
         });
     }
 
-    private static void sendPrefixedMessage(Text message) {
-        MinecraftClient client = MinecraftClient.getInstance();
+    private static void sendPrefixedMessage(Component message) {
+        Minecraft client = Minecraft.getInstance();
         Runnable send = () -> WynnExtras.sendMessageToClient(message);
-        if (client.isOnThread()) {
+        if (client.isSameThread()) {
             send.run();
         } else {
             client.execute(send);
@@ -498,7 +497,7 @@ public class WynncraftAuthManager {
     private static Path authPath() {
         return FabricLoader.getInstance()
                 .getConfigDir()
-                .resolve("wynnextras/" + MinecraftUtils.player().getUuid() + "/apikeyDoNotShare.json");
+                .resolve("wynnextras/" + MinecraftUtils.player().getUUID() + "/apikeyDoNotShare.json");
     }
 
     private static String getOAuthClientId() {

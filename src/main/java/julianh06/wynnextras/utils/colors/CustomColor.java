@@ -1,8 +1,7 @@
 package julianh06.wynnextras.utils.colors;
 
-import net.minecraft.util.Formatting;
-
 import java.awt.Color;
+import net.minecraft.ChatFormatting;
 
 public record CustomColor(int r, int g, int b, int a) {
     public static final CustomColor NONE = new CustomColor(255, 255, 255, 255);
@@ -56,8 +55,8 @@ public record CustomColor(int r, int g, int b, int a) {
                 Math.clamp(normalizedBrightness, 0, 1))).withAlpha(alpha);
     }
 
-    public static CustomColor fromChatFormatting(Formatting formatting) {
-        Integer value = formatting == null ? null : formatting.getColorValue();
+    public static CustomColor fromChatFormatting(ChatFormatting formatting) {
+        Integer value = formatting == null ? null : julianh06.wynnextras.compat.client.FormattingCompat.color(formatting);
         return fromInt(value == null ? 0xFFFFFF : value);
     }
 

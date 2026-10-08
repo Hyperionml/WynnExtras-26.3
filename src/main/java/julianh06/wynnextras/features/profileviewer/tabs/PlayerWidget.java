@@ -2,22 +2,22 @@ package julianh06.wynnextras.features.profileviewer.tabs;
 
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.utils.render.RenderUtils;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
 import julianh06.wynnextras.features.profileviewer.PV;
 import julianh06.wynnextras.features.profileviewer.PVScreen;
 import julianh06.wynnextras.utils.UI.Widget;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 
 import static julianh06.wynnextras.features.profileviewer.PVScreen.*;
 
 public class PlayerWidget extends Widget {
-    static Identifier playerTabTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/playertab.png");
-    static Identifier longPlayerTabTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/playertab_long.png");
+    static Identifier playerTabTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/playertab.png");
+    static Identifier longPlayerTabTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/playertab_long.png");
 
-    static Identifier playerTabTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/playertab_dark.png");
-    static Identifier longPlayerTabTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/playertab_long_dark.png");
+    static Identifier playerTabTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/playertab_dark.png");
+    static Identifier longPlayerTabTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/playertab_long_dark.png");
 
     public int index;
     private final Runnable action;
@@ -31,7 +31,7 @@ public class PlayerWidget extends Widget {
         };
     }
 
-    public void draw(DrawContext ctx, int x, int y) {
+    public void draw(GuiGraphicsExtractor ctx, int x, int y) {
         //WynnExtras.LOGGER.info(hovered);
         if(this.ui == null) return;
         setBounds(x, y, 100, 80);
@@ -66,11 +66,11 @@ public class PlayerWidget extends Widget {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if(hovered) {
             int tx = (int)(mouseX * PVScreen.currentMatrixScale);
             int ty = (int)(mouseY * PVScreen.currentMatrixScale);
-            ctx.drawTooltip(MinecraftUtils.mc().textRenderer, Text.of(lastViewedPlayers.get(index)), tx, ty);
+            ctx.setTooltipForNextFrame(MinecraftUtils.mc().font, Component.nullToEmpty(lastViewedPlayers.get(index)), tx, ty);
         }
         //uses custom draw method which gets called in updatevalues to render over the background
     }

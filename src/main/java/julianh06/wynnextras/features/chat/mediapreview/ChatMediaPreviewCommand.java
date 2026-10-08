@@ -6,9 +6,8 @@ import julianh06.wynnextras.annotations.WEModule;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.core.command.Command;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
-import net.minecraft.text.Text;
-
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
+import net.minecraft.network.chat.Component;
 import java.util.List;
 
 @WEModule
@@ -37,16 +36,16 @@ public class ChatMediaPreviewCommand {
                 return 1;
             },
             null,
-            List.of(ClientCommandManager.argument("url", StringArgumentType.greedyString()))
+            List.of(ClientCommands.argument("url", StringArgumentType.greedyString()))
     );
 
     private static void sendTestLink(String label, String url) {
-        MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.of("§dMedia Preview Test §7(" + label + "): §f" + url)));
+        MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty("§dMedia Preview Test §7(" + label + "): §f" + url)));
     }
 
     private static void sendStatus() {
         if (WynnExtrasConfig.INSTANCE.chatMediaPreviewEnabled) return;
-        MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.of(
+        MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty(
                 "§eChat Media Preview is disabled. Enable it in /we config > Chat to hover these test links.")));
     }
 

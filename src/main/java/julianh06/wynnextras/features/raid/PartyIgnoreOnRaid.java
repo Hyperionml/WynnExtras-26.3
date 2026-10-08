@@ -8,7 +8,7 @@ import julianh06.wynnextras.event.ChatEvent;
 import julianh06.wynnextras.event.RaidEndedEvent;
 import julianh06.wynnextras.event.api.WEEventBus;
 import julianh06.wynnextras.utils.TickScheduler;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.LinkedHashSet;
@@ -59,7 +59,7 @@ public class PartyIgnoreOnRaid {
         }
         if (count > 0) {
             MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(
-                    Text.of("§7Auto-ignored " + count + " party " + (count == 1 ? "member" : "members") + " for this raid.")));
+                    Component.nullToEmpty("§7Auto-ignored " + count + " party " + (count == 1 ? "member" : "members") + " for this raid.")));
         }
     }
 
@@ -72,7 +72,7 @@ public class PartyIgnoreOnRaid {
         }
         autoIgnoredThisRaid.clear();
         MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(
-                Text.of("§7Un-ignored " + count + " party " + (count == 1 ? "member" : "members") + ".")));
+                Component.nullToEmpty("§7Un-ignored " + count + " party " + (count == 1 ? "member" : "members") + ".")));
     }
 
     @SubscribeEvent

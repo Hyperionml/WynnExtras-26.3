@@ -3,8 +3,8 @@ package julianh06.wynnextras.wynncraft.state;
 import julianh06.wynnextras.annotations.WEModule;
 import julianh06.wynnextras.event.TickEvent;
 import julianh06.wynnextras.utils.BossBarUtils;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.hud.ClientBossBar;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.LerpingBossEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.OptionalInt;
@@ -23,10 +23,10 @@ public final class AbilityState {
     @SubscribeEvent
     public void onTick(TickEvent event) {
         if (event.ticks % 2 != 0) return;
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client.player == null) return;
         int parsed = -1;
-        for (ClientBossBar bar : BossBarUtils.getBossBars(client.inGameHud.getBossBarHud())) {
+        for (LerpingBossEvent bar : BossBarUtils.getBossBars(client.gui.hud.getBossOverlay())) {
             Matcher matcher = BLOOD_POOL.matcher(bar.getName().getString().replaceAll("§[0-9a-fk-or]", ""));
             if (matcher.find()) {
                 parsed = Integer.parseInt(matcher.group(1));

@@ -8,8 +8,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -150,13 +149,13 @@ public class FavoriteAspectsData {
      * @return number of aspects imported
      */
     public int importFromWynntils() {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client == null || client.player == null) {
             return 0;
         }
 
         // UUID without dashes (how Wynntils stores it)
-        String uuid = client.player.getUuidAsString().replace("-", "");
+        String uuid = client.player.getStringUUID().replace("-", "");
 
         // Wynntils config is in {gameDir}/wynntils/config/, not in the config folder
         // getConfigDir() returns {gameDir}/config, so we go up one level

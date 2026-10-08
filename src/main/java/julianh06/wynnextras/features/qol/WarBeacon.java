@@ -1,32 +1,32 @@
 package julianh06.wynnextras.features.qol;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.wynncraft.state.TerritoryState;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.block.entity.BeaconBlockEntityRenderer;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.Vec3d;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
+import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.blockentity.BeaconRenderer;
+import net.minecraft.world.phys.Vec3;
 
 public class WarBeacon {
     private static final int BEAM_RGB = 0x32FF32;
     private static final double BEAM_BASE_Y = -200.0;
 
     private static boolean loggedRenderFailure = false;
-    private static Vec3d testBeaconTarget = null;
+    private static Vec3 testBeaconTarget = null;
 
     public static void register() {
-        WorldRenderEvents.END_MAIN.register(event -> {
-            if (event.commandQueue() == null) return;
-            render(event.matrices(), event.gameRenderer().getCamera(), event.commandQueue(), event.worldState().time);
+        LevelRenderEvents.COLLECT_SUBMITS.register(event -> {
+            if (event.submitNodeCollector() == null) return;
+            render(event.poseStack(), event.gameRenderer().mainCamera(), event.submitNodeCollector(), event.levelState().worldPartialTicks);
         });
         TerritoryState.initialize();
     }
 
-    private static void render(MatrixStack matrices, Camera camera, OrderedRenderCommandQueue orderedRenderCommandQueue, float tickProgress) {
+    private static void render(PoseStack matrices, Camera camera, SubmitNodeCollector orderedRenderCommandQueue, float tickProgress) {
         try {
             if (testBeaconTarget != null) {
                 drawBeam(matrices, camera, orderedRenderCommandQueue, tickProgress, testBeaconTarget.x, testBeaconTarget.y, testBeaconTarget.z);
@@ -45,20 +45,20 @@ public class WarBeacon {
         }
     }
 
-    private static void drawBeam(MatrixStack matrices, Camera camera, OrderedRenderCommandQueue orderedRenderCommandQueue,
+    private static void drawBeam(PoseStack matrices, Camera camera, SubmitNodeCollector orderedRenderCommandQueue,
                                  float tickProgress, double targetX, double targetY, double targetZ) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.player == null || mc.world == null) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) return;
         if (camera == null || orderedRenderCommandQueue == null) return;
 
-        Vec3d cameraPos = camera.getCameraPos();
+        Vec3 cameraPos = camera.position();
 
         double dx = targetX - cameraPos.x;
         double dy = targetY - cameraPos.y;
         double dz = targetZ - cameraPos.z;
 
         double distance = Math.sqrt(dx * dx + dz * dz);
-        int maxDistance = mc.options.getViewDistance().getValue() * 16;
+        int maxDistance = mc.options.renderDistance().get() * 16;
         if (distance > maxDistance) {
             double scale = maxDistance / distance;
             dx *= scale;
@@ -71,15 +71,15 @@ public class WarBeacon {
         }
 
         int color = ((int) (alpha * 255.0f) << 24) | BEAM_RGB;
-        float animationTime = (mc.world.getTime() % 40) + tickProgress;
+        float animationTime = (mc.level.getGameTime() % 40) + tickProgress;
 
-        matrices.push();
+        matrices.pushPose();
         try {
             matrices.translate(dx, dy, dz);
-            BeaconBlockEntityRenderer.renderBeam(matrices, orderedRenderCommandQueue, BeaconBlockEntityRenderer.BEAM_TEXTURE,
+            BeaconRenderer.submitBeaconBeam(matrices, orderedRenderCommandQueue, BeaconRenderer.BEAM_LOCATION,
                     tickProgress, animationTime, 0, 2048, color, 0.166F, 0.33F);
         } finally {
-            matrices.pop();
+            matrices.popPose();
         }
     }
 

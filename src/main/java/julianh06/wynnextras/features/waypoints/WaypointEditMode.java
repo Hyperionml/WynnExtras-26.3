@@ -11,29 +11,29 @@ import julianh06.wynnextras.features.waypoints.data.Waypoint;
 import julianh06.wynnextras.features.waypoints.data.WaypointCategory;
 import julianh06.wynnextras.features.waypoints.data.WaypointData;
 import julianh06.wynnextras.features.waypoints.data.WaypointPackage;
-import julianh06.wynnextras.mixin.Invoker.GameRendererInvoker;
+
 import julianh06.wynnextras.utils.WEVec;
 import julianh06.wynnextras.utils.render.WorldRenderUtils;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.block.Blocks;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
+import julianh06.wynnextras.compat.client.HudRenderCallback;
+import net.minecraft.client.Camera;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.lwjgl.glfw.GLFW;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.awt.Color;
 import java.util.ArrayList;
@@ -74,7 +74,7 @@ public class WaypointEditMode {
 
     static WaypointPackage activePackage = null;
     static WaypointCategory activeCategory = null;
-    static BlockPos previewPos = BlockPos.ORIGIN;
+    static BlockPos previewPos = BlockPos.ZERO;
     static Waypoint selectedWaypoint = null;
     static WaypointPackage selectedWaypointPackage = null;
     static WaypointSnapshot selectedSnapshot = null;
@@ -99,7 +99,7 @@ public class WaypointEditMode {
     static float renderTickDelta = 1f;
     static String previewName = "Waypoint";
     static String waypointSearch = "";
-    static BlockPos waypointSelectionPos = BlockPos.ORIGIN;
+    static BlockPos waypointSelectionPos = BlockPos.ZERO;
 
     public WaypointEditMode() {
         HudRenderCallback.EVENT.register(WaypointEditMode::renderHud);
@@ -110,7 +110,7 @@ public class WaypointEditMode {
     }
 
     public static void toggleFromCommand() {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (!enabled) {
             enterEditMode();
             return;
@@ -129,19 +129,19 @@ public class WaypointEditMode {
 
     public static void toggleFreeMoveFromCommand() {
         if (!enabled) {
-            MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.of("Free move mode is already disabled.")));
+            MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty("Free move mode is already disabled.")));
             return;
         }
         if (mode == Mode.FREE_MOVE) {
             enterEditMode();
-            MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.of("Free move mode disabled.")));
+            MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty("Free move mode disabled.")));
             return;
         }
-        MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.of("Free move mode is already disabled.")));
+        MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty("Free move mode is already disabled.")));
     }
 
     public static void enterEditMode() {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
 
         reloadPackagesPreservingSelection();
@@ -160,11 +160,11 @@ public class WaypointEditMode {
         focusedCoordinate = -1;
         syncCoordinateInputs();
         closingForFreeMove = false;
-        mc.send(() -> mc.setScreen(new WaypointEditModeUI()));
+        mc.schedule(() -> mc.gui.setScreen(new WaypointEditModeUI()));
     }
 
     public static void editWaypoint(WaypointPackage pkg, Waypoint waypoint) {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || pkg == null || waypoint == null) return;
 
         String packageId = pkg.id;
@@ -182,7 +182,7 @@ public class WaypointEditMode {
         closingForFreeMove = false;
         selectWaypoint(pkg, waypoint);
         syncCoordinateInputs();
-        mc.send(() -> mc.setScreen(new WaypointEditModeUI()));
+        mc.schedule(() -> mc.gui.setScreen(new WaypointEditModeUI()));
     }
 
     private static void reloadPackagesPreservingSelection() {
@@ -221,7 +221,7 @@ public class WaypointEditMode {
     }
 
     public static void enterFreeMoveMode() {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (!enabled) return;
         mode = Mode.FREE_MOVE;
         activeDropdown = Dropdown.NONE;
@@ -230,7 +230,7 @@ public class WaypointEditMode {
         hoveredWaypoint = null;
         wasReturnKeyDown = isReturnKeyDown();
         closingForFreeMove = true;
-        mc.send(() -> mc.setScreen(null));
+        mc.schedule(() -> mc.gui.setScreen(null));
     }
 
     public static void exit() {
@@ -245,9 +245,9 @@ public class WaypointEditMode {
         hoveredWaypoint = null;
         closingForFreeMove = false;
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.currentScreen instanceof WaypointEditModeUI) {
-            mc.send(() -> mc.setScreen(null));
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.gui.screen() instanceof WaypointEditModeUI) {
+            mc.schedule(() -> mc.gui.setScreen(null));
         }
     }
 
@@ -257,12 +257,12 @@ public class WaypointEditMode {
             wasReturnKeyDown = false;
             return;
         }
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.getWindow() == null) return;
         int key = WynnExtrasConfig.INSTANCE.waypointEditFreeMoveToggleKey;
-        if (key == GLFW.GLFW_KEY_UNKNOWN) return;
+        if (key == InputCompat.KEY_UNKNOWN) return;
 
-        boolean down = GLFW.glfwGetKey(mc.getWindow().getHandle(), key) == GLFW.GLFW_PRESS;
+        boolean down = InputCompat.keyState(mc.getWindow().handle(), key) == InputCompat.PRESS;
         if (down && !wasReturnKeyDown) enterEditMode();
         wasReturnKeyDown = down;
     }
@@ -271,22 +271,22 @@ public class WaypointEditMode {
     public void onKeyInput(KeyInputEvent event) {
         if (!enabled || mode != Mode.FREE_MOVE) return;
         int key = WynnExtrasConfig.INSTANCE.waypointEditFreeMoveToggleKey;
-        if (key == GLFW.GLFW_KEY_UNKNOWN || event.getKey() != key) return;
-        if (event.getAction() == GLFW.GLFW_RELEASE) {
+        if (key == InputCompat.KEY_UNKNOWN || event.getKey() != key) return;
+        if (event.getAction() == InputCompat.RELEASE) {
             wasReturnKeyDown = false;
             return;
         }
-        if (event.getAction() == GLFW.GLFW_PRESS && !wasReturnKeyDown) {
+        if (event.getAction() == InputCompat.PRESS && !wasReturnKeyDown) {
             wasReturnKeyDown = true;
             enterEditMode();
         }
     }
 
     static boolean isReturnKeyDown() {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.getWindow() == null) return false;
         int key = WynnExtrasConfig.INSTANCE.waypointEditFreeMoveToggleKey;
-        return key != GLFW.GLFW_KEY_UNKNOWN && GLFW.glfwGetKey(mc.getWindow().getHandle(), key) == GLFW.GLFW_PRESS;
+        return key != InputCompat.KEY_UNKNOWN && InputCompat.keyState(mc.getWindow().handle(), key) == InputCompat.PRESS;
     }
 
     @SubscribeEvent
@@ -296,7 +296,7 @@ public class WaypointEditMode {
         if (!isPreviewOnBarrier()) {
             Color color = categoryColor(activeCategory);
             float blink = 0.75f + 0.25f * (float) Math.sin(System.currentTimeMillis() / 600.0);
-            Box previewBox = previewBox();
+            AABB previewBox = previewBox();
             if (previewShouldShowBlock()) {
                 WorldRenderUtils.drawFilledBoundingBox(event, previewBox, color, previewAlpha() * blink);
             }
@@ -305,19 +305,19 @@ public class WaypointEditMode {
         }
 
         if (hoveredWaypoint != null && hoveredWaypoint != selectedWaypoint) {
-            ClientWorld world = MinecraftClient.getInstance().world;
+            ClientLevel world = Minecraft.getInstance().level;
             BlockPos pos = new BlockPos(hoveredWaypoint.x, hoveredWaypoint.y, hoveredWaypoint.z);
-            if (world == null || !world.getBlockState(pos).isOf(Blocks.BARRIER)) {
+            if (world == null || !world.getBlockState(pos).is(Blocks.BARRIER)) {
                 WorldRenderUtils.drawEdges(event, hoveredWaypoint.getRenderBox(), solidColor(categoryColor(hoveredWaypoint.getCategory())), 3, true);
             }
         }
     }
 
-    static void renderHud(DrawContext ctx, RenderTickCounter tickCounter) {
+    static void renderHud(GuiGraphicsExtractor ctx, DeltaTracker tickCounter) {
         if (!enabled || mode != Mode.FREE_MOVE) return;
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        TextRenderer tr = mc.textRenderer;
+        Minecraft mc = Minecraft.getInstance();
+        Font tr = mc.font;
 
         String returnKey = keyName(WynnExtrasConfig.INSTANCE.waypointEditFreeMoveToggleKey);
         String[] lines = {
@@ -327,34 +327,34 @@ public class WaypointEditMode {
         };
         int width = 0;
         for (String line : lines) {
-            width = Math.max(width, tr.getWidth(line));
+            width = Math.max(width, tr.width(line));
         }
         ctx.fill(6, 6, 10 + width, 46, 0xAA000000);
         for (int i = 0; i < lines.length; i++) {
-            ctx.drawText(tr, lines[i], 10, 10 + i * 12, i == 0 ? TEXT : TEXT_DIM, true);
+            ctx.text(tr, lines[i], 10, 10 + i * 12, i == 0 ? TEXT : TEXT_DIM, true);
         }
 
         if (isPreviewOnBarrier()) {
             String warning = "Wynncraft rules do not allow waypoints on barriers, this waypoint preview will not be rendered.";
-            int x = (mc.getWindow().getScaledWidth() - tr.getWidth(warning)) / 2;
-            int y = mc.getWindow().getScaledHeight() - 36;
-            ctx.fill(x - 6, y - 4, x + tr.getWidth(warning) + 6, y + 12, 0xCC220000);
-            ctx.drawText(tr, warning, x, y, 0xFFFF7777, true);
+            int x = (mc.getWindow().getGuiScaledWidth() - tr.width(warning)) / 2;
+            int y = mc.getWindow().getGuiScaledHeight() - 36;
+            ctx.fill(x - 6, y - 4, x + tr.width(warning) + 6, y + 12, 0xCC220000);
+            ctx.text(tr, warning, x, y, 0xFFFF7777, true);
         }
     }
 
     private static String keyName(int key) {
-        if (key == GLFW.GLFW_KEY_UNKNOWN) return "Unbound";
-        String name = GLFW.glfwGetKeyName(key, 0);
+        if (key == InputCompat.KEY_UNKNOWN) return "Unbound";
+        String name = InputCompat.keyName(key, 0);
         if (name != null) return name.toUpperCase();
         return switch (key) {
-            case GLFW.GLFW_KEY_SPACE -> "SPACE";
-            case GLFW.GLFW_KEY_LEFT_SHIFT -> "LSHIFT";
-            case GLFW.GLFW_KEY_RIGHT_SHIFT -> "RSHIFT";
-            case GLFW.GLFW_KEY_LEFT_ALT -> "LALT";
-            case GLFW.GLFW_KEY_RIGHT_ALT -> "RALT";
-            case GLFW.GLFW_KEY_LEFT_CONTROL -> "LCTRL";
-            case GLFW.GLFW_KEY_RIGHT_CONTROL -> "RCTRL";
+            case InputCompat.KEY_SPACE -> "SPACE";
+            case InputCompat.KEY_LEFT_SHIFT -> "LSHIFT";
+            case InputCompat.KEY_RIGHT_SHIFT -> "RSHIFT";
+            case InputCompat.KEY_LEFT_ALT -> "LALT";
+            case InputCompat.KEY_RIGHT_ALT -> "RALT";
+            case InputCompat.KEY_LEFT_CONTROL -> "LCTRL";
+            case InputCompat.KEY_RIGHT_CONTROL -> "RCTRL";
             default -> "K_" + key;
         };
     }
@@ -383,15 +383,15 @@ public class WaypointEditMode {
         }
     }
 
-    static BlockPos initialPreviewPos(ClientPlayerEntity player) {
-        Direction facing = player.getHorizontalFacing();
-        BlockPos base = player.getBlockPos().down();
-        return base.offset(facing, 3);
+    static BlockPos initialPreviewPos(LocalPlayer player) {
+        Direction facing = player.getDirection();
+        BlockPos base = player.blockPosition().below();
+        return base.relative(facing, 3);
     }
 
     static boolean isPreviewOnBarrier() {
-        ClientWorld world = MinecraftClient.getInstance().world;
-        return world != null && world.getBlockState(previewPos).isOf(Blocks.BARRIER);
+        ClientLevel world = Minecraft.getInstance().level;
+        return world != null && world.getBlockState(previewPos).is(Blocks.BARRIER);
     }
 
     static Color categoryColor(WaypointCategory category) {
@@ -409,12 +409,12 @@ public class WaypointEditMode {
     }
 
     static void movePreview(Direction direction) {
-        previewPos = previewPos.offset(direction);
+        previewPos = previewPos.relative(direction);
         syncCoordinateInputs();
     }
 
     static void movePreviewVertical(int delta) {
-        previewPos = previewPos.add(0, delta, 0);
+        previewPos = previewPos.offset(0, delta, 0);
         syncCoordinateInputs();
     }
 
@@ -456,14 +456,14 @@ public class WaypointEditMode {
     }
 
     static void movePreviewHorizontal(int key) {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        Direction forward = mc.player.getHorizontalFacing();
+        Direction forward = mc.player.getDirection();
         Direction dir = switch (key) {
-            case GLFW.GLFW_KEY_W -> forward;
-            case GLFW.GLFW_KEY_S -> forward.getOpposite();
-            case GLFW.GLFW_KEY_A -> forward.rotateYCounterclockwise();
-            case GLFW.GLFW_KEY_D -> forward.rotateYClockwise();
+            case InputCompat.KEY_W -> forward;
+            case InputCompat.KEY_S -> forward.getOpposite();
+            case InputCompat.KEY_A -> forward.getCounterClockWise();
+            case InputCompat.KEY_D -> forward.getClockWise();
             default -> null;
         };
         if (dir != null) movePreview(dir);
@@ -484,7 +484,7 @@ public class WaypointEditMode {
         selectedWaypointPackage = null;
         selectedSnapshot = null;
         WaypointData.save();
-        playEditSound(SoundEvents.BLOCK_GLASS_PLACE, 0.8f, 1.15f);
+        playEditSound(SoundEvents.GLASS_PLACE, 0.8f, 1.15f);
     }
 
     static void removeWaypointsAtPreview() {
@@ -505,7 +505,7 @@ public class WaypointEditMode {
                 selectedSnapshot = null;
             }
             WaypointData.save();
-            playEditSound(SoundEvents.BLOCK_AMETHYST_BLOCK_BREAK, 0.8f, 0.85f);
+            playEditSound(SoundEvents.AMETHYST_BLOCK_BREAK, 0.8f, 0.85f);
             showEditWarning("Removed " + activePackageMatches.size() + " waypoint" + (activePackageMatches.size() == 1 ? "" : "s") + " from " + activePackage.name + ".");
             return;
         }
@@ -542,12 +542,12 @@ public class WaypointEditMode {
         selectedWaypointPackage = null;
         selectedSnapshot = null;
         WaypointData.save();
-        playEditSound(SoundEvents.BLOCK_AMETHYST_BLOCK_BREAK, 0.8f, 0.85f);
+        playEditSound(SoundEvents.AMETHYST_BLOCK_BREAK, 0.8f, 0.85f);
         showEditWarning("Removed " + name + " from " + pkg.name + ".");
     }
 
     private static void playEditSound(SoundEvent sound, float volume, float pitch) {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
             mc.player.playSound(sound, volume, pitch);
         }
@@ -584,7 +584,7 @@ public class WaypointEditMode {
         selectedSnapshot = null;
         activeCategory = waypoint.getCategory();
         WaypointData.save();
-        playEditSound(SoundEvents.BLOCK_GLASS_PLACE, 0.8f, 1.15f);
+        playEditSound(SoundEvents.GLASS_PLACE, 0.8f, 1.15f);
     }
 
     static void discardChanges() {
@@ -652,19 +652,19 @@ public class WaypointEditMode {
     }
 
     static WaypointHit findWaypointAt(int mouseX, int mouseY) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.player == null || mc.world == null) return null;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) return null;
 
-        Vec3d origin = mc.gameRenderer.getCamera().getCameraPos();
-        Vec3d direction = rayDirectionFromMouse(mouseX, mouseY);
+        Vec3 origin = mc.gameRenderer.mainCamera().position();
+        Vec3 direction = rayDirectionFromMouse(mouseX, mouseY);
         WaypointHit closest = null;
         for (WaypointPackage pkg : WaypointData.INSTANCE.packages) {
             if (!pkg.enabled) continue;
             for (Waypoint waypoint : pkg.waypoints) {
                 if (waypoint == selectedWaypoint) continue;
-                if (mc.world.getBlockState(new BlockPos(waypoint.x, waypoint.y, waypoint.z)).isOf(Blocks.BARRIER)) continue;
+                if (mc.level.getBlockState(new BlockPos(waypoint.x, waypoint.y, waypoint.z)).is(Blocks.BARRIER)) continue;
 
-                Box box = waypoint.getRenderBox();
+                AABB box = waypoint.getRenderBox();
                 double distance = rayIntersectionDistance(origin, direction, box);
                 if (Double.isNaN(distance)) continue;
                 if (closest == null || distance < closest.distance) closest = new WaypointHit(pkg, waypoint, distance);
@@ -730,49 +730,49 @@ public class WaypointEditMode {
         return previewVisibility(selectedWaypoint == null ? null : selectedWaypoint.seeThroughOverride, selectedWaypoint != null && selectedWaypoint.seeThrough, activeCategory != null && activeCategory.showSeeThroughByDefault);
     }
 
-    static Box previewBox() {
+    static AABB previewBox() {
         Waypoint waypoint = previewGeometry();
         return Waypoint.boxAt(previewPos.getX(), previewPos.getY(), previewPos.getZ(),
                 waypoint.offsetX, waypoint.offsetY, waypoint.offsetZ, waypoint.getSize());
     }
 
     static void renderPreviewText(RenderWorldEvent event) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        Box box = previewBox();
+        Minecraft mc = Minecraft.getInstance();
+        AABB box = previewBox();
         double centerX = (box.minX + box.maxX) / 2;
         double centerZ = (box.minZ + box.maxZ) / 2;
         if (mc.player != null && previewShouldShowDistance()) {
             WEVec pos = new WEVec(centerX, box.maxY + 0.5, centerZ);
-            WEVec playerPos = new WEVec(mc.player.getBlockPos().toBottomCenterPos());
-            WorldRenderUtils.drawText(event, pos, Text.of((int) pos.distanceTo(playerPos) + "m"), 0.75f, !previewSeeThrough());
+            WEVec playerPos = new WEVec(net.minecraft.world.phys.Vec3.atBottomCenterOf(mc.player.blockPosition()));
+            WorldRenderUtils.drawText(event, pos, Component.nullToEmpty((int) pos.distanceTo(playerPos) + "m"), 0.75f, !previewSeeThrough());
         }
         if (previewShouldShowName()) {
             WEVec namePos = new WEVec(centerX, box.maxY + 1.0, centerZ);
-            WorldRenderUtils.drawText(event, namePos, Text.of(previewName), 0.75f, !previewSeeThrough());
+            WorldRenderUtils.drawText(event, namePos, Component.nullToEmpty(previewName), 0.75f, !previewSeeThrough());
         }
     }
 
-    static Vec3d rayDirectionFromMouse(int mouseX, int mouseY) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        int scaledWidth = Math.max(1, mc.getWindow().getScaledWidth());
-        int scaledHeight = Math.max(1, mc.getWindow().getScaledHeight());
-        int framebufferWidth = Math.max(1, mc.getWindow().getFramebufferWidth());
-        int framebufferHeight = Math.max(1, mc.getWindow().getFramebufferHeight());
+    static Vec3 rayDirectionFromMouse(int mouseX, int mouseY) {
+        Minecraft mc = Minecraft.getInstance();
+        int scaledWidth = Math.max(1, mc.getWindow().getGuiScaledWidth());
+        int scaledHeight = Math.max(1, mc.getWindow().getGuiScaledHeight());
+        int framebufferWidth = Math.max(1, mc.getWindow().getWidth());
+        int framebufferHeight = Math.max(1, mc.getWindow().getHeight());
         float framebufferX = mouseX * framebufferWidth / (float) scaledWidth;
         float framebufferY = framebufferHeight - mouseY * framebufferHeight / (float) scaledHeight;
 
-        Camera camera = mc.gameRenderer.getCamera();
-        float fov = ((GameRendererInvoker) mc.gameRenderer).invokeGetFov(camera, renderTickDelta, true);
-        Matrix4f projection = mc.gameRenderer.getBasicProjectionMatrix(fov);
+        Camera camera = mc.gameRenderer.mainCamera();
+
+        Matrix4f projection = new Matrix4f(mc.gameRenderer.gameRenderState().levelRenderState.cameraRenderState.projectionMatrix);
         Vector3f origin = new Vector3f();
         Vector3f direction = new Vector3f();
         projection.unprojectRay(framebufferX, framebufferY, new int[] {0, 0, framebufferWidth, framebufferHeight}, origin, direction);
         direction.normalize();
-        camera.getRotation().transform(direction);
-        return new Vec3d(direction.x, direction.y, direction.z).normalize();
+        camera.rotation().transform(direction);
+        return new Vec3(direction.x, direction.y, direction.z).normalize();
     }
 
-    static double rayIntersectionDistance(Vec3d origin, Vec3d direction, Box box) {
+    static double rayIntersectionDistance(Vec3 origin, Vec3 direction, AABB box) {
         double tMin = 0;
         double tMax = Double.MAX_VALUE;
 

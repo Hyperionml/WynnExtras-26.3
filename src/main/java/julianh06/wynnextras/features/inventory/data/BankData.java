@@ -10,8 +10,7 @@ import com.google.gson.reflect.TypeToken;
 import julianh06.wynnextras.features.misc.ItemStackDeserializer;
 import julianh06.wynnextras.features.misc.ItemStackSerializer;
 import julianh06.wynnextras.utils.OptionalTypeAdapter;
-import net.minecraft.item.ItemStack;
-
+import net.minecraft.world.item.ItemStack;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;

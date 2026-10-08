@@ -1,14 +1,13 @@
 package julianh06.wynnextras.utils;
 
 import julianh06.wynnextras.utils.render.WorldRenderUtils;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import java.util.Objects;
 import java.util.Set;
 
 public record WEVec(double x, double y, double z) {
-    public WEVec(Vec3d vec) {
+    public WEVec(Vec3 vec) {
         this(vec.x, vec.y, vec.z);
     }
 
@@ -20,8 +19,8 @@ public record WEVec(double x, double y, double z) {
         this((double) x, (double) y, (double) z);
     }
 
-    public Vec3d toVec3d() {
-        return new Vec3d(x, y, z);
+    public Vec3 toVec3d() {
+        return new Vec3(x, y, z);
     }
 
     // Arithmetic operations
@@ -143,15 +142,15 @@ public record WEVec(double x, double y, double z) {
         return toBlockPos().add(0.5, 0.5, 0.5);
     }
 
-    public Box boundingToOffset(double offX, double offY, double offZ) {
-        return new Box(
+    public AABB boundingToOffset(double offX, double offY, double offZ) {
+        return new AABB(
                 Math.min(x, x + offX), Math.min(y, y + offY), Math.min(z, z + offZ),
                 Math.max(x, x + offX), Math.max(y, y + offY), Math.max(z, z + offZ)
         );
     }
 
-    public Box boundingTo(WEVec other) {
-        return new Box(
+    public AABB boundingTo(WEVec other) {
+        return new AABB(
                 Math.min(x, other.x), Math.min(y, other.y), Math.min(z, other.z),
                 Math.max(x, other.x), Math.max(y, other.y), Math.max(z, other.z)
         );

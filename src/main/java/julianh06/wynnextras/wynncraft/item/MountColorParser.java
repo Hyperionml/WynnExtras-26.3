@@ -1,11 +1,10 @@
 package julianh06.wynnextras.wynncraft.item;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -19,7 +18,7 @@ public final class MountColorParser {
     public record MountColors(String primary, CustomColor primaryColor, String secondary) {}
 
     private record Palette(Map<String, CustomColor> primary, Set<String> secondary) {}
-    private record CacheEntry(LoreComponent lore, Optional<MountColors> colors) {}
+    private record CacheEntry(ItemLore lore, Optional<MountColors> colors) {}
 
     private static final Pattern COLOR_PAIR = Pattern.compile("([a-z]+)-([a-z]+)", Pattern.CASE_INSENSITIVE);
     private static final List<Palette> PALETTES = List.of(
@@ -69,7 +68,7 @@ public final class MountColorParser {
 
     public static Optional<MountColors> parse(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return Optional.empty();
-        LoreComponent lore = stack.get(DataComponentTypes.LORE);
+        ItemLore lore = stack.get(DataComponents.LORE);
         if (lore == null) return Optional.empty();
 
         synchronized (CACHE) {
@@ -84,8 +83,8 @@ public final class MountColorParser {
         return parsed;
     }
 
-    private static Optional<MountColors> parseLore(LoreComponent lore) {
-        for (Text line : lore.lines()) {
+    private static Optional<MountColors> parseLore(ItemLore lore) {
+        for (Component line : lore.lines()) {
             Matcher matcher = COLOR_PAIR.matcher(line.getString().toLowerCase(Locale.ROOT));
             while (matcher.find()) {
                 String primary = matcher.group(1);

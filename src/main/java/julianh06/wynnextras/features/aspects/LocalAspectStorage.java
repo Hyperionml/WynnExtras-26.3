@@ -4,8 +4,7 @@ import julianh06.wynnextras.core.WynnExtras;
 import com.google.gson.*;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.util.Pair;
-
+import julianh06.wynnextras.compat.client.Tuple;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,7 +19,7 @@ public class LocalAspectStorage {
 
     private static Path getPlayerDir() {
         if (MinecraftUtils.player() == null) return null;
-        String uuid = MinecraftUtils.player().getUuidAsString();
+        String uuid = MinecraftUtils.player().getStringUUID();
         Path dir = FabricLoader.getInstance().getConfigDir().resolve("wynnextras").resolve(uuid).resolve("aspects");
         try { Files.createDirectories(dir); } catch (IOException e) {
             WynnExtras.LOGGER.error("Failed to create aspects directory: " + e.getMessage());
@@ -38,7 +37,7 @@ public class LocalAspectStorage {
         return dir != null ? dir.resolve(classId + ".json") : null;
     }
 
-    public static void save(Map<String, Pair<String, String>> map) {
+    public static void save(Map<String, Tuple<String, String>> map) {
         if (MinecraftUtils.player() == null) return;
         Path file = getDataFile();
         if (file == null) return;
@@ -52,11 +51,11 @@ public class LocalAspectStorage {
             }
         }
 
-        for (Map.Entry<String, Pair<String, String>> entry : map.entrySet()) {
+        for (Map.Entry<String, Tuple<String, String>> entry : map.entrySet()) {
             try {
                 JsonObject obj = new JsonObject();
                 obj.addProperty("name", entry.getKey());
-                obj.addProperty("rarity", entry.getValue().getRight());
+                obj.addProperty("rarity", entry.getValue().getB());
                 obj.addProperty("amount", parseAspectAmount(entry.getValue()));
                 existing.put(entry.getKey(), obj);
             } catch (Exception e) {

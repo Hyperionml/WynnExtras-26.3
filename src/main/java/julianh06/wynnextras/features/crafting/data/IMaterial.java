@@ -1,6 +1,6 @@
 package julianh06.wynnextras.features.crafting.data;
 
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 
 public interface IMaterial {
     String getName();

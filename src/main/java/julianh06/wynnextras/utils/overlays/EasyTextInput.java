@@ -1,6 +1,10 @@
 package julianh06.wynnextras.utils.overlays;
 
 import julianh06.wynnextras.utils.text.StyledText;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.utils.render.FontRenderer;
 import julianh06.wynnextras.utils.render.RenderUtils;
@@ -11,12 +15,7 @@ import julianh06.wynnextras.event.CharInputEvent;
 import julianh06.wynnextras.event.KeyInputEvent;
 import julianh06.wynnextras.features.inventory.BankOverlay;
 import julianh06.wynnextras.features.inventory.BankOverlayType;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import org.lwjgl.glfw.GLFW;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -49,25 +48,25 @@ public class EasyTextInput extends EasyElement{
     }
 
     @Override
-    public void draw(DrawContext context) {
+    public void draw(GuiGraphicsExtractor context) {
         long now = System.currentTimeMillis();
         RenderUtils.drawRect(context, color, x, y, width, height);
         if(input.isEmpty() && !isActive) {
-            context.drawText(MinecraftClient.getInstance().textRenderer, searchText, x + 1, y + 3, CustomColor.fromHexString("000000").asInt(), false);
+            context.text(Minecraft.getInstance().font, searchText, x + 1, y + 3, CustomColor.fromHexString("000000").asInt(), false);
         } else {
             if(cursorPos > input.length()) {
                 cursorPos = input.length();
             }
-            context.drawText(MinecraftClient.getInstance().textRenderer, input, x + 1, y + 3, CustomColor.fromHexString("000000").asInt(), false);
+            context.text(Minecraft.getInstance().font, input, x + 1, y + 3, CustomColor.fromHexString("000000").asInt(), false);
             if(now - lastBlink > 500) {
                 blinkToggle = !blinkToggle;
                 lastBlink = now;
             }
-            if(blinkToggle && isActive) RenderUtils.drawLine(context, CustomColor.fromHexString("000000"), x + 1 + MinecraftClient.getInstance().textRenderer.getWidth(input.substring(0, cursorPos)), y + 2, x + 1 + MinecraftClient.getInstance().textRenderer.getWidth(input.substring(0, cursorPos)), y + 11, 1);
+            if(blinkToggle && isActive) RenderUtils.drawLine(context, CustomColor.fromHexString("000000"), x + 1 + Minecraft.getInstance().font.width(input.substring(0, cursorPos)), y + 2, x + 1 + Minecraft.getInstance().font.width(input.substring(0, cursorPos)), y + 11, 1);
         }
     }
 
-    public void drawWithoutBackground(DrawContext context, CustomColor color) {
+    public void drawWithoutBackground(GuiGraphicsExtractor context, CustomColor color) {
         if(input == null) return;
 
         long now = System.currentTimeMillis();
@@ -77,55 +76,55 @@ public class EasyTextInput extends EasyElement{
             if(cursorPos > input.length()) {
                 cursorPos = input.length();
             }
-            context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, input, x + 3, y + 1, color.asInt());
+            context.text(Minecraft.getInstance().font, input, x + 3, y + 1, color.asInt());
             if(now - lastBlink > 500) {
                 blinkToggle = !blinkToggle;
                 lastBlink = now;
             }
-            if(blinkToggle && isActive) RenderUtils.drawLine(context, CustomColor.fromHexString("FFFFFF"), x + 3 + MinecraftClient.getInstance().textRenderer.getWidth(input.substring(0, cursorPos)), y, x + 3 + MinecraftClient.getInstance().textRenderer.getWidth(input.substring(0, cursorPos)), y + 9, 1);
+            if(blinkToggle && isActive) RenderUtils.drawLine(context, CustomColor.fromHexString("FFFFFF"), x + 3 + Minecraft.getInstance().font.width(input.substring(0, cursorPos)), y, x + 3 + Minecraft.getInstance().font.width(input.substring(0, cursorPos)), y + 9, 1);
         }
     }
 
-    public void drawWithoutBackgroundButWithSearchtext(DrawContext context, CustomColor color) {
-        drawWithoutBackgroundButWithSearchtext(context, color, (float) MinecraftClient.getInstance().getWindow().getScaleFactor());
+    public void drawWithoutBackgroundButWithSearchtext(GuiGraphicsExtractor context, CustomColor color) {
+        drawWithoutBackgroundButWithSearchtext(context, color, (float) Minecraft.getInstance().getWindow().getGuiScale());
     }
 
-    public void drawWithoutBackgroundButWithSearchtext(DrawContext context, CustomColor color, float scaleFactor) {
+    public void drawWithoutBackgroundButWithSearchtext(GuiGraphicsExtractor context, CustomColor color, float scaleFactor) {
         if(input == null) return;
 
         long now = System.currentTimeMillis();
         if(input.isEmpty() && !isActive) {
             //context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, searchText, x + 3, y + 1, CustomColor.fromHexString("FFFFFF").asInt());
-            FontRenderer.getInstance().renderText(context, StyledText.fromComponent(Text.of(searchText)), (float) x + (float) (3 * 3) / scaleFactor, (float) y + (float) (3) / scaleFactor, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 1f * 3 / scaleFactor);
+            FontRenderer.getInstance().renderText(context, StyledText.fromComponent(Component.nullToEmpty(searchText)), (float) x + (float) (3 * 3) / scaleFactor, (float) y + (float) (3) / scaleFactor, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 1f * 3 / scaleFactor);
         } else {
             if(cursorPos > input.length()) {
                 cursorPos = input.length();
             }
             //context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, input, x + 3, y + 1, color.asInt());
-            FontRenderer.getInstance().renderText(context, StyledText.fromComponent(Text.of(input)), (float) x + (float) (3 * 3) / scaleFactor, (float) y + (float) (2 * 3) / scaleFactor, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 1f * 3 / scaleFactor);
+            FontRenderer.getInstance().renderText(context, StyledText.fromComponent(Component.nullToEmpty(input)), (float) x + (float) (3 * 3) / scaleFactor, (float) y + (float) (2 * 3) / scaleFactor, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 1f * 3 / scaleFactor);
             if(now - lastBlink > 500) {
                 blinkToggle = !blinkToggle;
                 lastBlink = now;
             }
-            if(blinkToggle && isActive) RenderUtils.drawLine(context, CustomColor.fromHexString("FFFFFF"), x + (float) (4 * 3) / scaleFactor + (float) (MinecraftClient.getInstance().textRenderer.getWidth(input.substring(0, cursorPos)) * 3) / scaleFactor, y + (float) (1 * 3) / scaleFactor, x + (float) (4 * 3) / scaleFactor + (float) (MinecraftClient.getInstance().textRenderer.getWidth(input.substring(0, cursorPos)) * 3) / scaleFactor, y + (float) (10 * 3) / scaleFactor, 1f * 3 / scaleFactor);
+            if(blinkToggle && isActive) RenderUtils.drawLine(context, CustomColor.fromHexString("FFFFFF"), x + (float) (4 * 3) / scaleFactor + (float) (Minecraft.getInstance().font.width(input.substring(0, cursorPos)) * 3) / scaleFactor, y + (float) (1 * 3) / scaleFactor, x + (float) (4 * 3) / scaleFactor + (float) (Minecraft.getInstance().font.width(input.substring(0, cursorPos)) * 3) / scaleFactor, y + (float) (10 * 3) / scaleFactor, 1f * 3 / scaleFactor);
         }
     }
 
-    public void drawWithTexture(DrawContext context, Identifier texture) {
+    public void drawWithTexture(GuiGraphicsExtractor context, Identifier texture) {
         long now = System.currentTimeMillis();
         RenderUtils.drawTexturedRect(context, texture, CustomColor.NONE, x, y, width, height, (int) width, (int) height);
         if(input.isEmpty() && !isActive) {
-            context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, searchText, x + 2, y + 3, CustomColor.fromHexString("FFFFFF").asInt());
+            context.text(Minecraft.getInstance().font, searchText, x + 2, y + 3, CustomColor.fromHexString("FFFFFF").asInt());
         } else {
             if(cursorPos > input.length()) {
                 cursorPos = input.length();
             }
-            context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, input, x + 2, y + 3, CustomColor.fromHexString("FFFFFF").asInt());
+            context.text(Minecraft.getInstance().font, input, x + 2, y + 3, CustomColor.fromHexString("FFFFFF").asInt());
             if(now - lastBlink > 500) {
                 blinkToggle = !blinkToggle;
                 lastBlink = now;
             }
-            if(blinkToggle && isActive) RenderUtils.drawLine(context, CustomColor.fromHexString("FFFFFF"), x + 2 + MinecraftClient.getInstance().textRenderer.getWidth(input.substring(0, cursorPos)), y + 2, x + 2 + MinecraftClient.getInstance().textRenderer.getWidth(input.substring(0, cursorPos)), y + 11, 1);
+            if(blinkToggle && isActive) RenderUtils.drawLine(context, CustomColor.fromHexString("FFFFFF"), x + 2 + Minecraft.getInstance().font.width(input.substring(0, cursorPos)), y + 2, x + 2 + Minecraft.getInstance().font.width(input.substring(0, cursorPos)), y + 11, 1);
         }
     }
 
@@ -191,24 +190,24 @@ public class EasyTextInput extends EasyElement{
 
         now.set(System.currentTimeMillis());
 
-        if (action == GLFW.GLFW_RELEASE) {
+        if (action == InputCompat.RELEASE) {
             cooldowns.remove(key);
         } else {
             // Backspace
-            if (key == GLFW.GLFW_KEY_BACKSPACE && cursorPos > 0) {
+            if (key == InputCompat.KEY_BACKSPACE && cursorPos > 0) {
                 input = removeAt(cursorPos, input);
                 cursorPos--;
             }
             // Delete
-            else if (key == GLFW.GLFW_KEY_DELETE && cursorPos < input.length()) {
+            else if (key == InputCompat.KEY_DELETE && cursorPos < input.length()) {
                 input = removeAt(cursorPos + 1, input);
             }
             // left arrow
-            else if (key == GLFW.GLFW_KEY_LEFT && cursorPos > 0) {
+            else if (key == InputCompat.KEY_LEFT && cursorPos > 0) {
                 cursorPos--;
             }
             // right arrow
-            else if (key == GLFW.GLFW_KEY_RIGHT && cursorPos < input.length()) {
+            else if (key == InputCompat.KEY_RIGHT && cursorPos < input.length()) {
                 cursorPos++;
             }
         }

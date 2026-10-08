@@ -13,14 +13,13 @@ import julianh06.wynnextras.features.aspects.pages.*;
 import julianh06.wynnextras.utils.UI.WEScreen;
 import julianh06.wynnextras.utils.UI.Widget;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,7 +48,7 @@ public class AspectScreen extends WEScreen {
     @Override protected int getMinLogicalHeight() { return 870; }
 
     public AspectScreen() {
-        super(Text.of("WynnExtras Aspects"));
+        super(Component.nullToEmpty("WynnExtras Aspects"));
 
         for(Page page : Page.values()) {
             pageSwitchButtons.add(new PageSwitchButton(page));
@@ -72,51 +71,51 @@ public class AspectScreen extends WEScreen {
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean doubleClick) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubleClick) {
         double mx = click.x() / matrixScale;
         double my = click.y() / matrixScale;
         for(PageSwitchButton button : pageSwitchButtons) {
-            if(button.mouseClicked(mx, my, click.button())) return true;
+            if(button.mouseClicked(mx, my, julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()))) return true;
         }
 
         if(currentWidget == null) return true;
 
-        if(currentWidget.mouseClicked(mx, my, click.button())) return true;
+        if(currentWidget.mouseClicked(mx, my, julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()))) return true;
 
         return super.mouseClicked(click, doubleClick);
     }
 
     @Override
-    public boolean mouseReleased(Click click) {
+    public boolean mouseReleased(MouseButtonEvent click) {
         double mx = click.x() / matrixScale;
         double my = click.y() / matrixScale;
-        if(currentWidget != null) currentWidget.mouseReleased(mx, my, click.button());
+        if(currentWidget != null) currentWidget.mouseReleased(mx, my, julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()));
         return super.mouseReleased(click);
     }
 
     @Override
-    public boolean mouseDragged(Click click, double dx, double dy) {
+    public boolean mouseDragged(MouseButtonEvent click, double dx, double dy) {
         double mx = click.x() / matrixScale;
         double my = click.y() / matrixScale;
-        if(currentWidget != null && currentWidget.mouseDragged(mx, my, click.button(), dx, dy)) return true;
+        if(currentWidget != null && currentWidget.mouseDragged(mx, my, julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()), dx, dy)) return true;
         return super.mouseDragged(click, dx, dy);
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
-        if(currentWidget != null) currentWidget.keyPressed(input.key(), input.scancode(), input.modifiers());
+    public boolean keyPressed(KeyEvent input) {
+        if(currentWidget != null) currentWidget.keyPressed(julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key()), input.keycode(), julianh06.wynnextras.compat.client.InputCompat.legacyModifiers(input.modifiers()));
         return super.keyPressed(input);
     }
 
     @Override
-    public boolean charTyped(CharInput input) {
+    public boolean charTyped(CharacterEvent input) {
 
-        if(currentWidget != null) currentWidget.charTyped((char) input.codepoint(), input.modifiers());
+        if(currentWidget != null) currentWidget.charTyped((char) input.codepoint(), 0);
         return super.charTyped(input);
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         int centerX = getLogicalWidth() / 2;
         FontRenderer.getInstance().renderText(
                 ctx,
@@ -156,8 +155,8 @@ public class AspectScreen extends WEScreen {
         currentWidget.setBounds(0, 0, pw, ph);
         currentWidget.draw(ctx, mouseX, mouseY, tickDelta, ui);
 
-        if(MinecraftClient.getInstance().currentScreen == null || registeredScroll) return;
-        ScreenMouseEvents.afterMouseScroll(MinecraftClient.getInstance().currentScreen).register((
+        if(Minecraft.getInstance().gui.screen() == null || registeredScroll) return;
+        ScreenMouseEvents.afterMouseScroll(Minecraft.getInstance().gui.screen()).register((
                 screen,
                 mX,
                 mY,
@@ -209,7 +208,7 @@ public class AspectScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawButton(x, y, width, height, hovered || currentPage == page);
             String name = page.name();
             if(page == Page.AspectLootpool) name = "Aspects";

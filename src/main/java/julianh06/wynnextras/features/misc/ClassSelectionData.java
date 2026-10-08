@@ -4,8 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import julianh06.wynnextras.core.WynnExtras;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -173,8 +172,8 @@ public class ClassSelectionData {
     }
 
     private static String getPlayerUuid() {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client == null || client.player == null) return "";
-        return client.player.getUuidAsString();
+        return client.player.getStringUUID();
     }
 }

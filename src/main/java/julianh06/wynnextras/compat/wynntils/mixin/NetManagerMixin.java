@@ -2,7 +2,7 @@ package julianh06.wynnextras.compat.wynntils.mixin;
 
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.features.profileviewer.PV;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
@@ -23,10 +23,10 @@ public class NetManagerMixin {
         String username = arguments.get("username");
         if (username == null || username.isBlank()) return;
 
-        if (MinecraftClient.getInstance().currentScreen != null
-                && MinecraftClient.getInstance().currentScreen.getClass().getName().equals(
+        if (Minecraft.getInstance().gui.screen() != null
+                && Minecraft.getInstance().gui.screen().getClass().getName().equals(
                 "com.wynntils.screens.playerviewer.PlayerViewerScreen")) {
-            MinecraftClient.getInstance().currentScreen.close();
+            Minecraft.getInstance().gui.screen().onClose();
         }
         PV.open(username);
         ci.cancel();

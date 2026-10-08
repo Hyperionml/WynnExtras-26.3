@@ -1,19 +1,18 @@
 package julianh06.wynnextras.features.profileviewer.tabs;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
 import julianh06.wynnextras.features.profileviewer.PV;
 import julianh06.wynnextras.features.profileviewer.PVScreen;
 import julianh06.wynnextras.features.profileviewer.data.Global;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.util.Identifier;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class MiscTabWidget extends PVScreen.TabWidget {
-    static Identifier miscBackgroundTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/miscpagebackground.png");
-    static Identifier miscBackgroundTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/miscpagebackground_dark.png");
+    static Identifier miscBackgroundTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/miscpagebackground.png");
+    static Identifier miscBackgroundTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/miscpagebackground_dark.png");
 
     static List<String> gameModeKeys = List.of("huntedContent", "craftsmanContent", "huicContent", "ironmanContent", "ultimateIronmanContent", "hardcoreLegacyLevel", "hardcoreContent", "huichContent", "hicContent", "hichContent");
 
@@ -22,7 +21,7 @@ public class MiscTabWidget extends PVScreen.TabWidget {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if(PV.currentPlayerData == null) return;
         Global data = PV.currentPlayerData.getGlobalData();
         Map<String, Long> rankingData = PV.currentPlayerData.getRanking();

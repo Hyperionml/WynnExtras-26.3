@@ -1,9 +1,10 @@
 package julianh06.wynnextras.compat.wynntils.mixin;
 
 import julianh06.wynnextras.compat.wynntils.WynntilsBankAdapter;
+import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.features.inventory.BankOverlay;
 import julianh06.wynnextras.features.inventory.BankOverlayType;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
@@ -19,12 +20,13 @@ public class ContainerScrollFeatureMixin {
             method = "onInteract",
             at = @At(
                     value = "INVOKE",
-                    target = "Lcom/wynntils/models/containers/type/ScrollableContainerProperty;getScrollButton(Lnet/minecraft/client/gui/screen/ingame/HandledScreen;Z)Ljava/util/Optional;"
+                    target = "Lcom/wynntils/models/containers/type/ScrollableContainerProperty;getScrollButton(Lnet/minecraft/client/gui/screens/inventory/AbstractContainerScreen;Z)Ljava/util/Optional;"
             ),
             require = 0
     )
-    public Optional<Integer> getScrollButton(@Coerce Object instance, HandledScreen<?> screen, boolean previousPage) {
-        if(BankOverlay.currentOverlayType != BankOverlayType.NONE) {
+    public Optional<Integer> getScrollButton(@Coerce Object instance, AbstractContainerScreen<?> screen, boolean previousPage) {
+        if (WynnExtrasConfig.INSTANCE.toggleBankOverlay
+                && BankOverlay.currentOverlayType != BankOverlayType.NONE) {
             return Optional.empty();
         }
         return WynntilsBankAdapter.scrollButton(instance, screen, previousPage);

@@ -6,10 +6,10 @@ import julianh06.wynnextras.event.RenderWorldEvent;
 import julianh06.wynnextras.utils.ChatUtils;
 import julianh06.wynnextras.utils.WEVec;
 import julianh06.wynnextras.utils.render.WorldRenderUtils;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Pair;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import julianh06.wynnextras.compat.client.Tuple;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.awt.*;
@@ -55,15 +55,15 @@ public class ModelDataLogger {
     }
 
     private static final ConcurrentLinkedQueue<String> unknownQueue = new ConcurrentLinkedQueue<>(); // file paths
-    private static final Set<Pair<Text, WEVec>> toRender = new HashSet<>();
+    private static final Set<Tuple<Component, WEVec>> toRender = new HashSet<>();
     private static final Set<Integer> recentHashes = new HashSet<>();
     private static State currentState = State.OFF;
     private static DisplayState displayState = DisplayState.OFF;
 
     @SubscribeEvent
     public void onRender(RenderWorldEvent event) {
-        for (Pair<Text, WEVec> pair : toRender) {
-            WorldRenderUtils.drawText(event, pair.getRight(), pair.getLeft(), 1, false);
+        for (Tuple<Component, WEVec> pair : toRender) {
+            WorldRenderUtils.drawText(event, pair.getB(), pair.getA(), 1, false);
         }
         toRender.clear();
     }
@@ -76,16 +76,16 @@ public class ModelDataLogger {
         return currentState == State.OFF && displayState == DisplayState.OFF;
     }
 
-    public static void addTextToRender(String nameSpace, Vec3d loc) {
+    public static void addTextToRender(String nameSpace, Vec3 loc) {
         if (displayState == DisplayState.ALL || displayState == DisplayState.ONLY_KNOWN) {
-            toRender.add(new Pair<>(Text.literal(nameSpace), new WEVec(loc)));
+            toRender.add(new Tuple<>(Component.literal(nameSpace), new WEVec(loc)));
         }
     }
 
-    public static void addTextToRender(Integer hash, Vec3d loc) {
+    public static void addTextToRender(Integer hash, Vec3 loc) {
         if (displayState == DisplayState.ALL || displayState == DisplayState.ONLY_UNKNOWN) {
             recentHashes.add(hash);
-            toRender.add(new Pair<>(Text.literal(String.valueOf(hash)), new WEVec(loc)));
+            toRender.add(new Tuple<>(Component.literal(String.valueOf(hash)), new WEVec(loc)));
         }
     }
 

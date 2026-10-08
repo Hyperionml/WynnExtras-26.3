@@ -1,26 +1,26 @@
 package julianh06.wynnextras.utils.text;
 
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 
 public final class StyledText {
     public static final StyledText EMPTY = fromString("");
 
-    private final Text component;
+    private final Component component;
 
-    private StyledText(Text component) {
-        this.component = component == null ? Text.empty() : component;
+    private StyledText(Component component) {
+        this.component = component == null ? Component.empty() : component;
     }
 
-    public static StyledText fromComponent(Text component) {
+    public static StyledText fromComponent(Component component) {
         return new StyledText(component);
     }
 
     public static StyledText fromString(String value) {
-        return new StyledText(Text.literal(value == null ? "" : value));
+        return new StyledText(Component.literal(value == null ? "" : value));
     }
 
-    public Text getComponent() {
+    public Component getComponent() {
         return component;
     }
 
@@ -29,7 +29,7 @@ public final class StyledText {
     }
 
     public StyledText withoutFormatting() {
-        return fromString(Formatting.strip(getString()));
+        return fromString(ChatFormatting.stripFormatting(getString()));
     }
 
     @Override

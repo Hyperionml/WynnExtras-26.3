@@ -1,10 +1,9 @@
 package julianh06.wynnextras.utils.path;
 
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-
 import java.util.HashMap;
 import java.util.Map;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
 
 public class Node {
     private final BlockPos pos;
@@ -24,8 +23,8 @@ public class Node {
         return pos;
     }
 
-    public Vec3d getCenterPos() {
-        return pos.toCenterPos();
+    public Vec3 getCenterPos() {
+        return net.minecraft.world.phys.Vec3.atCenterOf(pos);
     }
 
     public Map<Node, Double> getNeighbors() {

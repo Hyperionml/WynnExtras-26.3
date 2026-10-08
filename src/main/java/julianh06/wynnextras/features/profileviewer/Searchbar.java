@@ -1,10 +1,10 @@
 package julianh06.wynnextras.features.profileviewer;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.sounds.SoundEvents;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.utils.UI.TextInputWidget;
-import net.minecraft.sound.SoundEvents;
-import org.lwjgl.glfw.GLFW;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 public class Searchbar extends TextInputWidget {
     public Searchbar(int x, int y, int height, int width) {
@@ -65,7 +65,7 @@ public class Searchbar extends TextInputWidget {
 
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
-        if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && isClickInBounds((int) mx, (int) my)) {
+        if (button == InputCompat.MOUSE_BUTTON_RIGHT && isClickInBounds((int) mx, (int) my)) {
             clearInput();
             MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
             setFocused(true);

@@ -5,16 +5,15 @@ import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.utils.UI.UIUtils;
 import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.wynncraft.menu.MenuType;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.gui.tooltip.HoveredTooltipPositioner;
-import net.minecraft.client.gui.tooltip.TooltipComponent;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import org.lwjgl.glfw.GLFW;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import julianh06.wynnextras.compat.client.InputCompat;
+import com.mojang.blaze3d.platform.InputConstants;
 import java.util.List;
 
 public final class ShoppingListMenuLauncherButton {
@@ -26,7 +25,7 @@ public final class ShoppingListMenuLauncherButton {
     private final UIUtils ui = new UIUtils(null, 1, 0, 0);
     private Bounds bounds = Bounds.hidden();
 
-    public void render(DrawContext context, HandledScreen<?> screen, int mouseX, int mouseY, float delta,
+    public void render(GuiGraphicsExtractor context, AbstractContainerScreen<?> screen, int mouseX, int mouseY, float delta,
                        boolean customBankOverlayActive) {
         ShoppingListScreenContext screenContext = ShoppingListScreenContext.detect(screen, customBankOverlayActive);
         if (!shouldRender(screenContext)) {
@@ -43,30 +42,30 @@ public final class ShoppingListMenuLauncherButton {
         ui.drawCenteredText(label(active), bounds.x() + bounds.width() / 2f, bounds.y() + bounds.height() / 2f, TEXT, 0.75f);
         if (hovered) {
             int toggleKey = WynnExtrasConfig.INSTANCE.shoppingListToggleKey;
-            String keyName = toggleKey == GLFW.GLFW_KEY_UNKNOWN
+            String keyName = toggleKey == InputCompat.KEY_UNKNOWN
                     ? "NOT BOUND"
-                    : InputUtil.Type.KEYSYM.createFromCode(toggleKey).getLocalizedText().getString();
-            List<Text> tooltipLines = toggleKey == GLFW.GLFW_KEY_UNKNOWN
+                    : InputConstants.Type.KEYBOARD.getOrCreate(julianh06.wynnextras.compat.client.InputCompat.nativeKey(toggleKey)).getDisplayName().getString();
+            List<Component> tooltipLines = toggleKey == InputCompat.KEY_UNKNOWN
                     ? List.of(
-                            Text.literal("You can hide this button in the WynnExtras config."),
-                            Text.literal("You can also toggle this list using [" + keyName + "]."),
-                            Text.literal("You can bind this key in the WynnExtras config."))
+                            Component.literal("You can hide this button in the WynnExtras config."),
+                            Component.literal("You can also toggle this list using [" + keyName + "]."),
+                            Component.literal("You can bind this key in the WynnExtras config."))
                     : List.of(
-                            Text.literal("You can hide this button in the WynnExtras config."),
-                            Text.literal("You can also toggle this list using [" + keyName + "]."));
-            context.drawTooltipImmediately(
-                    MinecraftClient.getInstance().textRenderer,
+                            Component.literal("You can hide this button in the WynnExtras config."),
+                            Component.literal("You can also toggle this list using [" + keyName + "]."));
+            context.tooltip(
+                    Minecraft.getInstance().font,
                     tooltipLines.stream()
-                            .map(line -> TooltipComponent.of(line.asOrderedText()))
+                            .map(line -> ClientTooltipComponent.create(line.getVisualOrderText()))
                             .toList(),
                     mouseX,
                     mouseY,
-                    HoveredTooltipPositioner.INSTANCE,
-                    null);
+                    DefaultTooltipPositioner.INSTANCE,
+                    null, false);
         }
     }
 
-    public boolean mouseClicked(double mouseX, double mouseY, int button, HandledScreen<?> screen,
+    public boolean mouseClicked(double mouseX, double mouseY, int button, AbstractContainerScreen<?> screen,
                                 boolean customBankOverlayActive) {
         ShoppingListScreenContext screenContext = ShoppingListScreenContext.detect(screen, customBankOverlayActive);
         if (!shouldRender(screenContext)) {
@@ -78,7 +77,7 @@ public final class ShoppingListMenuLauncherButton {
             return false;
         }
 
-        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (button != InputCompat.MOUSE_BUTTON_LEFT) {
             return false;
         }
 
@@ -117,7 +116,7 @@ public final class ShoppingListMenuLauncherButton {
 
     public void cancelDrag() {}
 
-    public boolean shouldRender(HandledScreen<?> screen, boolean customBankOverlayActive) {
+    public boolean shouldRender(AbstractContainerScreen<?> screen, boolean customBankOverlayActive) {
         return shouldRender(ShoppingListScreenContext.detect(screen, customBankOverlayActive));
     }
 
@@ -194,12 +193,12 @@ public final class ShoppingListMenuLauncherButton {
                 bounds.height());
     }
 
-    private Bounds boundsFor(HandledScreen<?> screen) {
-        MinecraftClient client = MinecraftClient.getInstance();
+    private Bounds boundsFor(AbstractContainerScreen<?> screen) {
+        Minecraft client = Minecraft.getInstance();
         if (client.getWindow() == null) {
             return Bounds.hidden();
         }
-        return bottomLeftBounds(client.getWindow().getScaledWidth(), client.getWindow().getScaledHeight());
+        return bottomLeftBounds(client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight());
     }
 
     public static Bounds bankOverlayDefaultBounds(int screenWidth, int screenHeight) {

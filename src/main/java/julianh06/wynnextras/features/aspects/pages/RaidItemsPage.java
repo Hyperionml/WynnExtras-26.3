@@ -1,6 +1,12 @@
 package julianh06.wynnextras.features.aspects.pages;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.core.ResetTimeConfig;
@@ -10,13 +16,7 @@ import julianh06.wynnextras.features.crafting.data.WynnDataService;
 import julianh06.wynnextras.utils.UI.UIUtils;
 import julianh06.wynnextras.utils.UI.Widget;
 import julianh06.wynnextras.utils.WynncraftApiHandler;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import org.lwjgl.glfw.GLFW;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.time.Duration;
 import java.time.ZoneId;
@@ -49,11 +49,11 @@ public class RaidItemsPage extends PageWidget {
     );
 
     private static final Map<Raid, Identifier> raidTextures = Map.of(
-            Raid.NOTG, Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/notg.png"),
-            Raid.NOL, Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/nol.png"),
-            Raid.TCC, Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/tcc.png"),
-            Raid.TNA, Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/tna.png"),
-            Raid.TWP, Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/twp.png")
+            Raid.NOTG, Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/notg.png"),
+            Raid.NOL, Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/nol.png"),
+            Raid.TCC, Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/tcc.png"),
+            Raid.TNA, Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/tna.png"),
+            Raid.TWP, Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/twp.png")
     );
 
     private static final Pattern POWDER_PATTERN = Pattern.compile("^(AIR|EARTH|FIRE|THUNDER|WATER)\\s+([1-6])$");
@@ -72,7 +72,7 @@ public class RaidItemsPage extends PageWidget {
     private static boolean loading = false;
     private static boolean available = false;
     private static final List<RaidItemsWidget> widgets = new ArrayList<>();
-    private static List<Text> hoveredTooltip = new ArrayList<>();
+    private static List<Component> hoveredTooltip = new ArrayList<>();
 
     private static float hScrollOffset = 0f;
     private static float hScrollTarget = 0f;
@@ -97,7 +97,7 @@ public class RaidItemsPage extends PageWidget {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         hoveredTooltip = new ArrayList<>();
         ensureWidgets();
         fetchOfficialLootPools(false);
@@ -189,11 +189,11 @@ public class RaidItemsPage extends PageWidget {
     }
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if (hoveredTooltip.isEmpty()) return;
         int absX = (int) (mouseX * parent.getMatrixScale());
         int absY = (int) (mouseY * parent.getMatrixScale());
-        ctx.drawTooltip(MinecraftClient.getInstance().textRenderer, hoveredTooltip, Optional.empty(), absX, absY + 20);
+        ctx.setTooltipForNextFrame(Minecraft.getInstance().font, hoveredTooltip, Optional.empty(), absX, absY + 20);
     }
 
     @Override
@@ -227,9 +227,9 @@ public class RaidItemsPage extends PageWidget {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double delta) {
-        long window = MinecraftClient.getInstance().getWindow().getHandle();
-        boolean shiftHeld = GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS
-                || GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
+        long window = Minecraft.getInstance().getWindow().handle();
+        boolean shiftHeld = InputCompat.keyState(window, InputCompat.KEY_LEFT_SHIFT) == InputCompat.PRESS
+                || InputCompat.keyState(window, InputCompat.KEY_RIGHT_SHIFT) == InputCompat.PRESS;
 
         if (shiftHeld && hScrollMax > 0) {
             if (delta > 0) hScrollTarget -= 60f;
@@ -282,7 +282,7 @@ public class RaidItemsPage extends PageWidget {
             }
 
             boolean newAvailable = newRaidRewards.values().stream().anyMatch(items -> !items.isEmpty());
-            MinecraftClient.getInstance().execute(() -> {
+            Minecraft.getInstance().execute(() -> {
                 raidRewards.clear();
                 raidRewards.putAll(newRaidRewards);
                 available = newAvailable;
@@ -323,7 +323,7 @@ public class RaidItemsPage extends PageWidget {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawVanillaPanel(x, y, width, height, 12, 17, 17, 100, 18);
 
             Identifier texture = raidTextures.get(raid);
@@ -382,7 +382,7 @@ public class RaidItemsPage extends PageWidget {
             scrollBarWidget.draw(ctx, mouseX, mouseY, tickDelta, ui);
         }
 
-        private float drawShinyItems(DrawContext ctx, float textX, float textY, List<LootrunLootPoolData.LootrunItem> items,
+        private float drawShinyItems(GuiGraphicsExtractor ctx, float textX, float textY, List<LootrunLootPoolData.LootrunItem> items,
                                      int mouseX, int mouseY, int listTop, int contentHeight) {
             List<LootrunLootPoolData.LootrunItem> filtered = items.stream()
                     .filter(item -> "shiny".equals(item.type))
@@ -390,7 +390,7 @@ public class RaidItemsPage extends PageWidget {
             return drawItems(ctx, textX, textY, filtered, mouseX, mouseY, listTop, contentHeight);
         }
 
-        private float drawItemsByRarity(DrawContext ctx, float textX, float textY, List<LootrunLootPoolData.LootrunItem> items,
+        private float drawItemsByRarity(GuiGraphicsExtractor ctx, float textX, float textY, List<LootrunLootPoolData.LootrunItem> items,
                                         String rarity, int mouseX, int mouseY, int listTop, int contentHeight) {
             List<LootrunLootPoolData.LootrunItem> filtered = items.stream()
                     .filter(item -> rarity.equals(item.rarity))
@@ -402,7 +402,7 @@ public class RaidItemsPage extends PageWidget {
             return drawItems(ctx, textX, textY, filtered, mouseX, mouseY, listTop, contentHeight);
         }
 
-        private float drawTypeItems(DrawContext ctx, float textX, float textY, List<LootrunLootPoolData.LootrunItem> items,
+        private float drawTypeItems(GuiGraphicsExtractor ctx, float textX, float textY, List<LootrunLootPoolData.LootrunItem> items,
                                     String type, int mouseX, int mouseY, int listTop, int contentHeight) {
             List<LootrunLootPoolData.LootrunItem> filtered = items.stream()
                     .filter(item -> type.equalsIgnoreCase(item.rewardType))
@@ -410,7 +410,7 @@ public class RaidItemsPage extends PageWidget {
             return drawItems(ctx, textX, textY, filtered, mouseX, mouseY, listTop, contentHeight);
         }
 
-        private float drawCorkianAmplifierItems(DrawContext ctx, float textX, float textY, List<LootrunLootPoolData.LootrunItem> items,
+        private float drawCorkianAmplifierItems(GuiGraphicsExtractor ctx, float textX, float textY, List<LootrunLootPoolData.LootrunItem> items,
                                                 int mouseX, int mouseY, int listTop, int contentHeight) {
             List<LootrunLootPoolData.LootrunItem> filtered = items.stream()
                     .filter(RaidItemsPage::isCorkianAmplifier)
@@ -418,7 +418,7 @@ public class RaidItemsPage extends PageWidget {
             return drawItems(ctx, textX, textY, filtered, mouseX, mouseY, listTop, contentHeight);
         }
 
-        private float drawOtherItems(DrawContext ctx, float textX, float textY, List<LootrunLootPoolData.LootrunItem> items,
+        private float drawOtherItems(GuiGraphicsExtractor ctx, float textX, float textY, List<LootrunLootPoolData.LootrunItem> items,
                                      int mouseX, int mouseY, int listTop, int contentHeight) {
             List<LootrunLootPoolData.LootrunItem> filtered = items.stream()
                     .filter(item -> item.rarity == null || item.rarity.isEmpty())
@@ -430,7 +430,7 @@ public class RaidItemsPage extends PageWidget {
             return drawItems(ctx, textX, textY, filtered, mouseX, mouseY, listTop, contentHeight);
         }
 
-        private float drawItems(DrawContext ctx, float textX, float textY, List<LootrunLootPoolData.LootrunItem> items,
+        private float drawItems(GuiGraphicsExtractor ctx, float textX, float textY, List<LootrunLootPoolData.LootrunItem> items,
                                 int mouseX, int mouseY, int listTop, int contentHeight) {
             if (items.isEmpty()) return textY;
 
@@ -443,7 +443,7 @@ public class RaidItemsPage extends PageWidget {
             return textY + 25;
         }
 
-        private float drawItem(DrawContext ctx, float textX, float textY, LootrunLootPoolData.LootrunItem item,
+        private float drawItem(GuiGraphicsExtractor ctx, float textX, float textY, LootrunLootPoolData.LootrunItem item,
                                int mouseX, int mouseY, int listTop, int contentHeight, int itemSpacing) {
             if (textY + itemSpacing >= listTop && textY <= listTop + contentHeight) {
                 boolean hovering = mouseX * ui.getScaleFactorF() >= textX + 12 && mouseX * ui.getScaleFactorF() <= x + width - 12
@@ -500,10 +500,10 @@ public class RaidItemsPage extends PageWidget {
         }
 
         private String truncate(String text, int maxWidth, float textScale) {
-            TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+            Font renderer = Minecraft.getInstance().font;
             int scaledMaxWidth = Math.max(0, (int) (maxWidth / textScale));
-            if (renderer.getWidth(text) <= scaledMaxWidth) return text;
-            return renderer.trimToWidth(text, Math.max(0, scaledMaxWidth - renderer.getWidth("..."))) + "...";
+            if (renderer.width(text) <= scaledMaxWidth) return text;
+            return renderer.plainSubstrByWidth(text, Math.max(0, scaledMaxWidth - renderer.width("..."))) + "...";
         }
 
         @Override
@@ -550,7 +550,7 @@ public class RaidItemsPage extends PageWidget {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 currentMouseY = mouseY;
                 int scrollAreaHeight = height;
                 int buttonHeight;
@@ -596,7 +596,7 @@ public class RaidItemsPage extends PageWidget {
                 }
 
                 @Override
-                protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+                protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                     ui.drawRect(x, y, width, height, UIUtils.getVanillaSeparatorColor(hovered || isHold));
                 }
 
@@ -682,7 +682,7 @@ public class RaidItemsPage extends PageWidget {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawButton(x, y, width, height, hovered);
             ui.drawCenteredText("Reload raid items", x + width / 2f, y + height / 2f);
         }
@@ -736,7 +736,7 @@ public class RaidItemsPage extends PageWidget {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             currentMouseX = mouseX;
             ui.drawSliderBackground(x, y, width, height);
 
@@ -780,7 +780,7 @@ public class RaidItemsPage extends PageWidget {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 ui.drawButton(x, y, width, height, hovered || isHold);
             }
 

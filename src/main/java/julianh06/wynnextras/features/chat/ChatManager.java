@@ -5,12 +5,10 @@ import julianh06.wynnextras.annotations.WEModule;
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.core.loader.WELoader;
 import julianh06.wynnextras.event.ChatEvent;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import net.neoforged.bus.api.SubscribeEvent;
 import julianh06.wynnextras.event.KeyInputEvent;
-import org.lwjgl.glfw.GLFW;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 @WEModule
 public class ChatManager implements WELoader {
@@ -32,7 +30,7 @@ public class ChatManager implements WELoader {
         }
 
         MinecraftUtils.sendMessageToClient(
-             WynnExtras.addWynnExtrasPrefix(Text.of("§dYou are now in the " + channelColor + channel.name() + "§d channel"))
+             WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty("§dYou are now in the " + channelColor + channel.name() + "§d channel"))
         );
     }
 
@@ -43,7 +41,7 @@ public class ChatManager implements WELoader {
        observeIncomingMessage(event.message);
     }
 
-    public static void observeIncomingMessage(Text message) {
+    public static void observeIncomingMessage(Component message) {
        String msg = message.getString().toLowerCase();
 
        boolean containsCancel = msg.contains("cancel") || msg.contains("clear");
@@ -59,7 +57,7 @@ public class ChatManager implements WELoader {
     }
 
     private static void handleEscape(KeyInputEvent event) {
-        if (event.getKey() == GLFW.GLFW_KEY_ESCAPE && event.getAction() == GLFW.GLFW_PRESS) {
+        if (event.getKey() == InputCompat.KEY_ESCAPE && event.getAction() == InputCompat.PRESS) {
             awaitingRawInput = false;
         }
     }

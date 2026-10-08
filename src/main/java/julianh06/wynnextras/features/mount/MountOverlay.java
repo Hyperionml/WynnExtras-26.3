@@ -10,19 +10,18 @@ import julianh06.wynnextras.utils.UI.Widget;
 import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.utils.render.HorizontalAlignment;
 import julianh06.wynnextras.utils.render.VerticalAlignment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.item.tooltip.TooltipType;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.ContainerScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.TooltipFlag;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
@@ -97,8 +96,8 @@ public class MountOverlay {
 
     private record PendingInput(String inputSignature, long since) {}
 
-    public static void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        GenericContainerScreen container = getMountFeederScreen();
+    public static void render(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        ContainerScreen container = getMountFeederScreen();
         if (container == null) {
             clearScreenState();
             return;
@@ -116,7 +115,7 @@ public class MountOverlay {
             }
         }
 
-        List<Slot> slots = container.getScreenHandler().slots;
+        List<Slot> slots = container.getMenu().slots;
         if (slots.size() < ROW_SLOTS[ROW_SLOTS.length - 1] + SUBSCRIBER_SESSION_SIZE + MATERIAL_SLOT_OFFSET) {
             return;
         }
@@ -147,7 +146,7 @@ public class MountOverlay {
                 .draw(context, mouseX, mouseY, delta, ui);
 
         TimerModeToggleWidget timerToggle = new TimerModeToggleWidget(
-                screen.getX() + screen.getBackgroundWidth() + 5, allY);
+                screen.getX() + screen.getImageWidth() + 5, allY);
         INTERACTIVE_CONTROLS.add(timerToggle);
         timerToggle.draw(context, mouseX, mouseY, delta, ui);
 
@@ -163,7 +162,7 @@ public class MountOverlay {
                 materialSlots.add(slots.get(ROW_SLOTS[row] + MATERIAL_SLOT_OFFSET + index));
             }
             List<MaterialPick> picks = getPlan(row, saddleSlot, materialSlots);
-            Map<MountStat, StatEntry> stats = getStats(saddleSlot.getStack());
+            Map<MountStat, StatEntry> stats = getStats(saddleSlot.getItem());
             LevelControlWidget control = new LevelControlWidget(controlX, rowY, row);
             INTERACTIVE_CONTROLS.add(control);
             control.draw(context, mouseX, mouseY, delta, ui);
@@ -174,7 +173,7 @@ public class MountOverlay {
                 role.draw(context, mouseX, mouseY, delta, ui);
             }
             List<Slot> previewSlots = materialSlots.stream()
-                    .filter(slot -> isPreviewable(slot.getStack()))
+                    .filter(slot -> isPreviewable(slot.getItem()))
                     .toList();
             int visibleCount = Math.min(previewSlots.size(), picks.size());
             for (int index = 0; index < visibleCount; index++) {
@@ -190,15 +189,15 @@ public class MountOverlay {
             }
 
             List<InsertedMaterial> insertedMaterials = materialSlots.stream()
-                    .map(slot -> identifyMaterial(slot.getStack()))
+                    .map(slot -> identifyMaterial(slot.getItem()))
                     .filter(inserted -> inserted != null)
                     .toList();
             String status = stats.size() == STAT_COUNT
-                    ? feedingStatus(saddleSlot.getStack(), stats, insertedMaterials, picks, selectedLevels[row])
+                    ? feedingStatus(saddleSlot.getItem(), stats, insertedMaterials, picks, selectedLevels[row])
                     : "";
             if (!status.isEmpty()) {
                 ExtraMaterialsWidget extra = new ExtraMaterialsWidget(
-                        screen.getX() + screen.getBackgroundWidth() + 5,
+                        screen.getX() + screen.getImageWidth() + 5,
                         rowY + 5,
                         picks.subList(visibleCount, picks.size()),
                         status);
@@ -245,7 +244,7 @@ public class MountOverlay {
     }
 
     public static boolean mouseClicked(double mouseX, double mouseY, int button) {
-        GenericContainerScreen container = getMountFeederScreen();
+        ContainerScreen container = getMountFeederScreen();
         if (button != 0 || container == null || activeScreen != container) return false;
         for (int i = INTERACTIVE_CONTROLS.size() - 1; i >= 0; i--) {
             if (INTERACTIVE_CONTROLS.get(i).mouseClicked(mouseX, mouseY, button)) {
@@ -256,11 +255,11 @@ public class MountOverlay {
         return false;
     }
 
-    private static GenericContainerScreen getMountFeederScreen() {
+    private static ContainerScreen getMountFeederScreen() {
         if (!WynnExtrasConfig.INSTANCE.showMountHelper) return null;
-        Screen currentScreen = MinecraftClient.getInstance().currentScreen;
-        if (!(currentScreen instanceof GenericContainerScreen container)) return null;
-        List<Text> siblings = currentScreen.getTitle().getSiblings();
+        Screen currentScreen = Minecraft.getInstance().gui.screen();
+        if (!(currentScreen instanceof ContainerScreen container)) return null;
+        List<Component> siblings = currentScreen.getTitle().getSiblings();
         if (siblings == null || siblings.isEmpty()) return null;
         return MOUNT_FEEDER_ICON.equals(siblings.getFirst().getString()) ? container : null;
     }
@@ -313,7 +312,7 @@ public class MountOverlay {
     }
 
     private static List<MaterialPick> getPlan(int row, Slot saddleSlot, List<Slot> materialSlots) {
-        ItemStack saddle = saddleSlot.getStack();
+        ItemStack saddle = saddleSlot.getItem();
         if (saddle == null || saddle.isEmpty()) {
             baseMountRows[row] = false;
             PLAN_CACHE.remove(row);
@@ -324,7 +323,7 @@ public class MountOverlay {
         String inputSignature = inputSignature(materialSlots);
         List<InsertedMaterial> insertedMaterials = new ArrayList<>();
         for (Slot materialSlot : materialSlots) {
-            InsertedMaterial inserted = identifyMaterial(materialSlot.getStack());
+            InsertedMaterial inserted = identifyMaterial(materialSlot.getItem());
             if (inserted != null) insertedMaterials.add(inserted);
         }
         Map<MountStat, StatEntry> stats = getStats(saddle);
@@ -418,14 +417,14 @@ public class MountOverlay {
 
     private static boolean hasOnlyRecognizedMaterials(List<Slot> materialSlots) {
         for (Slot slot : materialSlots) {
-            ItemStack stack = slot.getStack();
+            ItemStack stack = slot.getItem();
             if (!isPreviewable(stack) && identifyMaterial(stack) == null) return false;
         }
         return true;
     }
 
     private static String mountSignature(ItemStack saddle, Map<MountStat, StatEntry> stats) {
-        StringBuilder signature = new StringBuilder(saddle.getName().getString());
+        StringBuilder signature = new StringBuilder(saddle.getHoverName().getString());
         for (MountStat stat : MountStat.values()) {
             StatEntry entry = stats.get(stat);
             signature.append('|').append(entry.limit()).append('/').append(entry.max());
@@ -473,7 +472,7 @@ public class MountOverlay {
     private static String inputSignature(List<Slot> materialSlots) {
         StringBuilder signature = new StringBuilder();
         for (Slot slot : materialSlots) {
-            ItemStack stack = slot.getStack();
+            ItemStack stack = slot.getItem();
             if (stack == null || stack.isEmpty()) {
                 signature.append('|');
             } else {
@@ -481,7 +480,7 @@ public class MountOverlay {
                 if (material != null) {
                     signature.append('|').append(material.type()).append(':').append(material.level());
                 } else {
-                    signature.append('|').append(stack.getName().getString()).append(':').append(stack.getCount());
+                    signature.append('|').append(stack.getHoverName().getString()).append(':').append(stack.getCount());
                 }
             }
         }
@@ -490,7 +489,7 @@ public class MountOverlay {
 
     private static InsertedMaterial identifyMaterial(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return null;
-        String itemName = stack.getName().getString().toLowerCase(Locale.ROOT);
+        String itemName = stack.getHoverName().getString().toLowerCase(Locale.ROOT);
         for (int level : MATERIAL_LEVELS) {
             for (MaterialType type : MaterialType.values()) {
                 if (itemName.contains(type.getName(level).toLowerCase(Locale.ROOT))) {
@@ -561,8 +560,8 @@ public class MountOverlay {
     }
 
     private static Long getTooltipTimeSeconds(ItemStack saddle, Pattern pattern) {
-        for (Text line : saddle.getTooltip(Item.TooltipContext.DEFAULT, MinecraftClient.getInstance().player,
-                TooltipType.BASIC)) {
+        for (Component line : saddle.getTooltipLines(Item.TooltipContext.EMPTY, Minecraft.getInstance().player,
+                TooltipFlag.NORMAL)) {
             Matcher matcher = pattern.matcher(line.getString());
             if (!matcher.find()) continue;
             long hours = parseTimePart(matcher.group("hours"));
@@ -692,10 +691,10 @@ public class MountOverlay {
     }
 
     public static Map<MountStat, StatEntry> getStats(ItemStack stack) {
-        List<Text> tooltip = stack.getTooltip(Item.TooltipContext.DEFAULT, MinecraftClient.getInstance().player,
-                TooltipType.BASIC);
+        List<Component> tooltip = stack.getTooltipLines(Item.TooltipContext.EMPTY, Minecraft.getInstance().player,
+                TooltipFlag.NORMAL);
         Map<MountStat, StatEntry> result = new EnumMap<>(MountStat.class);
-        for (Text line : tooltip) {
+        for (Component line : tooltip) {
             Matcher matcher = MountStat.PATTERN.matcher(line.getString());
             if (!matcher.matches()) continue;
             MountStat stat = MountStat.fromString(matcher.group("stat"));
@@ -898,7 +897,7 @@ public class MountOverlay {
     private static boolean hasLockedBonusColumns(List<Slot> slots) {
         for (int rowSlot : ROW_SLOTS) {
             for (int offset = STANDARD_SESSION_SIZE; offset < SUBSCRIBER_SESSION_SIZE; offset++) {
-                ItemStack stack = slots.get(rowSlot + MATERIAL_SLOT_OFFSET + offset).getStack();
+                ItemStack stack = slots.get(rowSlot + MATERIAL_SLOT_OFFSET + offset).getItem();
                 if (isMembershipLock(stack)) return true;
             }
         }
@@ -906,14 +905,14 @@ public class MountOverlay {
     }
 
     private static boolean isMembershipLock(ItemStack stack) {
-        if (stack == null || stack.isEmpty() || !stack.isOf(Items.POTION)) return false;
-        Text customName = stack.getCustomName();
+        if (stack == null || stack.isEmpty() || !stack.is(Items.POTION)) return false;
+        Component customName = stack.getCustomName();
         if (customName != null
                 && customName.getString().toLowerCase(Locale.ROOT).contains("silverbull membership")) return true;
 
         try {
-            for (Text line : stack.getTooltip(Item.TooltipContext.DEFAULT, MinecraftClient.getInstance().player,
-                    TooltipType.BASIC)) {
+            for (Component line : stack.getTooltipLines(Item.TooltipContext.EMPTY, Minecraft.getInstance().player,
+                    TooltipFlag.NORMAL)) {
                 String text = line.getString().toLowerCase(Locale.ROOT);
                 if (text.contains("silverbull membership")
                         || text.contains("required to use this slot")) return true;
@@ -925,7 +924,7 @@ public class MountOverlay {
 
     private static boolean isPreviewable(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return true;
-        return !containsAsciiLetterOrDigit(stack.getName().getString());
+        return !containsAsciiLetterOrDigit(stack.getHoverName().getString());
     }
 
     private static boolean containsAsciiLetterOrDigit(String text) {
@@ -949,7 +948,7 @@ public class MountOverlay {
         }
 
         @Override
-        protected void drawContent(DrawContext context, int mouseX, int mouseY, float delta) {
+        protected void drawContent(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
             ui.drawCenteredText(row < 0 ? "All" : String.valueOf(selectedLevels[row]),
                     x + width / 2f, y + height / 2f, CustomColor.fromHexString("FFFFFF"), 1);
         }
@@ -961,7 +960,7 @@ public class MountOverlay {
         }
 
         @Override
-        protected void drawContent(DrawContext context, int mouseX, int mouseY, float delta) {
+        protected void drawContent(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
             ui.drawButton(x, y, width, height, hovered);
             ui.drawCenteredText(breedingTimerMode ? "Timer: Breed" : "Timer: Refill",
                     x + width / 2f, y + height / 2f,
@@ -982,7 +981,7 @@ public class MountOverlay {
         }
 
         @Override
-        protected void drawContent(DrawContext context, int mouseX, int mouseY, float delta) {
+        protected void drawContent(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
             if(!advancedMode) {
                 ui.drawVanillaPanel(x, y - 7, width, height + 3, 4, 24, 24, 15, 24);
             } else {
@@ -1003,7 +1002,7 @@ public class MountOverlay {
         }
 
         @Override
-        protected void drawContent(DrawContext context, int mouseX, int mouseY, float delta) {
+        protected void drawContent(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
             ui.drawButton(x, y, width, height, hovered);
             ui.drawCenteredText(direction < 0 ? "-" : "+", x + width / 2f, y + height / 2f,
                     CustomColor.fromHexString("FFFFFF"), 1);
@@ -1026,7 +1025,7 @@ public class MountOverlay {
         }
 
         @Override
-        protected void drawContent(DrawContext context, int mouseX, int mouseY, float delta) {
+        protected void drawContent(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
             ui.drawButton(x, y, width, height, hovered);
             ui.drawCenteredText(sevenFedRows[row] ? "7-fed" : "3-fed", x + width / 2f, y + height / 2f,
                     CustomColor.fromHexString(sevenFedRows[row] ? "55FFFF" : "FFAA00"), 0.75f);
@@ -1046,7 +1045,7 @@ public class MountOverlay {
         }
 
         @Override
-        protected void drawContent(DrawContext context, int mouseX, int mouseY, float delta) {
+        protected void drawContent(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
             ui.drawButton(x, y, width, height, hovered);
             ui.drawCenteredText(advancedMode ? "Adv: ON" : "Adv: OFF", x + width / 2f, y + height / 2f,
                     CustomColor.fromHexString(advancedMode ? "55FF55" : "AAAAAA"), 0.9f);
@@ -1066,28 +1065,28 @@ public class MountOverlay {
         }
 
         @Override
-        protected void drawContent(DrawContext context, int mouseX, int mouseY, float delta) {
+        protected void drawContent(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
             ui.drawButton(x, y, width, height, hovered);
             ui.drawCenteredText("i", x + width / 2f, y + height / 2f,
                     CustomColor.fromHexString("55FFFF"), 0.85f);
         }
 
-        private void drawTooltip(DrawContext context, int mouseX, int mouseY) {
+        private void drawTooltip(GuiGraphicsExtractor context, int mouseX, int mouseY) {
             if (!hovered) return;
-            List<Text> lines = List.of(
+            List<Component> lines = List.of(
                     WynnExtras.addWynnExtrasPrefix("§6Advanced 7 + 3 strategy"),
-                    Text.literal("§8As the title already states, this is an advanced niche strategy."),
-                    Text.literal("§8The average user will not need this"),
-                    Text.literal("Explanation:"),
-                    Text.literal("Prepare one fresh mount with 3 materials"),
-                    Text.literal("and another with 7, then breed them together."),
-                    Text.literal("The first feeds spread points across the selected"),
-                    Text.literal("stats. After breeding, only those stats are maxed."),
-                    Text.literal("Continue by breeding the results in a pyramid."),
-                    Text.literal("This uses more saddles and needs more frequent"),
-                    Text.literal("feeder visits, but is designed to save time."),
-                    Text.literal("The 3-fed/7-fed limit only applies to unbred mounts."));
-            context.drawTooltip(MinecraftClient.getInstance().textRenderer, lines, mouseX, mouseY);
+                    Component.literal("§8As the title already states, this is an advanced niche strategy."),
+                    Component.literal("§8The average user will not need this"),
+                    Component.literal("Explanation:"),
+                    Component.literal("Prepare one fresh mount with 3 materials"),
+                    Component.literal("and another with 7, then breed them together."),
+                    Component.literal("The first feeds spread points across the selected"),
+                    Component.literal("stats. After breeding, only those stats are maxed."),
+                    Component.literal("Continue by breeding the results in a pyramid."),
+                    Component.literal("This uses more saddles and needs more frequent"),
+                    Component.literal("feeder visits, but is designed to save time."),
+                    Component.literal("The 3-fed/7-fed limit only applies to unbred mounts."));
+            context.setComponentTooltipForNextFrame(Minecraft.getInstance().font, lines, mouseX, mouseY);
         }
     }
 
@@ -1097,7 +1096,7 @@ public class MountOverlay {
         }
 
         @Override
-        protected void drawContent(DrawContext context, int mouseX, int mouseY, float delta) {
+        protected void drawContent(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
             ui.drawCenteredText("Target stats", x + width / 2f, y + height / 2f,
                     CustomColor.fromHexString("FFAA00"), 0.8f);
         }
@@ -1112,7 +1111,7 @@ public class MountOverlay {
         }
 
         @Override
-        protected void drawContent(DrawContext context, int mouseX, int mouseY, float delta) {
+        protected void drawContent(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
             ui.drawButton(x, y, width, height, hovered);
             ui.drawCenteredText(STAT_NAMES[stat], x + width / 2f, y + height / 2f,
                     CustomColor.fromHexString(selectedStats[stat] ? "55FF55" : "777777"), 0.65f);
@@ -1137,13 +1136,13 @@ public class MountOverlay {
         }
 
         @Override
-        protected void drawContent(DrawContext context, int mouseX, int mouseY, float delta) {
+        protected void drawContent(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
             ui.drawImage(texture, x, y, 16, 16, PREVIEW_ALPHA);
         }
 
-        private void drawTooltip(DrawContext context, int mouseX, int mouseY) {
+        private void drawTooltip(GuiGraphicsExtractor context, int mouseX, int mouseY) {
             if (!hovered) return;
-            context.drawTooltip(Text.literal("Recommended material: " + materialName), mouseX, mouseY);
+            context.setTooltipForNextFrame(Component.literal("Recommended material: " + materialName), mouseX, mouseY);
         }
     }
 
@@ -1152,7 +1151,7 @@ public class MountOverlay {
         private final String status;
 
         private ExtraMaterialsWidget(int x, int y, List<MaterialPick> materials, String status) {
-            super(x, y, MinecraftClient.getInstance().textRenderer.getWidth(displayText(materials.size(), status)) + 2, 10);
+            super(x, y, Minecraft.getInstance().font.width(displayText(materials.size(), status)) + 2, 10);
             this.materials = List.copyOf(materials);
             this.status = status;
         }
@@ -1164,24 +1163,24 @@ public class MountOverlay {
         }
 
         @Override
-        protected void drawContent(DrawContext context, int mouseX, int mouseY, float delta) {
+        protected void drawContent(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
             String materialText = materials.isEmpty() ? "" : "§6+" + materials.size();
             String separator = materials.isEmpty() || status.isEmpty() ? "" : " §7| ";
             String statusText = status.equals("Ready to breed") ? "§a" + status : "§e" + status;
             ui.drawText(materialText + separator + statusText, x, y, CustomColor.fromHexString("FFFFFF"), 1);
         }
 
-        private void drawTooltip(DrawContext context, int mouseX, int mouseY) {
+        private void drawTooltip(GuiGraphicsExtractor context, int mouseX, int mouseY) {
             if (!hovered || materials.isEmpty()) return;
             Map<String, Integer> grouped = new LinkedHashMap<>();
             for (MaterialPick material : materials) {
                 grouped.merge(material.name(), 1, Integer::sum);
             }
-            List<Text> lines = new ArrayList<>();
+            List<Component> lines = new ArrayList<>();
             lines.add(WynnExtras.addWynnExtrasPrefix("§6Mount helper"));
-            lines.add(Text.literal("§7Remaining:"));
-            grouped.forEach((name, quantity) -> lines.add(Text.literal(quantity + "x " + name)));
-            context.drawTooltip(MinecraftClient.getInstance().textRenderer, lines, mouseX, mouseY);
+            lines.add(Component.literal("§7Remaining:"));
+            grouped.forEach((name, quantity) -> lines.add(Component.literal(quantity + "x " + name)));
+            context.setComponentTooltipForNextFrame(Minecraft.getInstance().font, lines, mouseX, mouseY);
         }
     }
 }

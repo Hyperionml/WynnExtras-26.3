@@ -3,6 +3,15 @@ package julianh06.wynnextras.features.profileviewer.tabs;
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.compat.wynntils.WynntilsCompat;
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.features.aspects.AspectUtils;
 import julianh06.wynnextras.features.profileviewer.PV;
@@ -14,16 +23,6 @@ import julianh06.wynnextras.features.profileviewer.data.Aspect;
 import julianh06.wynnextras.features.profileviewer.data.User;
 import julianh06.wynnextras.utils.UI.UIUtils;
 import julianh06.wynnextras.utils.UI.Widget;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.tooltip.TooltipType;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -34,17 +33,17 @@ import java.util.concurrent.atomic.AtomicReference;
 import static julianh06.wynnextras.features.profileviewer.PV.openedAspectPage;
 
 public class AspectsTabWidget extends PVScreen.TabWidget{
-    static Identifier xpbarborder = Identifier.of("wynnextras", "textures/gui/guildviewer/xpbarborder.png");
-    static Identifier xpbarborder_dark = Identifier.of("wynnextras", "textures/gui/guildviewer/xpbarborder_dark.png");
-    static Identifier xpbarbackground = Identifier.of("wynnextras", "textures/gui/guildviewer/xpbarbackground.png");
-    static Identifier xpbarbackground_dark = Identifier.of("wynnextras", "textures/gui/guildviewer/xpbarbackground_dark.png");
-    static Identifier xpbarprogress = Identifier.of("wynnextras", "textures/gui/guildviewer/xpbarprogress.png");
+    static Identifier xpbarborder = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/guildviewer/xpbarborder.png");
+    static Identifier xpbarborder_dark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/guildviewer/xpbarborder_dark.png");
+    static Identifier xpbarbackground = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/guildviewer/xpbarbackground.png");
+    static Identifier xpbarbackground_dark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/guildviewer/xpbarbackground_dark.png");
+    static Identifier xpbarprogress = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/guildviewer/xpbarprogress.png");
 
-    static Identifier rankingBackgroundWideTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/rankingbackgroundwide_dark.png");
-    static Identifier rankingBackgroundWideTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/rankingbackgroundwide.png");
+    static Identifier rankingBackgroundWideTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/rankingbackgroundwide_dark.png");
+    static Identifier rankingBackgroundWideTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/rankingbackgroundwide.png");
 
-    static Identifier dungeonBackgroundTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/aspecttabbackground.png");
-    static Identifier dungeonBackgroundTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/aspecttabbackground_dark.png");
+    static Identifier dungeonBackgroundTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/aspecttabbackground.png");
+    static Identifier dungeonBackgroundTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/aspecttabbackground_dark.png");
 
     private static ItemStack currentHovered;
     private static final float WYNNTILS_ITEM_BACKGROUND_SIZE = 180f;
@@ -69,7 +68,7 @@ public class AspectsTabWidget extends PVScreen.TabWidget{
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         currentHovered = null;
         if (PV.currentPlayerData == null) return;
 
@@ -369,11 +368,11 @@ public class AspectsTabWidget extends PVScreen.TabWidget{
 
         if(currentHovered == null) return;
 
-        ctx.getMatrices().pushMatrix();
-        ctx.getMatrices().scale((float)(1.0 / PVScreen.currentMatrixScale), (float)(1.0 / PVScreen.currentMatrixScale));
-        ctx.drawTooltip(MinecraftClient.getInstance().textRenderer, currentHovered.getTooltip(Item.TooltipContext.DEFAULT, MinecraftUtils.player(), TooltipType.BASIC),
+        ctx.pose().pushMatrix();
+        ctx.pose().scale((float)(1.0 / PVScreen.currentMatrixScale), (float)(1.0 / PVScreen.currentMatrixScale));
+        ctx.setComponentTooltipForNextFrame(Minecraft.getInstance().font, currentHovered.getTooltipLines(Item.TooltipContext.EMPTY, MinecraftUtils.player(), TooltipFlag.NORMAL),
                 (int)(mouseX * PVScreen.currentMatrixScale), (int)(mouseY * PVScreen.currentMatrixScale));
-        ctx.getMatrices().popMatrix();
+        ctx.pose().popMatrix();
     }
 
     private static int getAspectAmountForClass(Page page, List<ApiAspect> warriorAspects, List<ApiAspect> shamanAspects, List<ApiAspect> mageAspects, List<ApiAspect> archerAspects, List<ApiAspect> assassinAspects) {
@@ -387,7 +386,7 @@ public class AspectsTabWidget extends PVScreen.TabWidget{
         };
     }
 
-    private static void drawProgressBar(int x, int y, int width, int height, float textScale, float progress, DrawContext ctx, UIUtils ui) {
+    private static void drawProgressBar(int x, int y, int width, int height, float textScale, float progress, GuiGraphicsExtractor ctx, UIUtils ui) {
         PVScreen.DarkModeToggleWidget.drawImageWithFade(xpbarbackground_dark, xpbarbackground,  x, y, width, height, ui);
 
         ctx.enableScissor((int) ui.sx(x), (int) ui.sy(y), (int) ui.sx(x + width * (progress)), (int) ui.sy(y + height));
@@ -417,10 +416,10 @@ public class AspectsTabWidget extends PVScreen.TabWidget{
     }
 
     private static class AspectsTabPageButton extends Widget {
-        static Identifier classBackgroundTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundinactive.png");
-        static Identifier classBackgroundTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundinactive_dark.png");
-        static Identifier classBackgroundTextureHovered = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundhovered.png");
-        static Identifier classBackgroundTextureHoveredDark = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundhovered_dark.png");
+        static Identifier classBackgroundTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundinactive.png");
+        static Identifier classBackgroundTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundinactive_dark.png");
+        static Identifier classBackgroundTextureHovered = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundhovered.png");
+        static Identifier classBackgroundTextureHoveredDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundhovered_dark.png");
         Page page;
         private final Runnable action;
 
@@ -441,7 +440,7 @@ public class AspectsTabWidget extends PVScreen.TabWidget{
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             float fade = PVScreen.DarkModeToggleWidget.fade;
             if(hovered) {
                 ui.drawImage(classBackgroundTextureHovered, x, y, width, height, 0, 10, 130, 44, 130, 54, 1f - fade);
@@ -482,7 +481,7 @@ public class AspectsTabWidget extends PVScreen.TabWidget{
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             if(aspect == null) return;
             if(!aspect.getRequiredClass().equals(currentPage.toString().toLowerCase())) {
                 return;
@@ -572,14 +571,14 @@ public class AspectsTabWidget extends PVScreen.TabWidget{
             else {
                 stack = AspectUtils.toItemStack(aspect, isMaxed(playerAspect), tierInt);
                 try {
-                    stack.set(DataComponentTypes.CUSTOM_NAME, Text.of(stack.getCustomName().getString() + " [Tier " + tierInt + "]"));
+                    stack.set(DataComponents.CUSTOM_NAME, Component.nullToEmpty(stack.getCustomName().getString() + " [Tier " + tierInt + "]"));
                 } catch (Exception ignored) {}
             }
 
-            ctx.getMatrices().pushMatrix();
-            ctx.getMatrices().scale(5 / ui.getScaleFactorF(), 5 / ui.getScaleFactorF());
-            ctx.drawItem(stack, x / 5 + 3, y / 5 + 2);
-            ctx.getMatrices().popMatrix();
+            ctx.pose().pushMatrix();
+            ctx.pose().scale(5 / ui.getScaleFactorF(), 5 / ui.getScaleFactorF());
+            ctx.item(stack, x / 5 + 3, y / 5 + 2);
+            ctx.pose().popMatrix();
 
             if(playerAspect == null || playerAspect.getAmount() <= 1) {
                 drawItemBackground(ctx, LOCKED_ASPECT_TINT);
@@ -595,7 +594,7 @@ public class AspectsTabWidget extends PVScreen.TabWidget{
             }
         }
 
-        private void drawItemBackground(DrawContext ctx, CustomColor color) {
+        private void drawItemBackground(GuiGraphicsExtractor ctx, CustomColor color) {
             float scale = ui.getScaleFactorF();
 
             if (WynntilsCompat.isLoaded()) {
@@ -618,8 +617,8 @@ public class AspectsTabWidget extends PVScreen.TabWidget{
     }
 
     private static class InfoWidget extends Widget {
-        static Identifier infoIcon = Identifier.of("wynnextras", "textures/gui/profileviewer/infoicon.png");
-        static Identifier infoIconDark = Identifier.of("wynnextras", "textures/gui/profileviewer/infoicon_dark.png");
+        static Identifier infoIcon = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/infoicon.png");
+        static Identifier infoIconDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/infoicon_dark.png");
 
         Long lastUpdatedTimestamp;
         DateTimeFormatter formatter;
@@ -631,16 +630,16 @@ public class AspectsTabWidget extends PVScreen.TabWidget{
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             PVScreen.DarkModeToggleWidget.drawImageWithFade(infoIconDark, infoIcon, x, y, width, height, ui);
 
             if(hovered) {
                 String formatted = formatter.format(Instant.ofEpochMilli(lastUpdatedTimestamp));
-                ctx.getMatrices().pushMatrix();
-                ctx.getMatrices().scale((float)(1.0 / PVScreen.currentMatrixScale), (float)(1.0 / PVScreen.currentMatrixScale));
-                ctx.drawTooltip(MinecraftClient.getInstance().textRenderer, List.of(Text.of("Last updated at"), Text.of(formatted)),
+                ctx.pose().pushMatrix();
+                ctx.pose().scale((float)(1.0 / PVScreen.currentMatrixScale), (float)(1.0 / PVScreen.currentMatrixScale));
+                ctx.setComponentTooltipForNextFrame(Minecraft.getInstance().font, List.of(Component.nullToEmpty("Last updated at"), Component.nullToEmpty(formatted)),
                         (int)(mouseX * PVScreen.currentMatrixScale), (int)(mouseY * PVScreen.currentMatrixScale));
-                ctx.getMatrices().popMatrix();
+                ctx.pose().popMatrix();
             }
         }
     }

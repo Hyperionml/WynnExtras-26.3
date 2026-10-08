@@ -5,12 +5,12 @@ import julianh06.wynnextras.event.api.WEEventBus;
 import julianh06.wynnextras.features.shoppinglist.compat.ShoppingListWynnMarketSearchCompat;
 import julianh06.wynnextras.features.shoppinglist.ui.ShoppingListScreenContext;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.screen.slot.SlotActionType;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 
 public final class ShoppingListTradeMarketSearchService {
@@ -44,13 +44,13 @@ public final class ShoppingListTradeMarketSearchService {
             return publish(Status.FAILED, normalizedQuery);
         }
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client == null || client.keyboard == null) {
+        Minecraft client = Minecraft.getInstance();
+        if (client == null || client.keyboardHandler == null) {
             return publish(Status.FAILED, normalizedQuery);
         }
 
-        client.keyboard.setClipboard(normalizedQuery);
-        if (client.player == null || client.player.networkHandler == null) {
+        client.keyboardHandler.setClipboard(normalizedQuery);
+        if (client.player == null || client.player.connection == null) {
             return publish(Status.FAILED, normalizedQuery);
         }
 
@@ -87,16 +87,16 @@ public final class ShoppingListTradeMarketSearchService {
             return publish(Status.FAILED, normalizedQuery);
         }
 
-        client.player.networkHandler.sendChatCommand("trade market");
+        client.player.connection.sendCommand("trade market");
         return latestResult;
     }
 
     public static Result copied(String query) {
         String normalizedQuery = normalizeQuery(query);
         if (!normalizedQuery.isEmpty()) {
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client != null && client.keyboard != null) {
-                client.keyboard.setClipboard(normalizedQuery);
+            Minecraft client = Minecraft.getInstance();
+            if (client != null && client.keyboardHandler != null) {
+                client.keyboardHandler.setClipboard(normalizedQuery);
             }
         }
         return result(normalizedQuery.isEmpty() ? Status.FAILED : Status.COPIED, normalizedQuery);
@@ -146,13 +146,13 @@ public final class ShoppingListTradeMarketSearchService {
         };
     }
 
-    private static void tick(MinecraftClient client) {
+    private static void tick(Minecraft client) {
         if (client == null) {
             return;
         }
 
         long now = System.currentTimeMillis();
-        if (WORKFLOW.isActive() && (client.player == null || client.player.networkHandler == null)) {
+        if (WORKFLOW.isActive() && (client.player == null || client.player.connection == null)) {
             WORKFLOW.markFailed(now, "Trade Market search unavailable");
             publish(Status.FAILED, WORKFLOW.pendingItemName());
             return;
@@ -176,18 +176,18 @@ public final class ShoppingListTradeMarketSearchService {
         }
     }
 
-    private static boolean tryClickTradeMarketSearchSlot(MinecraftClient client, long now) {
+    private static boolean tryClickTradeMarketSearchSlot(Minecraft client, long now) {
         if (!WORKFLOW.canClickSearchSlot()) {
             return false;
         }
-        if (!(client.currentScreen instanceof HandledScreen<?> screen)
+        if (!(client.gui.screen() instanceof AbstractContainerScreen<?> screen)
                 || currentScreenContext(client) != ShoppingListScreenContext.TRADE_MARKET
-                || client.interactionManager == null
+                || client.gameMode == null
                 || client.player == null) {
             return false;
         }
 
-        ScreenHandler handler = screen.getScreenHandler();
+        AbstractContainerMenu handler = screen.getMenu();
         int searchSlotIndex = findSearchSlotIndex(client, handler);
         if (searchSlotIndex < 0) {
             return false;
@@ -195,12 +195,12 @@ public final class ShoppingListTradeMarketSearchService {
 
         WORKFLOW.markSearchSlotClicked(now);
         publish(Status.OPENING_SEARCH, WORKFLOW.pendingItemName());
-        client.interactionManager.clickSlot(handler.syncId, searchSlotIndex, 0, SlotActionType.PICKUP, client.player);
+        client.gameMode.handleContainerInput(handler.containerId, searchSlotIndex, 0, ContainerInput.PICKUP, client.player);
         WORKFLOW.markWaitingForSearchPrompt(now);
         return true;
     }
 
-    private static int findSearchSlotIndex(MinecraftClient client, ScreenHandler handler) {
+    private static int findSearchSlotIndex(Minecraft client, AbstractContainerMenu handler) {
         if (handler == null) {
             return -1;
         }
@@ -216,25 +216,25 @@ public final class ShoppingListTradeMarketSearchService {
         return -1;
     }
 
-    private static boolean isValidSearchSlot(MinecraftClient client, ScreenHandler handler, int slotIndex) {
+    private static boolean isValidSearchSlot(Minecraft client, AbstractContainerMenu handler, int slotIndex) {
         if (slotIndex < 0 || slotIndex >= handler.slots.size()) {
             return false;
         }
         Slot slot = handler.slots.get(slotIndex);
-        if (client.player != null && slot.inventory == client.player.getInventory()) {
+        if (client.player != null && slot.container == client.player.getInventory()) {
             return false;
         }
-        if (!slot.hasStack()) {
+        if (!slot.hasItem()) {
             return false;
         }
-        ItemStack stack = slot.getStack();
+        ItemStack stack = slot.getItem();
         return stack != null
                 && !stack.isEmpty()
-                && ShoppingListTradeMarketSlotMatcher.isSearchFilterLabel(stack.getName().getString());
+                && ShoppingListTradeMarketSlotMatcher.isSearchFilterLabel(stack.getHoverName().getString());
     }
 
-    private static ShoppingListScreenContext currentScreenContext(MinecraftClient client) {
-        if (client != null && client.currentScreen instanceof HandledScreen<?> screen) {
+    private static ShoppingListScreenContext currentScreenContext(Minecraft client) {
+        if (client != null && client.gui.screen() instanceof AbstractContainerScreen<?> screen) {
             return ShoppingListScreenContext.detect(screen, false);
         }
         return ShoppingListScreenContext.UNSUPPORTED;
@@ -251,10 +251,10 @@ public final class ShoppingListTradeMarketSearchService {
             return;
         }
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client != null && client.player != null && client.player.networkHandler != null) {
+        Minecraft client = Minecraft.getInstance();
+        if (client != null && client.player != null && client.player.connection != null) {
             String name = searchName.get();
-            client.player.networkHandler.sendChatMessage(name);
+            client.player.connection.sendChat(name);
             boolean cursorRestoreArmed = ShoppingListCursorRestoreService.armForSearchResults();
             WORKFLOW.markSearchQuerySent(now);
             publish(Status.SEARCHED, name);

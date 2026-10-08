@@ -1,25 +1,25 @@
 package julianh06.wynnextras.features.chat.mediapreview;
 
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.blaze3d.platform.NativeImage;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.core.WynnExtras;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.DrawnTextConsumer;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.hud.ChatHud;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.tooltip.HoveredTooltipPositioner;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.NativeImageBackedTexture;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
+import julianh06.wynnextras.compat.client.HudRenderCallback;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.ActiveTextCollector;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.ChatComponent;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
 import org.joml.Vector2ic;
 
 import javax.imageio.ImageIO;
@@ -96,12 +96,12 @@ public final class ChatMediaPreview {
         HudRenderCallback.EVENT.register((context, tickCounter) -> renderAutomatic(context));
     }
 
-    public static Text processMessage(Text message) {
+    public static Component processMessage(Component message) {
         if (message == null || !WynnExtrasConfig.INSTANCE.chatMediaPreviewEnabled) return message;
         String plainMessage = message.getString();
         if (!plainMessage.contains("https://")) return message;
 
-        MutableText result = Text.empty();
+        MutableComponent result = Component.empty();
         List<StyledSegment> segments = new ArrayList<>();
         StringBuilder rawMessage = new StringBuilder();
         message.visit((style, string) -> {
@@ -114,7 +114,7 @@ public final class ChatMediaPreview {
         return result;
     }
 
-    public static void render(DrawContext context, int mouseX, int mouseY) {
+    public static void render(GuiGraphicsExtractor context, int mouseX, int mouseY) {
         if (!WynnExtrasConfig.INSTANCE.chatMediaPreviewEnabled) {
             resetHoveredPreview();
             return;
@@ -168,13 +168,13 @@ public final class ChatMediaPreview {
         automaticPreviewEntry = entry;
     }
 
-    private static void renderAutomatic(DrawContext context) {
+    private static void renderAutomatic(GuiGraphicsExtractor context) {
         if (!WynnExtrasConfig.INSTANCE.chatMediaPreviewEnabled || !WynnExtrasConfig.INSTANCE.chatMediaPreviewAutoDisplay) {
             automaticPreviewEntry = null;
             return;
         }
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc == null || mc.options.hudHidden) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.gui.hud.isHidden()) return;
 
         PreviewEntry entry = automaticPreviewEntry;
         if (entry == null || entry.status == Status.LOADING) return;
@@ -196,10 +196,10 @@ public final class ChatMediaPreview {
         drawPreview(context, entry, WynnExtrasConfig.INSTANCE.chatMediaPreviewPosition, entry.automaticPreviewStartedAtMs, entry.automaticPreviewSender);
     }
 
-    public static boolean mouseClicked(Click click) {
+    public static boolean mouseClicked(MouseButtonEvent click) {
         if (!WynnExtrasConfig.INSTANCE.chatMediaPreviewEnabled) return false;
         if (WynnExtrasConfig.INSTANCE.chatMediaPreviewLoadPolicy != WynnExtrasConfig.ChatMediaPreviewLoadPolicy.CLICK_TO_LOAD) return false;
-        if (click.button() != 0) return false;
+        if (julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()) != 0) return false;
 
         Style style = getStyleAt((int) click.x(), (int) click.y());
         URI uri = getAllowedMediaUri(style);
@@ -225,7 +225,7 @@ public final class ChatMediaPreview {
         return true;
     }
 
-    private static void appendWithMediaLinks(MutableText result, String string, List<StyledSegment> segments) {
+    private static void appendWithMediaLinks(MutableComponent result, String string, List<StyledSegment> segments) {
         Matcher matcher = URL_PATTERN.matcher(string);
         int cursor = 0;
         String sender = null;
@@ -252,11 +252,11 @@ public final class ChatMediaPreview {
                     showAutomatically(uri, sender);
                 }
                 Style linkStyle = styleAt(segments, matcher.start())
-                        .withUnderline(true)
+                        .withUnderlined(true)
                         .withClickEvent(new ClickEvent.OpenUrl(uri));
-                result.append(Text.literal(url).setStyle(linkStyle));
+                result.append(Component.literal(url).setStyle(linkStyle));
                 if (!suffix.isEmpty()) {
-                    result.append(Text.literal(suffix).setStyle(styleAt(segments, matcher.end() - 1)));
+                    result.append(Component.literal(suffix).setStyle(styleAt(segments, matcher.end() - 1)));
                 }
             }
             cursor = matcher.end();
@@ -266,12 +266,12 @@ public final class ChatMediaPreview {
         }
     }
 
-    private static void appendStyledRange(MutableText result, String string, List<StyledSegment> segments, int start, int end) {
+    private static void appendStyledRange(MutableComponent result, String string, List<StyledSegment> segments, int start, int end) {
         for (StyledSegment segment : segments) {
             int segmentStart = Math.max(start, segment.start);
             int segmentEnd = Math.min(end, segment.end);
             if (segmentStart < segmentEnd) {
-                result.append(Text.literal(string.substring(segmentStart, segmentEnd)).setStyle(segment.style));
+                result.append(Component.literal(string.substring(segmentStart, segmentEnd)).setStyle(segment.style));
             }
         }
     }
@@ -302,15 +302,15 @@ public final class ChatMediaPreview {
     }
 
     private static Style getStyleAt(int mouseX, int mouseY) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc == null || !(mc.currentScreen instanceof ChatScreen) || mc.inGameHud == null || mc.textRenderer == null) return null;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || !(mc.gui.screen() instanceof ChatScreen) || mc.gui == null || mc.font == null) return null;
 
-        ChatHud chatHud = mc.inGameHud.getChatHud();
-        int screenHeight = mc.getWindow().getScaledHeight();
-        DrawnTextConsumer.ClickHandler handler = new DrawnTextConsumer.ClickHandler(mc.textRenderer, mouseX, mouseY);
-        handler.insert(false);
-        chatHud.render(handler, screenHeight, mc.inGameHud.getTicks(), true);
-        return handler.getStyle();
+        ChatComponent chatHud = mc.gui.hud.getChat();
+        int screenHeight = mc.getWindow().getGuiScaledHeight();
+        ActiveTextCollector.ClickableStyleFinder handler = new ActiveTextCollector.ClickableStyleFinder(mc.font, mouseX, mouseY);
+        handler.includeInsertions(false);
+        chatHud.captureClickableText(handler, screenHeight, mc.gui.hud.getGuiTicks(), net.minecraft.client.gui.components.ChatComponent.DisplayMode.FOREGROUND);
+        return handler.result();
     }
 
     private static URI getAllowedMediaUri(Style style) {
@@ -518,7 +518,7 @@ public final class ChatMediaPreview {
             DECODE_SLOTS.acquire();
             decodeSlotAcquired = true;
             DecodedMedia decoded = decodeMedia(downloaded.bytes, downloaded.contentType);
-            MinecraftClient client = MinecraftClient.getInstance();
+            Minecraft client = Minecraft.getInstance();
             if (client == null) {
                 closeImages(decoded.frames);
                 markFailed(entry, "Preview unavailable");
@@ -953,7 +953,7 @@ public final class ChatMediaPreview {
             for (int y = 0; y < image.getHeight(); y++) {
                 ensureNotInterrupted();
                 for (int x = 0; x < image.getWidth(); x++) {
-                    nativeImage.setColorArgb(x, y, image.getRGB(x, y));
+                    nativeImage.setPixel(x, y, image.getRGB(x, y));
                 }
             }
             return nativeImage;
@@ -984,10 +984,10 @@ public final class ChatMediaPreview {
         try {
             for (int i = 0; i < decoded.frames.size(); i++) {
                 DecodedFrame frame = decoded.frames.get(i);
-                Identifier textureId = Identifier.of(WynnExtras.MOD_ID, "dynamic/chat_media/" + id + "/" + i);
-                NativeImageBackedTexture texture = new NativeImageBackedTexture(textureId::toString, frame.image);
+                Identifier textureId = Identifier.fromNamespaceAndPath(WynnExtras.MOD_ID, "dynamic/chat_media/" + id + "/" + i);
+                DynamicTexture texture = new DynamicTexture(textureId::toString, frame.image);
                 try {
-                    MinecraftClient.getInstance().getTextureManager().registerTexture(textureId, texture);
+                    Minecraft.getInstance().getTextureManager().register(textureId, texture);
                 } catch (RuntimeException e) {
                     texture.close();
                     consumedFrames++;
@@ -1029,17 +1029,17 @@ public final class ChatMediaPreview {
         return message;
     }
 
-    private static void drawPreview(DrawContext context, PreviewEntry entry, WynnExtrasConfig.ChatMediaPreviewPosition position, long animationStartedAtMs, String sender) {
+    private static void drawPreview(GuiGraphicsExtractor context, PreviewEntry entry, WynnExtrasConfig.ChatMediaPreviewPosition position, long animationStartedAtMs, String sender) {
         drawPreview(context, entry, position, animationStartedAtMs, sender, -1, -1);
     }
 
-    private static void drawPreview(DrawContext context, PreviewEntry entry, WynnExtrasConfig.ChatMediaPreviewPosition position, long animationStartedAtMs, String sender, int mouseX, int mouseY) {
+    private static void drawPreview(GuiGraphicsExtractor context, PreviewEntry entry, WynnExtrasConfig.ChatMediaPreviewPosition position, long animationStartedAtMs, String sender, int mouseX, int mouseY) {
         PreviewFrame frame = entry.currentFrame(animationStartedAtMs);
         if (frame == null) return;
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc == null) return;
-        int screenWidth = context.getScaledWindowWidth();
-        int screenHeight = context.getScaledWindowHeight();
+        int screenWidth = context.guiWidth();
+        int screenHeight = context.guiHeight();
         int maxScreenPercent = Math.clamp(WynnExtrasConfig.INSTANCE.chatMediaPreviewMaxScreenPercent, 10, 50);
         int maxWidth = Math.max(1, screenWidth * maxScreenPercent / 100);
         int maxHeight = Math.max(1, screenHeight * maxScreenPercent / 100);
@@ -1049,18 +1049,18 @@ public final class ChatMediaPreview {
         int drawHeight = Math.max(1, (int) Math.floor(frame.height * scale));
         String senderText = sender == null ? null : "Sent by " + sender;
         int senderHeight = senderText == null ? 0 : 13;
-        int contentWidth = senderText == null ? drawWidth : Math.max(drawWidth, mc.textRenderer.getWidth(senderText) + 4);
+        int contentWidth = senderText == null ? drawWidth : Math.max(drawWidth, mc.font.width(senderText) + 4);
         int x;
         int y;
         if (position == null) {
             int previewWidth = contentWidth + 6;
             int previewHeight = drawHeight + senderHeight + 6;
-            Vector2ic tooltipPosition = HoveredTooltipPositioner.INSTANCE.getPosition(
+            Vector2ic tooltipPosition = DefaultTooltipPositioner.INSTANCE.positionTooltip(
                     screenWidth, screenHeight, mouseX, mouseY, previewWidth, previewHeight);
             int maxX = Math.max(4, screenWidth - previewWidth - 4);
             int maxY = Math.max(4, screenHeight - previewHeight - 4);
-            x = MathHelper.clamp(tooltipPosition.x(), 4, maxX) + 3;
-            y = MathHelper.clamp(tooltipPosition.y(), 4, maxY) + 3;
+            x = Mth.clamp(tooltipPosition.x(), 4, maxX) + 3;
+            y = Mth.clamp(tooltipPosition.y(), 4, maxY) + 3;
         } else {
             x = getPreviewX(position, screenWidth, contentWidth);
             y = getPreviewY(position, screenHeight, drawHeight + senderHeight);
@@ -1069,11 +1069,11 @@ public final class ChatMediaPreview {
 
         if (senderText != null) {
             context.fill(x - 3, y - 3, x + contentWidth + 3, y + senderHeight, 0xE0101010);
-            context.drawTextWithShadow(mc.textRenderer, senderText, x + 2, y + 2, 0xFFFFFFFF);
+            context.text(mc.font, senderText, x + 2, y + 2, 0xFFFFFFFF);
             y += senderHeight;
         }
         context.fill(imageX - 3, y - 3, imageX + drawWidth + 3, y + drawHeight + 3, 0xE0101010);
-        context.drawTexture(PREVIEW_PIPELINE, frame.texture, imageX, y, 0, 0, drawWidth, drawHeight, frame.width, frame.height, frame.width, frame.height);
+        context.blit(PREVIEW_PIPELINE, frame.texture, imageX, y, 0, 0, drawWidth, drawHeight, frame.width, frame.height, frame.width, frame.height);
     }
 
     private static int getPreviewX(WynnExtrasConfig.ChatMediaPreviewPosition position, int screenWidth, int drawWidth) {
@@ -1092,15 +1092,15 @@ public final class ChatMediaPreview {
         };
     }
 
-    private static void drawStatus(DrawContext context, int mouseX, int mouseY, String text) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc == null || mc.textRenderer == null) return;
-        int width = mc.textRenderer.getWidth(text) + 10;
+    private static void drawStatus(GuiGraphicsExtractor context, int mouseX, int mouseY, String text) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.font == null) return;
+        int width = mc.font.width(text) + 10;
         int height = 18;
-        int x = MathHelper.clamp(mouseX + 12, 4, context.getScaledWindowWidth() - width - 4);
-        int y = MathHelper.clamp(mouseY - 24, 4, context.getScaledWindowHeight() - height - 4);
+        int x = Mth.clamp(mouseX + 12, 4, context.guiWidth() - width - 4);
+        int y = Mth.clamp(mouseY - 24, 4, context.guiHeight() - height - 4);
         context.fill(x, y, x + width, y + height, 0xE0101010);
-        context.drawTextWithShadow(mc.textRenderer, text, x + 5, y + 5, 0xFFFFFFFF);
+        context.text(mc.font, text, x + 5, y + 5, 0xFFFFFFFF);
     }
 
     private static void evictIfNeeded() {
@@ -1121,12 +1121,12 @@ public final class ChatMediaPreview {
         Future<?> loadTask = entry.loadTask;
         if (loadTask != null && entry.status == Status.LOADING) loadTask.cancel(true);
         if (entry.frames == null || entry.frames.isEmpty()) return;
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client == null) return;
         Runnable destroyTask = () -> {
             destroyTextures(entry.frames);
         };
-        if (client.isOnThread()) {
+        if (client.isSameThread()) {
             destroyTask.run();
         } else {
             client.execute(destroyTask);
@@ -1134,10 +1134,10 @@ public final class ChatMediaPreview {
     }
 
     private static void destroyTextures(List<PreviewFrame> frames) {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client == null) return;
         for (PreviewFrame frame : frames) {
-            client.getTextureManager().destroyTexture(frame.texture);
+            client.getTextureManager().release(frame.texture);
         }
     }
 

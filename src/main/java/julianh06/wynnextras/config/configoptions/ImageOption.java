@@ -2,11 +2,10 @@ package julianh06.wynnextras.config.configoptions;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.utils.render.RenderUtils;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
 import java.util.List;
 
 import static julianh06.wynnextras.config.ConfigTheme.*;
@@ -21,7 +20,7 @@ public class ImageOption extends ConfigOption {
         this.identifier = identifier;
         this.imgW = imgW;
         this.imgH = imgH;
-        this.widthFraction = MathHelper.clamp(widthFraction, 0.0f, 1.0f);
+        this.widthFraction = Mth.clamp(widthFraction, 0.0f, 1.0f);
         this.richDesc = lines;
     }
 
@@ -36,13 +35,13 @@ public class ImageOption extends ConfigOption {
         int displayH = (imgW > 0) ? (int) ((float) displayW / imgW * imgH) : imgH;
         int textW = Math.max(1, contentW - 24);
         int linesH = (richDesc != null && !richDesc.isEmpty())
-            ? calcRichDescHeight(MinecraftClient.getInstance().textRenderer, richDesc, textW)
+            ? calcRichDescHeight(Minecraft.getInstance().font, richDesc, textW)
             : 0;
         return 8 + displayH + (linesH > 0 ? 4 + linesH : 0) + 8;
     }
 
     @Override
-    public void render(DrawContext ctx, int x, int y, int w, int h, int mx, int my, boolean hovered, int categoryColor) {
+    public void render(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int mx, int my, boolean hovered, int categoryColor) {
         ctx.fill(x, y, x + w, y + h - 5, PARCHMENT);
         ctx.fill(x, y, x + w, y + 1, BORDER_LIGHT);
         ctx.fill(x, y + h - 6, x + w, y + h - 5, BORDER_DARK);

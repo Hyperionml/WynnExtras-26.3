@@ -5,14 +5,14 @@ import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.features.inventory.MountColorBackground;
 import julianh06.wynnextras.mixin.Accessor.ItemRenderStateAccessor;
 import julianh06.wynnextras.utils.ItemUtils;
-import net.minecraft.client.item.ItemModelManager;
-import net.minecraft.client.render.item.ItemRenderState;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.item.ItemDisplayContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.renderer.item.ItemModelResolver;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -23,16 +23,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.HashSet;
 import java.util.Set;
 
-@Mixin(ItemModelManager.class)
+@Mixin(ItemModelResolver.class)
 public class ItemModelManagerMixin {
-    @ModifyVariable(method = "update", at = @At("HEAD"), argsOnly = true)
+    @ModifyVariable(method = "appendItemLayers", at = @At("HEAD"), argsOnly = true)
     private ItemStack addMountColorBackground(ItemStack stack) {
         return MountColorBackground.apply(stack);
     }
 
-    @Inject(method = "updateForNonLivingEntity", at = @At("TAIL"))
-    public void updateModelsForNonLiving(ItemRenderState renderState, ItemStack stack, ItemDisplayContext displayContext, Entity entity, CallbackInfo ci) {
-        if (!(entity instanceof DisplayEntity.ItemDisplayEntity)) return;
+    @Inject(method = "updateForNonLiving", at = @At("TAIL"))
+    public void updateModelsForNonLiving(ItemStackRenderState renderState, ItemStack stack, ItemDisplayContext displayContext, Entity entity, CallbackInfo ci) {
+        if (!(entity instanceof Display.ItemDisplay)) return;
         if (stack.getItem() != Items.OAK_BOAT) return;
 
         Float modelData = ItemUtils.getFirsCustomModelDataFloat(stack);
@@ -55,11 +55,11 @@ public class ItemModelManagerMixin {
                 if (fromPath == null) {
                     return;
                 }
-                ModelDataLogger.addTextToRender(fromPath.getHash(), entity.getEntityPos());
+                ModelDataLogger.addTextToRender(fromPath.getHash(), entity.position());
                 ModelDataLogger.handleUnknownModel(modelData, fileNames);
             } else {
                 SpellHider.addName(fileName.getPath(), spellMapping.getFQName());
-                ModelDataLogger.addTextToRender(spellMapping.getFQName(), entity.getEntityPos());
+                ModelDataLogger.addTextToRender(spellMapping.getFQName(), entity.position());
             }
         }
 
@@ -69,17 +69,17 @@ public class ItemModelManagerMixin {
     }
 
     @Unique
-    private static Set<Identifier> getFileNames(ItemRenderState renderState) {
+    private static Set<Identifier> getFileNames(ItemStackRenderState renderState) {
         ItemRenderStateAccessor renderStateAccess = (ItemRenderStateAccessor) renderState;
         int layerCount = renderStateAccess.getLayerCount();
-        ItemRenderState.LayerRenderState[] layers = renderStateAccess.getLayers();
+        ItemStackRenderState.LayerRenderState[] layers = renderStateAccess.getLayers();
         if (layers == null || layerCount == 0) {
             return null;
         }
 
         Set<Identifier> names = new HashSet<>();
         for (int i = 0; i < layerCount; i++)
-            layers[i].getQuads().forEach(q -> names.add(q.sprite().getContents().getId()));
+            ((julianh06.wynnextras.mixin.Accessor.ItemLayerRenderStateAccessor) layers[i]).getQuads().all().forEach(q -> names.add(q.materialInfo().sprite().contents().name()));
         return names;
     }
 }

@@ -11,12 +11,13 @@ import julianh06.wynnextras.features.inventory.data.AccountBankData;
 import julianh06.wynnextras.features.inventory.data.BookshelfData;
 import julianh06.wynnextras.features.inventory.data.CharacterBankData;
 import julianh06.wynnextras.features.inventory.data.MiscBucketData;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.*;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.*;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.world.Container;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -25,12 +26,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Screen.class)
 public class InventoryScreenMixin {
-    @Inject(method = "renderInGameBackground", at = @At("HEAD"), cancellable = true)
-    public void renderInGameBackground(DrawContext context, CallbackInfo ci) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null || client.world == null) return;
+    @Inject(method = "extractBackground", at = @At("HEAD"), cancellable = true)
+    private void hideReplacedContainerBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        if ((Object) this instanceof julianh06.wynnextras.duck.ContainerBackgroundAccess access
+                && access.wynnExtras$hideVanillaBackground()) ci.cancel();
+    }
 
-        ScreenHandler currScreenHandler = MinecraftUtils.containerMenu();
+    @Inject(method = "extractTransparentBackground", at = @At("HEAD"), cancellable = true)
+    public void renderInGameBackground(GuiGraphicsExtractor context, CallbackInfo ci) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.player == null || client.level == null) return;
+
+        AbstractContainerMenu currScreenHandler = MinecraftUtils.containerMenu();
         if (currScreenHandler == null) return;
 
         if(WynnExtrasConfig.INSTANCE.sourceOfTruthToggle) {
@@ -39,14 +46,14 @@ public class InventoryScreenMixin {
             }
         }
 
-        if (WynncraftMenuService.isCurrent(MenuType.CRAFTING_STATION) && WynnExtrasConfig.INSTANCE.craftingHelperOverlay && MinecraftClient.getInstance().options.getGuiScale().getValue() != 1) {
+        if (WynncraftMenuService.isCurrent(MenuType.CRAFTING_STATION) && WynnExtrasConfig.INSTANCE.craftingHelperOverlay && Minecraft.getInstance().options.guiScale().get() != 1) {
             //ci.cancel();
         }
 
         if(WynnExtrasConfig.INSTANCE.differentGUIScale) {
             if(!WynnExtras.hasStoredNormalGuiScale()) {
-                WynnExtras.storeNormalGuiScale(MinecraftClient.getInstance().options.getGuiScale().getValue());
-                MinecraftClient.getInstance().options.getGuiScale().setValue(WynnExtrasConfig.INSTANCE.customGUIScale);
+                WynnExtras.storeNormalGuiScale(Minecraft.getInstance().options.guiScale().get());
+                Minecraft.getInstance().options.guiScale().set(WynnExtrasConfig.INSTANCE.customGUIScale);
             }
         }
 
@@ -69,12 +76,12 @@ public class InventoryScreenMixin {
         if (BankOverlay.currentOverlayType != BankOverlayType.NONE) {
             //ci.cancel();
 
-            Inventory playerInv = client.player.getInventory();
+            Container playerInv = client.player.getInventory();
             BankOverlay.playerInvSlots.clear();
             BankOverlay.activeInvSlots.clear();
 
             for (Slot slot : currScreenHandler.slots) {
-                if (slot.inventory == playerInv) {
+                if (slot.container == playerInv) {
                     BankOverlay.playerInvSlots.add(slot);
                 } else {
                     BankOverlay.activeInvSlots.add(slot);

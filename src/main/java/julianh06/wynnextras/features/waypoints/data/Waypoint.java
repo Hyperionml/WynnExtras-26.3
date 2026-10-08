@@ -1,7 +1,7 @@
 package julianh06.wynnextras.features.waypoints.data;
 
-import net.minecraft.text.Text;
-import net.minecraft.util.math.Box;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.phys.AABB;
 
 public class Waypoint {
     public static final float MIN_SIZE = 0.05f;
@@ -30,7 +30,7 @@ public class Waypoint {
     public String categoryId;
     private transient WaypointCategory category;
 
-    private transient Text nameText;
+    private transient Component nameText;
     private transient String nameTextSource;
 
     //LEGACY
@@ -71,10 +71,10 @@ public class Waypoint {
         categoryName = "";
     }
 
-    public Text getNameText() {
+    public Component getNameText() {
         if (nameText == null || !name.equals(nameTextSource)) {
             nameTextSource = name;
-            nameText = Text.of(name);
+            nameText = Component.nullToEmpty(name);
         }
         return nameText;
     }
@@ -107,16 +107,16 @@ public class Waypoint {
         this.offsetZ = (float) (value - this.z);
     }
 
-    public Box getRenderBox() {
+    public AABB getRenderBox() {
         return boxAt(x, y, z, offsetX, offsetY, offsetZ, getSize());
     }
 
-    public static Box boxAt(int x, int y, int z, float offsetX, float offsetY, float offsetZ, float size) {
+    public static AABB boxAt(int x, int y, int z, float offsetX, float offsetY, float offsetZ, float size) {
         double half = size / 2.0;
         double centerX = x + 0.5 + offsetX;
         double centerY = y + 0.5 + offsetY;
         double centerZ = z + 0.5 + offsetZ;
-        return new Box(centerX - half, centerY - half, centerZ - half, centerX + half, centerY + half, centerZ + half);
+        return new AABB(centerX - half, centerY - half, centerZ - half, centerX + half, centerY + half, centerZ + half);
     }
 
     public static String formatCoord(double value) {

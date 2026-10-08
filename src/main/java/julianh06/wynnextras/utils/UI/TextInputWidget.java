@@ -1,18 +1,18 @@
 package julianh06.wynnextras.utils.UI;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.FormattedCharSequence;
 import julianh06.wynnextras.utils.MinecraftUtils;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.tooltip.HoveredTooltipPositioner;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import org.joml.Vector2f;
-import org.lwjgl.glfw.GLFW;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,23 +58,23 @@ public class TextInputWidget extends Widget {
     }
 
     @Override
-    protected void drawBackground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if(backgroundColor == null) return;
         CustomColor bg = hovered && focusedColor != null ? focusedColor : backgroundColor;
         ui.drawRect(x, y, width, height, bg);
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if (width == 0 || height == 0) return;
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        TextRenderer font = client.textRenderer;
+        Minecraft client = Minecraft.getInstance();
+        Font font = client.font;
 
         int textX = x + textXOffset;
         int textY = y + textYOffset;
         int textWidth = Math.max(0, width - textXOffset * 2);
-        int textHeight = (int) Math.ceil(Math.max(height, font.fontHeight * textScale));
+        int textHeight = (int) Math.ceil(Math.max(height, font.lineHeight * textScale));
 
         if (input.isEmpty() && !isFocused()) {
             ui.drawText(placeholder, textX, textY, placeholderColor, textScale);
@@ -114,29 +114,29 @@ public class TextInputWidget extends Widget {
     }
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if (enabled || !hovered || disabledTooltip == null || disabledTooltip.isBlank()) return;
-        drawFittingTooltip(ctx, List.of(Text.of(disabledTooltip)), mouseX, mouseY);
+        drawFittingTooltip(ctx, List.of(Component.nullToEmpty(disabledTooltip)), mouseX, mouseY);
     }
 
-    public static void drawFittingTooltip(DrawContext ctx, List<Text> tooltip, int mouseX, int mouseY) {
+    public static void drawFittingTooltip(GuiGraphicsExtractor ctx, List<Component> tooltip, int mouseX, int mouseY) {
         if (tooltip == null || tooltip.isEmpty()) return;
-        MinecraftClient client = MinecraftClient.getInstance();
-        TextRenderer textRenderer = client.textRenderer;
-        Vector2f tooltipPos = ctx.getMatrices().transformPosition(mouseX, mouseY, new Vector2f());
-        List<OrderedText> orderedTooltip = tooltip.stream().map(Text::asOrderedText).toList();
-        ctx.drawTooltip(textRenderer, orderedTooltip, HoveredTooltipPositioner.INSTANCE, Math.round(tooltipPos.x), Math.round(tooltipPos.y), false);
+        Minecraft client = Minecraft.getInstance();
+        Font textRenderer = client.font;
+        Vector2f tooltipPos = ctx.pose().transformPosition(mouseX, mouseY, new Vector2f());
+        List<FormattedCharSequence> orderedTooltip = tooltip.stream().map(Component::getVisualOrderText).toList();
+        ctx.setTooltipForNextFrame(textRenderer, orderedTooltip, DefaultTooltipPositioner.INSTANCE, Math.round(tooltipPos.x), Math.round(tooltipPos.y), false);
     }
 
     @Override
     public boolean onClick(int button) {
-        if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+        if (button == InputCompat.MOUSE_BUTTON_RIGHT) {
             clearInput();
             MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
             setFocused(true);
             return true;
         }
-        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
+        if (button != InputCompat.MOUSE_BUTTON_LEFT) return false;
         MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
         setFocused(true);
         cursorPos = input.length();
@@ -153,13 +153,13 @@ public class TextInputWidget extends Widget {
             if (focused) setFocused(false);
             return false;
         }
-        if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+        if (button == InputCompat.MOUSE_BUTTON_RIGHT) {
             clearInput();
             MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
             setFocused(true);
             return true;
         }
-        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
+        if (button != InputCompat.MOUSE_BUTTON_LEFT) return false;
         MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
         setFocused(true);
         cursorPos = getCursorIndexAt(mx, my);
@@ -171,7 +171,7 @@ public class TextInputWidget extends Widget {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        if (!visible || !enabled || !draggingSelection || button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
+        if (!visible || !enabled || !draggingSelection || button != InputCompat.MOUSE_BUTTON_LEFT) return false;
         cursorPos = getCursorIndexAt(mouseX, mouseY);
         resetBlink();
         return true;
@@ -179,7 +179,7 @@ public class TextInputWidget extends Widget {
 
     @Override
     public boolean mouseReleased(double mx, double my, int button) {
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && draggingSelection) {
+        if (button == InputCompat.MOUSE_BUTTON_LEFT && draggingSelection) {
             draggingSelection = false;
             return true;
         }
@@ -199,35 +199,35 @@ public class TextInputWidget extends Widget {
     protected boolean onKeyPressed(int keyCode, int scanCode, int modifiers) {
         if (!isFocused()) return false;
 
-        boolean ctrl = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0;
-        boolean shift = (modifiers & GLFW.GLFW_MOD_SHIFT) != 0;
-        net.minecraft.client.MinecraftClient mc = net.minecraft.client.MinecraftClient.getInstance();
+        boolean ctrl = (modifiers & InputCompat.MOD_CONTROL) != 0;
+        boolean shift = (modifiers & InputCompat.MOD_SHIFT) != 0;
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
 
-        if (ctrl && keyCode == GLFW.GLFW_KEY_V) {
-            String clip = mc.keyboard.getClipboard();
+        if (ctrl && keyCode == InputCompat.KEY_V) {
+            String clip = mc.keyboardHandler.getClipboard();
             if (clip != null && !clip.isEmpty()) {
                 String clean = clip.replaceAll("[\\r\\n\\t]", " ");
                 insertText(clean);
             }
             return true;
         }
-        if (ctrl && (keyCode == GLFW.GLFW_KEY_C || keyCode == GLFW.GLFW_KEY_X)) {
+        if (ctrl && (keyCode == InputCompat.KEY_C || keyCode == InputCompat.KEY_X)) {
             if (hasSelection()) {
-                mc.keyboard.setClipboard(input.substring(getSelectionStart(), getSelectionEnd()));
-                if (keyCode == GLFW.GLFW_KEY_X) deleteSelection();
-            } else if (keyCode == GLFW.GLFW_KEY_C) {
-                mc.keyboard.setClipboard(input);
+                mc.keyboardHandler.setClipboard(input.substring(getSelectionStart(), getSelectionEnd()));
+                if (keyCode == InputCompat.KEY_X) deleteSelection();
+            } else if (keyCode == InputCompat.KEY_C) {
+                mc.keyboardHandler.setClipboard(input);
             }
             return true;
         }
-        if (ctrl && keyCode == GLFW.GLFW_KEY_A) {
+        if (ctrl && keyCode == InputCompat.KEY_A) {
             cursorPos = input.length();
             selectionAnchor = 0;
             resetBlink();
             return true;
         }
 
-        if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+        if (keyCode == InputCompat.KEY_BACKSPACE) {
             if (hasSelection()) deleteSelection();
             else if ((ctrl || shift) && cursorPos > 0) deleteWordBackward();
             else if (cursorPos > 0) {
@@ -240,7 +240,7 @@ public class TextInputWidget extends Widget {
             resetBlink();
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_DELETE) {
+        if (keyCode == InputCompat.KEY_DELETE) {
             if (hasSelection()) deleteSelection();
             else if ((ctrl || shift) && cursorPos < input.length()) deleteWordForward();
             else if (cursorPos < input.length()) {
@@ -252,19 +252,19 @@ public class TextInputWidget extends Widget {
             resetBlink();
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_LEFT) {
+        if (keyCode == InputCompat.KEY_LEFT) {
             moveCursor(ctrl ? previousWord(cursorPos) : Math.max(0, cursorPos - 1), shift);
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_RIGHT) {
+        if (keyCode == InputCompat.KEY_RIGHT) {
             moveCursor(ctrl ? nextWord(cursorPos) : Math.min(input.length(), cursorPos + 1), shift);
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_HOME) {
+        if (keyCode == InputCompat.KEY_HOME) {
             moveCursor(0, shift);
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_END) {
+        if (keyCode == InputCompat.KEY_END) {
             moveCursor(input.length(), shift);
             return true;
         }
@@ -488,7 +488,7 @@ public class TextInputWidget extends Widget {
         horizontalTextOffset = Math.clamp(horizontalTextOffset, 0, maxOffset);
     }
 
-    private void drawWrappedText(DrawContext ctx, int textX, int textY, int textWidth) {
+    private void drawWrappedText(GuiGraphicsExtractor ctx, int textX, int textY, int textWidth) {
         List<LineRange> lines = wrapInput(textWidth);
         int lineHeight = wrappedLineHeight();
 
@@ -588,7 +588,7 @@ public class TextInputWidget extends Widget {
     }
 
     private int wrappedLineHeight() {
-        return (int) Math.ceil(MinecraftClient.getInstance().textRenderer.fontHeight * textScale) + wrappedLineGap;
+        return (int) Math.ceil(Minecraft.getInstance().font.lineHeight * textScale) + wrappedLineGap;
     }
 
     private static class LineRange {
@@ -602,41 +602,41 @@ public class TextInputWidget extends Widget {
     }
 
     protected int textWidth(String text) {
-        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
+        Font textRenderer = Minecraft.getInstance().font;
         int width = 0;
         Style style = baseInputStyle();
         for (int i = 0; i < text.length(); i++) {
             char character = text.charAt(i);
             if (character == '§' && i + 1 < text.length()) {
-                Formatting formatting = Formatting.byCode(Character.toLowerCase(text.charAt(i + 1)));
+                ChatFormatting formatting = ChatFormatting.getByCode(Character.toLowerCase(text.charAt(i + 1)));
                 if (formatting != null) {
                     style = applyFormatting(style, formatting);
-                    width += textRenderer.getWidth(visibleChar(character, style));
-                    width += textRenderer.getWidth(visibleChar(text.charAt(i + 1), style));
+                    width += textRenderer.width(visibleChar(character, style));
+                    width += textRenderer.width(visibleChar(text.charAt(i + 1), style));
                     i++;
                     continue;
                 }
             }
-            width += textRenderer.getWidth(visibleChar(character, style));
+            width += textRenderer.width(visibleChar(character, style));
         }
         return (int) Math.ceil(width * textScale);
     }
 
-    protected void drawInputText(DrawContext ctx, String text, int x, int y) {
+    protected void drawInputText(GuiGraphicsExtractor ctx, String text, int x, int y) {
         if (text.isEmpty()) return;
-        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
+        Font textRenderer = Minecraft.getInstance().font;
         float renderScale = textScale / ui.getScaleFactorF();
         float localX = 0;
         Style style = baseInputStyle();
 
-        ctx.getMatrices().pushMatrix();
-        ctx.getMatrices().translate(ui.sx(x), ui.sy(y));
-        ctx.getMatrices().scale(renderScale, renderScale);
+        ctx.pose().pushMatrix();
+        ctx.pose().translate(ui.sx(x), ui.sy(y));
+        ctx.pose().scale(renderScale, renderScale);
         for (int i = 0; i < text.length(); i++) {
             char character = text.charAt(i);
             if (character == '§' && i + 1 < text.length()) {
                 char code = text.charAt(i + 1);
-                Formatting formatting = Formatting.byCode(Character.toLowerCase(code));
+                ChatFormatting formatting = ChatFormatting.getByCode(Character.toLowerCase(code));
                 if (formatting != null) {
                     style = applyFormatting(style, formatting);
                     localX = drawVisibleChar(ctx, textRenderer, character, localX, style);
@@ -648,27 +648,27 @@ public class TextInputWidget extends Widget {
 
             localX = drawVisibleChar(ctx, textRenderer, character, localX, style);
         }
-        ctx.getMatrices().popMatrix();
+        ctx.pose().popMatrix();
     }
 
-    private float drawVisibleChar(DrawContext ctx, TextRenderer textRenderer, char character, float x, Style style) {
-        OrderedText text = visibleChar(character, style);
-        ctx.drawText(textRenderer, text, Math.round(x), 0, textColor.asInt(), true);
-        return x + textRenderer.getWidth(text);
+    private float drawVisibleChar(GuiGraphicsExtractor ctx, Font textRenderer, char character, float x, Style style) {
+        FormattedCharSequence text = visibleChar(character, style);
+        ctx.text(textRenderer, text, Math.round(x), 0, textColor.asInt(), true);
+        return x + textRenderer.width(text);
     }
 
-    private OrderedText visibleChar(char character, Style style) {
-        return OrderedText.styledForwardsVisitedString(String.valueOf(character), style);
+    private FormattedCharSequence visibleChar(char character, Style style) {
+        return FormattedCharSequence.forward(String.valueOf(character), style);
     }
 
     private Style baseInputStyle() {
         return Style.EMPTY.withColor(textColor.asInt());
     }
 
-    private Style applyFormatting(Style style, Formatting formatting) {
-        if (formatting == Formatting.RESET) return baseInputStyle();
-        if (formatting.isColor()) return baseInputStyle().withExclusiveFormatting(formatting);
-        if (formatting.isModifier()) return style.withFormatting(formatting);
+    private Style applyFormatting(Style style, ChatFormatting formatting) {
+        if (formatting == ChatFormatting.RESET) return baseInputStyle();
+        if (julianh06.wynnextras.compat.client.FormattingCompat.isColor(formatting)) return baseInputStyle().applyLegacyFormat(formatting);
+        if (julianh06.wynnextras.compat.client.FormattingCompat.isFormat(formatting)) return style.applyFormat(formatting);
         return style;
     }
 
@@ -698,8 +698,8 @@ public class TextInputWidget extends Widget {
     }
 
     private boolean isShiftDown() {
-        long window = MinecraftClient.getInstance().getWindow().getHandle();
-        return GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS
-                || GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
+        long window = Minecraft.getInstance().getWindow().handle();
+        return InputCompat.keyState(window, InputCompat.KEY_LEFT_SHIFT) == InputCompat.PRESS
+                || InputCompat.keyState(window, InputCompat.KEY_RIGHT_SHIFT) == InputCompat.PRESS;
     }
 }

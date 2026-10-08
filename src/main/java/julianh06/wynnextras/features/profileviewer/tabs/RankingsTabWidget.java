@@ -1,45 +1,44 @@
 package julianh06.wynnextras.features.profileviewer.tabs;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.features.profileviewer.PV;
 import julianh06.wynnextras.features.profileviewer.PVScreen;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.util.Identifier;
-
 import java.text.DecimalFormat;
 import java.util.Map;
 
 public class RankingsTabWidget extends PVScreen.TabWidget {
-    static Identifier miningTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/mining.png");
-    static Identifier woodcuttingTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/woodcutting.png");
-    static Identifier farmingTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/farming.png");
-    static Identifier fishingTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/fishing.png");
-    static Identifier armouringTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/armouring.png");
-    static Identifier tailoringTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/tailoring.png");
-    static Identifier weaponsmithingTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/weaponsmithing.png");
-    static Identifier woodworkingTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/woodworking.png");
-    static Identifier jewelingTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/jeweling.png");
-    static Identifier alchemismTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/alchemism.png");
-    static Identifier scribingTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/scribing.png");
-    static Identifier cookingTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/cooking.png");
-    static Identifier warsCompletionTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/warscompletion.png");
-    static Identifier playerContentTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/playercontent.png");
-    static Identifier globalPlayerContent = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/globalplayercontent.png");
-    static Identifier combatLevelTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/combatlevel.png");
-    static Identifier totalLevelTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/totallevel.png");
-    static Identifier professionLevelTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/professionlevel.png");
-    static Identifier rankingBackgroundTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/rankingbackground.png");
-    static Identifier rankingBackgroundWideTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/rankingbackgroundwide.png");
-    static Identifier rankingBackgroundTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/rankingbackground_dark.png");
-    static Identifier rankingBackgroundWideTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/rankingbackgroundwide_dark.png");
+    static Identifier miningTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/mining.png");
+    static Identifier woodcuttingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/woodcutting.png");
+    static Identifier farmingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/farming.png");
+    static Identifier fishingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/fishing.png");
+    static Identifier armouringTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/armouring.png");
+    static Identifier tailoringTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/tailoring.png");
+    static Identifier weaponsmithingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/weaponsmithing.png");
+    static Identifier woodworkingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/woodworking.png");
+    static Identifier jewelingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/jeweling.png");
+    static Identifier alchemismTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/alchemism.png");
+    static Identifier scribingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/scribing.png");
+    static Identifier cookingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/cooking.png");
+    static Identifier warsCompletionTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/warscompletion.png");
+    static Identifier playerContentTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/playercontent.png");
+    static Identifier globalPlayerContent = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/globalplayercontent.png");
+    static Identifier combatLevelTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/combatlevel.png");
+    static Identifier totalLevelTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/totallevel.png");
+    static Identifier professionLevelTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/professionlevel.png");
+    static Identifier rankingBackgroundTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/rankingbackground.png");
+    static Identifier rankingBackgroundWideTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/rankingbackgroundwide.png");
+    static Identifier rankingBackgroundTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/rankingbackground_dark.png");
+    static Identifier rankingBackgroundWideTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/rankingbackgroundwide_dark.png");
 
     public RankingsTabWidget() {
         super(0, 0, 0, 0);
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if(PV.currentPlayerData == null) return;
         Map<String, Long> rankings = PV.currentPlayerData.getRanking();
         if(rankings == null || rankings.isEmpty()) {

@@ -1,15 +1,14 @@
 package julianh06.wynnextras.features.aspects.pages;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.sounds.SoundEvents;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.features.aspects.AspectScreen;
 import julianh06.wynnextras.utils.WynncraftApiHandler;
 import julianh06.wynnextras.features.profileviewer.data.LeaderboardEntry;
 import julianh06.wynnextras.utils.UI.Widget;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.sound.SoundEvents;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +39,7 @@ public class LeadboardPage extends PageWidget {
     }
 
     @Override
-    public void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    public void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         int logicalW = (int) (width * ui.getScaleFactorF());
         int logicalH = (int) (height * ui.getScaleFactorF());
         int centerX = logicalW / 2;
@@ -178,7 +177,7 @@ public class LeadboardPage extends PageWidget {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             int bgColor = hovered ? 0xCC1a1a1a : 0xAA000000;
             ui.drawRect(x, y, width, height, CustomColor.fromInt(bgColor));
 
@@ -245,7 +244,7 @@ public class LeadboardPage extends PageWidget {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             currentMouseY = mouseY;
             ui.drawSliderBackground(x, y, width, height);
 
@@ -291,7 +290,7 @@ public class LeadboardPage extends PageWidget {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 ui.drawButton(x, y, width, height, hovered || isHold);
             }
         }
@@ -303,7 +302,7 @@ public class LeadboardPage extends PageWidget {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawButton(x, y, width, height, hovered);
             ui.drawCenteredText("Reload leaderboards", x + width / 2f, y + height / 2f);
         }

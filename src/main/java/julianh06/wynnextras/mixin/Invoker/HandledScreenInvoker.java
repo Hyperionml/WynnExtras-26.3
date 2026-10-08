@@ -1,23 +1,23 @@
 package julianh06.wynnextras.mixin.Invoker;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.ItemStack;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
-@Mixin(HandledScreen.class)
+@Mixin(AbstractContainerScreen.class)
 public interface HandledScreenInvoker {
-    @Invoker("drawItem")
-    void invokeDrawItem(DrawContext context, ItemStack stack, int x, int y, @Nullable String amountText);
+    @Invoker("extractFloatingItem")
+    void invokeDrawItem(GuiGraphicsExtractor context, ItemStack stack, int x, int y, @Nullable String amountText);
 
-    @Invoker("drawSlotHighlightBack")
-    void invokeDrawSlotHighlightBack(DrawContext context);
+    @Invoker("extractSlotHighlightBack")
+    void invokeDrawSlotHighlightBack(GuiGraphicsExtractor context);
 
-    @Invoker("drawSlotHighlightFront")
-    void invokeDrawSlotHighlightFront(DrawContext context);
+    @Invoker("extractSlotHighlightFront")
+    void invokeDrawSlotHighlightFront(GuiGraphicsExtractor context);
 
-    @Invoker("drawMouseoverTooltip")
-    void invokeDrawMouseoverTooltip(DrawContext context, int mouseX, int mouseY);
+    @Invoker("extractTooltip")
+    void invokeDrawMouseoverTooltip(GuiGraphicsExtractor context, int mouseX, int mouseY);
 }

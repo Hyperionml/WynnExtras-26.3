@@ -1,24 +1,19 @@
 package julianh06.wynnextras.event;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import julianh06.wynnextras.event.api.WEEvent;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.Camera;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 
 public final class RenderWorldEvent extends WEEvent {
-    public MatrixStack matrices;
-    public Camera camera;
-    public VertexConsumerProvider.Immediate vertexConsumerProvider;
-    public float partialTicks;
+    public PoseStack matrices;
+    public Camera camera;    public float partialTicks;
     public boolean isCurrentlyDeferring = true;
-    public OrderedRenderCommandQueue orderedRenderCommandQueue;
+    public SubmitNodeCollector orderedRenderCommandQueue;
 
-    public RenderWorldEvent(MatrixStack matrices, Camera camera, VertexConsumerProvider.Immediate vertexConsumerProvider, float partialTicks, OrderedRenderCommandQueue orderedRenderCommandQueue) {
+    public RenderWorldEvent(PoseStack matrices, Camera camera, float partialTicks, SubmitNodeCollector orderedRenderCommandQueue) {
         this.matrices = matrices;
-        this.camera = camera;
-        this.vertexConsumerProvider = vertexConsumerProvider;
-        this.partialTicks = partialTicks;
+        this.camera = camera;        this.partialTicks = partialTicks;
         this.orderedRenderCommandQueue = orderedRenderCommandQueue;
     }
 }

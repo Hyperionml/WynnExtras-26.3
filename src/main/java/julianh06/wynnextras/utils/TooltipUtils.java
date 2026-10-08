@@ -1,24 +1,23 @@
 package julianh06.wynnextras.utils;
 
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.tooltip.TooltipComponent;
-import net.minecraft.text.Text;
-
 import java.util.List;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.network.chat.Component;
 
 public final class TooltipUtils {
     private TooltipUtils() {}
 
-    public static List<TooltipComponent> getClientTooltipComponent(List<Text> lines) {
+    public static List<ClientTooltipComponent> getClientTooltipComponent(List<Component> lines) {
         if (lines == null || lines.isEmpty()) return List.of();
-        return lines.stream().map(Text::asOrderedText).map(TooltipComponent::of).toList();
+        return lines.stream().map(Component::getVisualOrderText).map(ClientTooltipComponent::create).toList();
     }
 
-    public static int getTooltipHeight(List<TooltipComponent> components) {
+    public static int getTooltipHeight(List<ClientTooltipComponent> components) {
         if (components == null || components.isEmpty()) return 0;
-        TextRenderer renderer = MinecraftUtils.mc().textRenderer;
+        Font renderer = MinecraftUtils.mc().font;
         int height = 0;
-        for (TooltipComponent component : components) height += component.getHeight(renderer);
+        for (ClientTooltipComponent component : components) height += component.getHeight(renderer);
         return height;
     }
 

@@ -4,6 +4,22 @@ import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.utils.render.RenderUtils;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.model.geom.ModelLayers;
+import net.minecraft.client.model.object.banner.BannerFlagModel;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderGetter;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
+import julianh06.wynnextras.compat.client.Tuple;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.level.block.entity.BannerBlockEntity;
+import net.minecraft.world.level.block.entity.BannerPattern;
+import net.minecraft.world.level.block.entity.BannerPatterns;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.features.guildviewer.data.GuildData;
 import julianh06.wynnextras.features.profileviewer.OpenInBrowserButton;
@@ -15,34 +31,6 @@ import julianh06.wynnextras.mixin.WorldRendererAccessor;
 import julianh06.wynnextras.utils.UI.UIUtils;
 import julianh06.wynnextras.utils.UI.WEScreen;
 import julianh06.wynnextras.utils.UI.Widget;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.entity.BannerBlockEntity;
-import net.minecraft.block.entity.BannerPattern;
-import net.minecraft.block.entity.BannerPatterns;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.block.entity.BlockEntityRenderer;
-import net.minecraft.client.render.block.entity.model.BannerFlagBlockModel;
-import net.minecraft.client.render.block.entity.state.BannerBlockEntityRenderState;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.client.render.entity.model.EntityModelLayers;
-import net.minecraft.client.render.state.CameraRenderState;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.component.ComponentMap;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.BannerPatternsComponent;
-import net.minecraft.registry.RegistryEntryLookup;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.DyeColor;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Pair;
-import net.minecraft.util.math.RotationAxis;
-
 import java.text.DecimalFormat;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -56,21 +44,21 @@ public class GVScreen extends WEScreen {
     @Override protected double getTargetScaleFactor() { return 2.5; }
     @Override protected int getMinLogicalWidth()  { return 1900; }
     @Override protected int getMinLogicalHeight() { return 870; }
-    static Identifier onlineCircleTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/onlinecircle_dark.png");
-    static Identifier onlineCircleTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/onlinecircle.png");
+    static Identifier onlineCircleTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/onlinecircle_dark.png");
+    static Identifier onlineCircleTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/onlinecircle.png");
 
-    static Identifier xpbarborder = Identifier.of("wynnextras", "textures/gui/guildviewer/xpbarborder.png");
-    static Identifier xpbarborder_dark = Identifier.of("wynnextras", "textures/gui/guildviewer/xpbarborder_dark.png");
-    static Identifier xpbarbackground = Identifier.of("wynnextras", "textures/gui/guildviewer/xpbarbackground.png");
-    static Identifier xpbarbackground_dark = Identifier.of("wynnextras", "textures/gui/guildviewer/xpbarbackground_dark.png");
-    static Identifier xpbarprogress = Identifier.of("wynnextras", "textures/gui/guildviewer/xpbarprogress.png");
+    static Identifier xpbarborder = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/guildviewer/xpbarborder.png");
+    static Identifier xpbarborder_dark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/guildviewer/xpbarborder_dark.png");
+    static Identifier xpbarbackground = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/guildviewer/xpbarbackground.png");
+    static Identifier xpbarbackground_dark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/guildviewer/xpbarbackground_dark.png");
+    static Identifier xpbarprogress = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/guildviewer/xpbarprogress.png");
 
-    static Identifier openInBrowserButtonTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/openinbrowserbuttontexture.png");
-    static Identifier openInBrowserButtonTextureW = Identifier.of("wynnextras", "textures/gui/profileviewer/openinbrowserbuttontexturewide.png");
-    static Identifier openInBrowserButtonTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/openinbrowserbuttontexture_dark.png");
-    static Identifier openInBrowserButtonTextureWDark = Identifier.of("wynnextras", "textures/gui/profileviewer/openinbrowserbuttontexturewide_dark.png");
+    static Identifier openInBrowserButtonTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/openinbrowserbuttontexture.png");
+    static Identifier openInBrowserButtonTextureW = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/openinbrowserbuttontexturewide.png");
+    static Identifier openInBrowserButtonTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/openinbrowserbuttontexture_dark.png");
+    static Identifier openInBrowserButtonTextureWDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/openinbrowserbuttontexturewide_dark.png");
 
-    static final Identifier POLE_TEXTURE = Identifier.of("minecraft", "textures/entity/banner_base.png");
+    static final Identifier POLE_TEXTURE = Identifier.fromNamespaceAndPath("minecraft", "textures/entity/banner_base.png");
 
     static OpenInBrowserButton openInBrowserButton;
     public static Searchbar searchBar;
@@ -93,7 +81,7 @@ public class GVScreen extends WEScreen {
     public static BannerGuiElementState bannerGuiState;
 
     protected GVScreen(String guild) {
-        super(Text.of("guild viewer"));
+        super(Component.nullToEmpty("guild viewer"));
         openInBrowserButton = null;
         searchBar = null;
         PVScreen.currentTab = PVScreen.Tab.General;
@@ -123,12 +111,12 @@ public class GVScreen extends WEScreen {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
     }
 
     @Override
     //im drawing the tab stuff in updateValues so the background has to be rendered first that's why this override exists
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         mouseInMenu = false;
 
         this.drawContext = context;
@@ -143,8 +131,8 @@ public class GVScreen extends WEScreen {
 
         ui.drawBackground();
 
-        context.getMatrices().pushMatrix();
-        context.getMatrices().scale((float) matrixScale, (float) matrixScale);
+        context.pose().pushMatrix();
+        context.pose().scale((float) matrixScale, (float) matrixScale);
 
         backgroundImageWidget.draw(context, mouseX, mouseY, delta, ui);
         updateValues();
@@ -223,7 +211,7 @@ public class GVScreen extends WEScreen {
             }
             ui.drawCenteredText("Detailed guild data is currently unavailable from the Wynncraft API.", textX, yStart + 330);
             darkModeToggleWidget.draw(context, mouseX, mouseY, delta, ui);
-            context.getMatrices().popMatrix();
+            context.pose().popMatrix();
             return;
         }
 
@@ -267,10 +255,10 @@ public class GVScreen extends WEScreen {
 
         if (bannerBlockEntity != null) {
             bannerGuiState = new BannerGuiElementState(
-                    new BannerFlagBlockModel(MinecraftClient.getInstance().getLoadedEntityModels().getModelPart(EntityModelLayers.STANDING_BANNER_FLAG)), bannerBlockEntity.getColorForState(), bannerBlockEntity.getPatterns(),
+                    new BannerFlagModel(Minecraft.getInstance().getEntityModels().bakeLayer(ModelLayers.STANDING_BANNER_FLAG)), bannerBlockEntity.getBaseColor(), bannerBlockEntity.getPatterns(),
                     (int) (x1 * matrixScale / scaleFactor), (int) (y1 * matrixScale / scaleFactor),
                     (int) (x2 * matrixScale / scaleFactor), (int) (y2 * matrixScale / scaleFactor),
-                    context.scissorStack.peekLast(),
+                    context.scissorStack.peek(),
                     (float)(48 * 3 * matrixScale / scaleFactor)
             );
 
@@ -298,7 +286,7 @@ public class GVScreen extends WEScreen {
                     64, 64
             );
 
-            context.state.addSpecialElement(bannerGuiState);
+            context.guiRenderState.addPicturesInPictureState(bannerGuiState);
         }
 
         //if(bannerGuiState != null) bannerGuiState.tick(delta);
@@ -331,7 +319,7 @@ public class GVScreen extends WEScreen {
         ui.drawCenteredText("★★★★★ OWNER ★★★★★", textX, yStart + yOffset + contentHeight, CustomColor.fromHexString("00FFFF"));
         contentHeight += 50;
         if(GV.currentGuildData.members.owner != null) {
-            Pair<Integer, Integer> result = setWidgetBounds(
+            Tuple<Integer, Integer> result = setWidgetBounds(
                     memeberWidgets,
                     count,
                     GV.currentGuildData.members.owner,
@@ -341,15 +329,15 @@ public class GVScreen extends WEScreen {
                     spacing
             );
 
-            count = result.getLeft();
-            contentHeight += result.getRight();
+            count = result.getA();
+            contentHeight += result.getB();
         }
 
         contentHeight += 25;
         ui.drawCenteredText("★★★★ CHIEF ★★★★", xStart + 1180, yStart + yOffset + contentHeight, CustomColor.fromHexString("00FFFF"));
         contentHeight += 50;
         if(GV.currentGuildData.members.chief != null) {
-            Pair<Integer, Integer> result = setWidgetBounds(
+            Tuple<Integer, Integer> result = setWidgetBounds(
                     memeberWidgets,
                     count,
                     GV.currentGuildData.members.chief,
@@ -359,15 +347,15 @@ public class GVScreen extends WEScreen {
                     spacing
             );
 
-            count = result.getLeft();
-            contentHeight += result.getRight();
+            count = result.getA();
+            contentHeight += result.getB();
         }
 
         contentHeight += 25;
         ui.drawCenteredText("★★★ STRATEGIST ★★★", xStart + 1180, yStart + yOffset + contentHeight, CustomColor.fromHexString("00FFFF"));
         contentHeight += 50;
         if(GV.currentGuildData.members.strategist != null) {
-            Pair<Integer, Integer> result = setWidgetBounds(
+            Tuple<Integer, Integer> result = setWidgetBounds(
                     memeberWidgets,
                     count,
                     GV.currentGuildData.members.strategist,
@@ -377,15 +365,15 @@ public class GVScreen extends WEScreen {
                     spacing
             );
 
-            count = result.getLeft();
-            contentHeight += result.getRight();
+            count = result.getA();
+            contentHeight += result.getB();
         }
 
         contentHeight += 25;
         ui.drawCenteredText("★★ CAPTAIN ★★", xStart + 1180, yStart + yOffset + contentHeight, CustomColor.fromHexString("00FFFF"));
         contentHeight += 50;
         if(GV.currentGuildData.members.captain != null) {
-            Pair<Integer, Integer> result = setWidgetBounds(
+            Tuple<Integer, Integer> result = setWidgetBounds(
                     memeberWidgets,
                     count,
                     GV.currentGuildData.members.captain,
@@ -395,15 +383,15 @@ public class GVScreen extends WEScreen {
                     spacing
             );
 
-            count = result.getLeft();
-            contentHeight += result.getRight();
+            count = result.getA();
+            contentHeight += result.getB();
         }
 
         contentHeight += 25;
         ui.drawCenteredText("★ RECRUITER ★", xStart + 1180, yStart + yOffset + contentHeight, CustomColor.fromHexString("00FFFF"));
         contentHeight += 50;
         if(GV.currentGuildData.members.recruiter != null) {
-            Pair<Integer, Integer> result = setWidgetBounds(
+            Tuple<Integer, Integer> result = setWidgetBounds(
                     memeberWidgets,
                     count,
                     GV.currentGuildData.members.recruiter,
@@ -413,15 +401,15 @@ public class GVScreen extends WEScreen {
                     spacing
             );
 
-            count = result.getLeft();
-            contentHeight += result.getRight();
+            count = result.getA();
+            contentHeight += result.getB();
         }
 
         contentHeight += 25;
         ui.drawCenteredText("RECRUIT", xStart + 1180, yStart + yOffset + contentHeight, CustomColor.fromHexString("00FFFF"));
         contentHeight += 50;
         if(GV.currentGuildData.members.recruit != null) {
-            Pair<Integer, Integer> result = setWidgetBounds(
+            Tuple<Integer, Integer> result = setWidgetBounds(
                     memeberWidgets,
                     count,
                     GV.currentGuildData.members.recruit,
@@ -431,7 +419,7 @@ public class GVScreen extends WEScreen {
                     spacing
             );
 
-            contentHeight += result.getRight();
+            contentHeight += result.getB();
         }
 
         for(GuildMemeberWidget widget : memeberWidgets) {
@@ -457,24 +445,24 @@ public class GVScreen extends WEScreen {
         scrollBarWidget.setBounds(xStart + 1820, yStart, 30, 750);
         scrollBarWidget.draw(context, mouseX, mouseY, delta, ui);
 
-        context.getMatrices().popMatrix();
+        context.pose().popMatrix();
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         GV.currentGuild = "";
         GV.currentGuildData = null;
         openInBrowserButton = null;
         searchBar = null;
         bannerGuiState = null;
-        super.close();
+        super.onClose();
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean doubleClick) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubleClick) {
         double mouseX = click.x() / matrixScale;
         double mouseY = click.y() / matrixScale;
-        int button = click.button();
+        int button = julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button());
 
         if(scrollBarWidget != null) scrollBarWidget.mouseClicked(mouseX, mouseY, button);
         if(openInBrowserButton == null || searchBar == null || darkModeToggleWidget == null) return false;
@@ -506,10 +494,10 @@ public class GVScreen extends WEScreen {
     }
 
     @Override
-    public boolean mouseReleased(Click click) {
+    public boolean mouseReleased(MouseButtonEvent click) {
         double mouseX = click.x() / matrixScale;
         double mouseY = click.y() / matrixScale;
-        int button = click.button();
+        int button = julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button());
 
         if(scrollBarWidget != null) scrollBarWidget.mouseReleased(mouseX, mouseY, button);
         return super.mouseReleased(click);
@@ -517,7 +505,7 @@ public class GVScreen extends WEScreen {
 
     public static DyeColor dyeColorFromName(String base) {
         try {
-            return DyeColor.byId(base.toLowerCase(), DyeColor.WHITE);
+            return DyeColor.byName(base.toLowerCase(), DyeColor.WHITE);
         } catch (Exception e) {
             return DyeColor.WHITE;
         }
@@ -548,12 +536,12 @@ public class GVScreen extends WEScreen {
         return 150;
     }
 
-    public static RegistryEntry<BannerPattern> resolvePatternEntry(String patternName) {
+    public static Holder<BannerPattern> resolvePatternEntry(String patternName) {
 
         if (patternName == null) return null;
 
-        RegistryEntryLookup<BannerPattern> lookup;
-        lookup = MinecraftClient.getInstance().world.getRegistryManager().getOrThrow(RegistryKeys.BANNER_PATTERN);
+        HolderGetter<BannerPattern> lookup;
+        lookup = Minecraft.getInstance().level.registryAccess().lookupOrThrow(Registries.BANNER_PATTERN);
 
         patternName = patternName.toUpperCase();
 
@@ -561,27 +549,27 @@ public class GVScreen extends WEScreen {
             case "BASE" -> lookup.getOrThrow(BannerPatterns.BASE);
             case "BORDER" -> lookup.getOrThrow(BannerPatterns.BORDER);
             case "BRICKS" -> lookup.getOrThrow(BannerPatterns.BRICKS);
-            case "CIRCLE", "CIRCLE_MIDDLE" -> lookup.getOrThrow(BannerPatterns.CIRCLE);
+            case "CIRCLE", "CIRCLE_MIDDLE" -> lookup.getOrThrow(BannerPatterns.CIRCLE_MIDDLE);
             case "CREEPER" -> lookup.getOrThrow(BannerPatterns.CREEPER);
             case "CROSS" -> lookup.getOrThrow(BannerPatterns.CROSS);
             case "CURLY_BORDER" -> lookup.getOrThrow(BannerPatterns.CURLY_BORDER);
             case "DIAGONAL_LEFT", "DIAGONAL_UP_LEFT", "DIAGONAL_LEFT_MIRROR" ->
-                    lookup.getOrThrow(BannerPatterns.DIAGONAL_UP_LEFT);
+                    lookup.getOrThrow(BannerPatterns.DIAGONAL_LEFT_MIRROR);
             case "DIAGONAL_RIGHT", "DIAGONAL_UP_RIGHT", "DIAGONAL_RIGHT_MIRROR" ->
-                    lookup.getOrThrow(BannerPatterns.DIAGONAL_UP_RIGHT);
+                    lookup.getOrThrow(BannerPatterns.DIAGONAL_RIGHT);
             case "FLOWER" -> lookup.getOrThrow(BannerPatterns.FLOWER);
             case "GLOBE" -> lookup.getOrThrow(BannerPatterns.GLOBE);
             case "GRADIENT" -> lookup.getOrThrow(BannerPatterns.GRADIENT);
             case "GRADIENT_UP" -> lookup.getOrThrow(BannerPatterns.GRADIENT_UP);
             case "HALF_HORIZONTAL", "HALF_HORIZONTAL_BOTTOM", "HALF_HORIZONTAL_MIRROR" ->
-                    lookup.getOrThrow(BannerPatterns.HALF_HORIZONTAL_BOTTOM);
+                    lookup.getOrThrow(BannerPatterns.HALF_HORIZONTAL_MIRROR);
             case "HALF_VERTICAL", "HALF_VERTICAL_RIGHT", "HALF_VERTICAL_MIRROR" ->
-                    lookup.getOrThrow(BannerPatterns.HALF_VERTICAL_RIGHT);
+                    lookup.getOrThrow(BannerPatterns.HALF_VERTICAL_MIRROR);
             case "MOJANG" -> lookup.getOrThrow(BannerPatterns.MOJANG);
             case "PIGLIN" -> lookup.getOrThrow(BannerPatterns.PIGLIN);
-            case "RHOMBUS", "RHOMBUS_MIDDLE" -> lookup.getOrThrow(BannerPatterns.RHOMBUS);
+            case "RHOMBUS", "RHOMBUS_MIDDLE" -> lookup.getOrThrow(BannerPatterns.RHOMBUS_MIDDLE);
             case "SKULL" -> lookup.getOrThrow(BannerPatterns.SKULL);
-            case "SMALL_STRIPES", "STRIPE_SMALL" -> lookup.getOrThrow(BannerPatterns.SMALL_STRIPES);
+            case "SMALL_STRIPES", "STRIPE_SMALL" -> lookup.getOrThrow(BannerPatterns.STRIPE_SMALL);
             case "SQUARE_BOTTOM_LEFT" -> lookup.getOrThrow(BannerPatterns.SQUARE_BOTTOM_LEFT);
             case "SQUARE_BOTTOM_RIGHT" -> lookup.getOrThrow(BannerPatterns.SQUARE_BOTTOM_RIGHT);
             case "SQUARE_TOP_LEFT" -> lookup.getOrThrow(BannerPatterns.SQUARE_TOP_LEFT);
@@ -606,7 +594,7 @@ public class GVScreen extends WEScreen {
         };
     }
 
-    private static Pair<Integer, Integer> setWidgetBounds(
+    private static Tuple<Integer, Integer> setWidgetBounds(
             List<GuildMemeberWidget> memberWidgets,
             int startIndex,
             Map<String, GuildData.Member> players,
@@ -661,7 +649,7 @@ public class GVScreen extends WEScreen {
         int rowsUsed = fullRows + (lastRowCount > 0 ? 1 : 0);
         int heightUsed = rowsUsed * spacing;
 
-        return new Pair<>(startIndex + total, heightUsed);
+        return new Tuple<>(startIndex + total, heightUsed);
     }
 
     @Override
@@ -676,22 +664,22 @@ public class GVScreen extends WEScreen {
     }
 
     private static class GuildMemeberWidget extends Widget {
-        static Identifier classBackgroundTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundinactive.png");
-        static Identifier classBackgroundTextureOnline = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundinactive_online.png");
-        static Identifier classBackgroundTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundinactive_dark.png");
-        static Identifier classBackgroundTextureDarkOnline = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundinactive_dark_online.png");
+        static Identifier classBackgroundTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundinactive.png");
+        static Identifier classBackgroundTextureOnline = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundinactive_online.png");
+        static Identifier classBackgroundTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundinactive_dark.png");
+        static Identifier classBackgroundTextureDarkOnline = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundinactive_dark_online.png");
 
-        static Identifier classBackgroundTextureHovered = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundhovered.png");
-        static Identifier classBackgroundTextureHoveredOnline = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundhovered_online.png");
-        static Identifier classBackgroundTextureHoveredDark = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundhovered_dark.png");
-        static Identifier classBackgroundTextureHoveredDarkOnline = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundhovered_dark_online.png");
+        static Identifier classBackgroundTextureHovered = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundhovered.png");
+        static Identifier classBackgroundTextureHoveredOnline = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundhovered_online.png");
+        static Identifier classBackgroundTextureHoveredDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundhovered_dark.png");
+        static Identifier classBackgroundTextureHoveredDarkOnline = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundhovered_dark_online.png");
 
-        static Identifier onlineCircleTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/onlinecircle_dark.png");
-        static Identifier onlineCircleTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/onlinecircle.png");
+        static Identifier onlineCircleTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/onlinecircle_dark.png");
+        static Identifier onlineCircleTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/onlinecircle.png");
         private static final float SERVER_TEXT_SCALE = 2.25f;
         private static final float SERVER_TEXT_X = 40f;
         private static final float FOUR_CHARACTER_SERVER_TEXT_WIDTH =
-                MinecraftClient.getInstance().textRenderer.getWidth("eu34") * SERVER_TEXT_SCALE;
+                Minecraft.getInstance().font.width("eu34") * SERVER_TEXT_SCALE;
 
         private final Runnable action;
 
@@ -703,7 +691,7 @@ public class GVScreen extends WEScreen {
             this.action = () -> {
                 if(!mouseInMenu) return;
                 MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
-                parent.close();
+                parent.onClose();
                 PV.open(member.username);
             };
         }
@@ -716,7 +704,7 @@ public class GVScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             Identifier backgroundDark;
             Identifier backgroundLight;
             if(hovered && mouseInMenu) {
@@ -745,20 +733,20 @@ public class GVScreen extends WEScreen {
             if(member.online) {
                 drawSmoothImageWithFade(ctx, onlineCircleTextureDark, onlineCircleTexture, x + 18, y + 6, 18, 18);
                 if (member.server != null && !member.server.isEmpty()) {
-                    float serverTextWidth = MinecraftClient.getInstance().textRenderer.getWidth(member.server) * SERVER_TEXT_SCALE;
+                    float serverTextWidth = Minecraft.getInstance().font.width(member.server) * SERVER_TEXT_SCALE;
                     float serverTextX = x + SERVER_TEXT_X + Math.max(0f, (FOUR_CHARACTER_SERVER_TEXT_WIDTH - serverTextWidth) / 2f);
                     ui.drawText("§a" + member.server, serverTextX, y + 8, CustomColor.fromHexString("FFFFFF"), SERVER_TEXT_SCALE);
                 }
             }
         }
 
-        private void drawSmoothImageWithFade(DrawContext ctx, Identifier dark, Identifier light,
+        private void drawSmoothImageWithFade(GuiGraphicsExtractor ctx, Identifier dark, Identifier light,
                                              float x, float y, float width, float height) {
             float screenY = ui.sy(y);
-            ctx.getMatrices().pushMatrix();
-            ctx.getMatrices().translate(0, screenY - Math.round(screenY));
+            ctx.pose().pushMatrix();
+            ctx.pose().translate(0, screenY - Math.round(screenY));
             PVScreen.DarkModeToggleWidget.drawImageWithFade(dark, light, x, y, width, height, ui);
-            ctx.getMatrices().popMatrix();
+            ctx.pose().popMatrix();
         }
 
         public static String formatLong(long value) {
@@ -799,7 +787,7 @@ public class GVScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             currentMouseY = mouseY;
             ui.drawSliderFade(x, y, width, height, 5, PVScreen.DarkModeToggleWidget.fade);
             updateScrollButton(mouseY);
@@ -847,7 +835,7 @@ public class GVScreen extends WEScreen {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 ui.drawButtonFade(x, y, width, height, 5, hovered || isHeld);
             }
 

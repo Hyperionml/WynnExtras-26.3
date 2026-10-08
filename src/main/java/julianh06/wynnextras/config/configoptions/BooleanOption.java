@@ -1,9 +1,8 @@
 package julianh06.wynnextras.config.configoptions;
 
 import julianh06.wynnextras.utils.MinecraftUtils;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.sound.SoundEvents;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.sounds.SoundEvents;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -23,7 +22,7 @@ public class BooleanOption extends ConfigOption {
     public int controlWidth() { return 60; }
 
     @Override
-    public void render(DrawContext ctx, int x, int y, int w, int h, int mx, int my, boolean hovered, int categoryColor) {
+    public void render(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int mx, int my, boolean hovered, int categoryColor) {
         ctx.fill(x, y, x + w, y + h - 5, hovered ? PARCHMENT_HOVER : PARCHMENT);
         ctx.fill(x, y, x + w, y + 1, BORDER_LIGHT);
         ctx.fill(x, y + h - 6, x + w, y + h - 5, BORDER_DARK);

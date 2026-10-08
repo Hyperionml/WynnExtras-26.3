@@ -2,6 +2,16 @@ package julianh06.wynnextras.features.crafting;
 
 import julianh06.wynnextras.wynncraft.menu.MenuType;
 import julianh06.wynnextras.wynncraft.menu.WynncraftMenuService;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.NonNullList;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import julianh06.wynnextras.features.crafting.model.GearAttackSpeed;
 import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.utils.MinecraftUtils;
@@ -10,16 +20,6 @@ import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.features.crafting.data.CraftableType;
 import julianh06.wynnextras.features.crafting.data.WynnDataService;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.tooltip.TooltipType;
-import net.minecraft.text.Style;
-import net.minecraft.text.StyleSpriteSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.collection.DefaultedList;
 import org.joml.Vector2i;
 
 import java.util.List;
@@ -42,7 +42,7 @@ public class CraftingResultPreviewer {
 
     private final static Pattern craftingPattern = Pattern.compile(" - ([A-Za-z]+) \\[Lv\\. (\\d+)(?:\\.0)? to (\\d+)(?:\\.0)?]");
 
-    private static DefaultedList<ItemStack> stacks = DefaultedList.of();
+    private static NonNullList<ItemStack> stacks = NonNullList.create();
     private static CraftingResult result = null;
     private static GearAttackSpeed importedAttackSpeed = GearAttackSpeed.NORMAL;
 
@@ -72,7 +72,7 @@ public class CraftingResultPreviewer {
         WynnExtrasConfig.save();
     }
 
-    public static void onRender(DrawContext context) {
+    public static void onRender(GuiGraphicsExtractor context) {
         if (!WynncraftMenuService.isCurrent(MenuType.CRAFTING_STATION)) return;
 
         if (!WynnExtrasConfig.INSTANCE.craftingPreviewOverlay) return;
@@ -80,15 +80,15 @@ public class CraftingResultPreviewer {
         loadConfig();
         WynnDataService dataService = WynnDataService.getInstance();
         if (dataService.getState() != WynnDataService.State.READY) {
-            Text status = Text.literal(dataService.getStatusMessage());
-            context.drawText(MinecraftClient.getInstance().textRenderer, status, xPos, yPos, 0xFFFF5555, true);
-            currentWidth = MinecraftClient.getInstance().textRenderer.getWidth(status);
+            Component status = Component.literal(dataService.getStatusMessage());
+            context.text(Minecraft.getInstance().font, status, xPos, yPos, 0xFFFF5555, true);
+            currentWidth = Minecraft.getInstance().font.width(status);
             currentHeight = 11;
             result = null;
             return;
         }
         if (result != null) {
-            List<Text> lines = result.getTooltip();
+            List<Component> lines = result.getTooltip();
 
             int width = getOverlayWidth(lines);
             int height = getOverlayHeight(lines);
@@ -105,12 +105,12 @@ public class CraftingResultPreviewer {
                 );
             }
 
-            Text pillWithTitle = WynnExtras.addWynnExtrasPrefix(Text.literal("Crafting preview").styled(s -> s.withColor(CustomColor.fromHexString("FFAA00").asInt())));
-            context.drawText(MinecraftClient.getInstance().textRenderer, pillWithTitle, xPos, yPos, 0xFFFFFFFF, true);
+            Component pillWithTitle = WynnExtras.addWynnExtrasPrefix(Component.literal("Crafting preview").withStyle(s -> s.withColor(CustomColor.fromHexString("FFAA00").asInt())));
+            context.text(Minecraft.getInstance().font, pillWithTitle, xPos, yPos, 0xFFFFFFFF, true);
 
             int y = yPos + 11;
-            for (Text line : lines) {
-                context.drawText(MinecraftClient.getInstance().textRenderer, line, xPos, y, 0xFFFFFFFF, true);
+            for (Component line : lines) {
+                context.text(Minecraft.getInstance().font, line, xPos, y, 0xFFFFFFFF, true);
                 y += 11;
             }
 
@@ -119,34 +119,34 @@ public class CraftingResultPreviewer {
         }
 
         if (MinecraftUtils.player() == null) return;
-        DefaultedList<ItemStack> stacks = MinecraftUtils.containerMenu().getStacks();
+        NonNullList<ItemStack> stacks = MinecraftUtils.containerMenu().getItems();
         if (sameStacks(stacks, CraftingResultPreviewer.stacks))
             return; // probably a slot changed even but i dont wanna find it
         CraftingResultPreviewer.stacks = copyStacks(stacks);
         update();
     }
 
-    private static DefaultedList<ItemStack> copyStacks(DefaultedList<ItemStack> source) {
-        DefaultedList<ItemStack> copy = DefaultedList.ofSize(source.size(), ItemStack.EMPTY);
+    private static NonNullList<ItemStack> copyStacks(NonNullList<ItemStack> source) {
+        NonNullList<ItemStack> copy = NonNullList.withSize(source.size(), ItemStack.EMPTY);
         for (int i = 0; i < source.size(); i++) {
             copy.set(i, source.get(i).copy());
         }
         return copy;
     }
 
-    private static boolean sameStacks(DefaultedList<ItemStack> left, DefaultedList<ItemStack> right) {
+    private static boolean sameStacks(NonNullList<ItemStack> left, NonNullList<ItemStack> right) {
         if (left.size() != right.size()) return false;
         for (int i = 0; i < left.size(); i++) {
             ItemStack a = left.get(i);
             ItemStack b = right.get(i);
             if (a.getCount() != b.getCount()) return false;
-            if (!ItemStack.areItemsAndComponentsEqual(a, b)) return false;
+            if (!ItemStack.isSameItemSameComponents(a, b)) return false;
         }
         return true;
     }
 
     private static void update() {
-        List<Text> checkmarkTooltip = getTooltip(stacks, 13);
+        List<Component> checkmarkTooltip = getTooltip(stacks, 13);
         if (checkmarkTooltip.isEmpty() || !checkmarkTooltip.getFirst().getString().contains("Craft")) {
             result = null;
             return;
@@ -193,8 +193,8 @@ public class CraftingResultPreviewer {
         }
     }
 
-    private static Matcher findCraftingLine(List<Text> tooltip) {
-        for (Text line : tooltip) {
+    private static Matcher findCraftingLine(List<Component> tooltip) {
+        for (Component line : tooltip) {
             Matcher matcher = craftingPattern.matcher(stripFormatting(line.getString()));
             if (matcher.find()) {
                 return matcher;
@@ -207,21 +207,21 @@ public class CraftingResultPreviewer {
         return text.replaceAll("§.", "");
     }
 
-    private static List<Text> getTooltip(DefaultedList<ItemStack> stacks, int slot) {
-        return stacks.get(slot).getTooltip(Item.TooltipContext.DEFAULT, MinecraftClient.getInstance().player, TooltipType.BASIC);
+    private static List<Component> getTooltip(NonNullList<ItemStack> stacks, int slot) {
+        return stacks.get(slot).getTooltipLines(Item.TooltipContext.EMPTY, Minecraft.getInstance().player, TooltipFlag.NORMAL);
     }
 
-    private static String getIngName(DefaultedList<ItemStack> stacks, int slot) {
+    private static String getIngName(NonNullList<ItemStack> stacks, int slot) {
         String name = getTooltip(stacks, slot).getFirst().getString();
         return name.replace("\uDAFC\uDC00", "").trim();
     }
 
-    private static int parseMaterialTier(List<Text> tooltip) {
+    private static int parseMaterialTier(List<Component> tooltip) {
         String tierStr = "";
-        for (Text line : tooltip) {
+        for (Component line : tooltip) {
             Optional<String> result = line.visit((style, string) -> {
-                if (style.getFont() instanceof StyleSpriteSource.Font(Identifier id)) {
-                    if (Identifier.ofVanilla("banner/symbol").equals(id)) {
+                if (style.getFont() instanceof FontDescription.Resource(Identifier id)) {
+                    if (Identifier.withDefaultNamespace("banner/symbol").equals(id)) {
                         return Optional.of(string);
                     }
                 }
@@ -276,40 +276,40 @@ public class CraftingResultPreviewer {
     public static void handleMouseMove(double mouseX, double mouseY) {
         if (!isDragging) return;
 
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.getWindow() == null) return;
 
         xPos = (int) mouseX - dragOffsetX;
         yPos = (int) mouseY - dragOffsetY;
 
-        int screenW = mc.getWindow().getScaledWidth();
-        int screenH = mc.getWindow().getScaledHeight();
+        int screenW = mc.getWindow().getGuiScaledWidth();
+        int screenH = mc.getWindow().getGuiScaledHeight();
 
         xPos = Math.clamp(xPos, 0, screenW - currentWidth);
         yPos = Math.clamp(yPos, 0, screenH - currentHeight);
     }
 
-    private static int getOverlayWidth(List<Text> lines) {
+    private static int getOverlayWidth(List<Component> lines) {
         float max = 0;
-        for (Text t : lines) {
+        for (Component t : lines) {
             float w = FontRenderer.getInstance()
                     .getFont()
-                    .getWidth(t.getString());
+                    .width(t.getString());
             max = Math.max(max, w);
         }
 
-        Text pillWithTitle = WynnExtras.addWynnExtrasPrefix(Text.literal("Crafting preview"));
-        max = Math.max(max, FontRenderer.getInstance().getFont().getWidth(pillWithTitle));
+        Component pillWithTitle = WynnExtras.addWynnExtrasPrefix(Component.literal("Crafting preview"));
+        max = Math.max(max, FontRenderer.getInstance().getFont().width(pillWithTitle));
 
         return (int) max + 10;
     }
 
-    private static int getOverlayHeight(List<Text> lines) {
+    private static int getOverlayHeight(List<Component> lines) {
         int lineHeight = 11;
         return lines.size() * lineHeight + 8;
     }
 
-    private static void drawBackground(DrawContext context, int x1, int y1, int x2, int y2, int color) {
+    private static void drawBackground(GuiGraphicsExtractor context, int x1, int y1, int x2, int y2, int color) {
         int r = 3;
         context.fill(x1 + r, y1, x2 - r, y2, color);
         context.fill(x1, y1 + r, x1 + r, y2 - r, color);

@@ -1,13 +1,13 @@
 package julianh06.wynnextras.config;
 
 import julianh06.wynnextras.utils.MinecraftUtils;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +37,7 @@ public class ChangelogScreen extends Screen {
         addToggle("Raid Session: only show in inventory", () -> c.raidSessionOnlyInInventory, v -> c.raidSessionOnlyInInventory = v, false);
         addToggleKeybind("Quick Repair at Blacksmith",
                 () -> c.quickRepairEnabled, v -> c.quickRepairEnabled = v, true,
-                () -> c.quickRepairKey, v -> c.quickRepairKey = v, GLFW.GLFW_KEY_R);
+                () -> c.quickRepairKey, v -> c.quickRepairKey = v, InputCompat.KEY_R);
         addToggle("Bomb share suggestions in chat", () -> c.bombShareSuggestion, v -> c.bombShareSuggestion = v, true);
         addToggle("Block Guild Raid clicks (Shift to allow)", () -> c.shiftDisableGuildRaid, v -> c.shiftDisableGuildRaid = v, true);
         addToggle("Auto /stream on world swap", () -> c.autoStreamEnabled, v -> c.autoStreamEnabled = v, false);
@@ -108,7 +108,7 @@ public class ChangelogScreen extends Screen {
     private int page = 0;
 
     public ChangelogScreen() {
-        super(Text.literal("Changelog"));
+        super(Component.literal("Changelog"));
         buildEntries();
     }
 
@@ -126,16 +126,16 @@ public class ChangelogScreen extends Screen {
     }
 
     private static String keyName(int key) {
-        String n = GLFW.glfwGetKeyName(key, 0);
+        String n = InputCompat.keyName(key, 0);
         if (n != null) return n.toUpperCase();
         return switch (key) {
-            case GLFW.GLFW_KEY_SPACE -> "SPACE";
-            case GLFW.GLFW_KEY_LEFT_SHIFT -> "LSHIFT";
-            case GLFW.GLFW_KEY_RIGHT_SHIFT -> "RSHIFT";
-            case GLFW.GLFW_KEY_LEFT_ALT -> "LALT";
-            case GLFW.GLFW_KEY_RIGHT_ALT -> "RALT";
-            case GLFW.GLFW_KEY_LEFT_CONTROL -> "LCTRL";
-            case GLFW.GLFW_KEY_RIGHT_CONTROL -> "RCTRL";
+            case InputCompat.KEY_SPACE -> "SPACE";
+            case InputCompat.KEY_LEFT_SHIFT -> "LSHIFT";
+            case InputCompat.KEY_RIGHT_SHIFT -> "RSHIFT";
+            case InputCompat.KEY_LEFT_ALT -> "LALT";
+            case InputCompat.KEY_RIGHT_ALT -> "RALT";
+            case InputCompat.KEY_LEFT_CONTROL -> "LCTRL";
+            case InputCompat.KEY_RIGHT_CONTROL -> "RCTRL";
             default -> "K_" + key;
         };
     }
@@ -149,7 +149,7 @@ public class ChangelogScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext ctx, int mx, int my, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mx, int my, float delta) {
         int pw = 520, ph = ITEMS_PER_PAGE * ROW_H + 110;
         int px = width / 2 - pw / 2, py = height / 2 - ph / 2;
 
@@ -157,8 +157,8 @@ public class ChangelogScreen extends Screen {
         ctx.fill(px, py, px + pw, py + ph, BG_MEDIUM);
         ctx.fill(px + 2, py + 2, px + pw - 2, py + ph - 2, BG_LIGHT);
 
-        ctx.drawCenteredTextWithShadow(textRenderer, "Changelog", width / 2, py + 12, GOLD);
-        ctx.drawCenteredTextWithShadow(textRenderer, "Page " + (page + 1) + "/" + totalPages(), width / 2, py + 26, TEXT_DIM);
+        ctx.centeredText(font, "Changelog", width / 2, py + 12, GOLD);
+        ctx.centeredText(font, "Page " + (page + 1) + "/" + totalPages(), width / 2, py + 26, TEXT_DIM);
         ctx.fill(px + 20, py + 40, px + pw - 20, py + 41, GOLD_DARK);
 
         List<Entry> items = pageEntries();
@@ -178,7 +178,7 @@ public class ChangelogScreen extends Screen {
                 boolean on = e.boolGet.get();
                 ctx.fill(tx, ty, tx + TOGGLE_W, ty + 16, BORDER_DARK);
                 ctx.fill(tx + 1, ty + 1, tx + TOGGLE_W - 1, ty + 15, on ? TOGGLE_ON : TOGGLE_OFF);
-                ctx.drawCenteredTextWithShadow(textRenderer, on ? "ON" : "OFF", tx + TOGGLE_W / 2, ty + 4, TEXT_LIGHT);
+                ctx.centeredText(font, on ? "ON" : "OFF", tx + TOGGLE_W / 2, ty + 4, TEXT_LIGHT);
                 controlRight = tx - 6;
             }
 
@@ -188,12 +188,12 @@ public class ChangelogScreen extends Screen {
                 ctx.fill(kx, ky, kx + KEY_W, ky + 16, BORDER_DARK);
                 ctx.fill(kx + 1, ky + 1, kx + KEY_W - 1, ky + 15, e.listening ? PARCHMENT_HOVER : PARCHMENT);
                 String label = e.listening ? "..." : "[" + keyName(e.keyGet.get()) + "]";
-                ctx.drawCenteredTextWithShadow(textRenderer, label, kx + KEY_W / 2, ky + 4,
+                ctx.centeredText(font, label, kx + KEY_W / 2, ky + 4,
                         e.listening ? LISTENING_COLOR : TEXT_LIGHT);
             }
 
             int descColor = (e.boolGet == null && e.keyGet == null) ? TEXT_DIM : TEXT_LIGHT;
-            ctx.drawTextWithShadow(textRenderer, e.description, px + 16, ry + 9, descColor);
+            ctx.text(font, e.description, px + 16, ry + 9, descColor);
         }
 
         // Bottom buttons
@@ -210,12 +210,12 @@ public class ChangelogScreen extends Screen {
             if (bh) fillColor = i == 2 ? ACCENT_RED : PARCHMENT_HOVER;
             ctx.fill(x, btnY, x + btnW, btnY + btnH, BORDER_DARK);
             ctx.fill(x + 1, btnY + 1, x + btnW - 1, btnY + btnH - 1, fillColor);
-            ctx.drawCenteredTextWithShadow(textRenderer, labels[i], x + btnW / 2, btnY + 6, TEXT_LIGHT);
+            ctx.centeredText(font, labels[i], x + btnW / 2, btnY + 6, TEXT_LIGHT);
         }
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean doubleClick) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubleClick) {
         double mx = click.x(), my = click.y();
         int pw = 520, ph = ITEMS_PER_PAGE * ROW_H + 110;
         int px = width / 2 - pw / 2, py = height / 2 - ph / 2;
@@ -282,7 +282,7 @@ public class ChangelogScreen extends Screen {
                         }
                         case 3 -> page = Math.max(0, page - 1);
                         case 4 -> page = Math.min(totalPages() - 1, page + 1);
-                        case 5 -> close();
+                        case 5 -> onClose();
                     }
                     return true;
                 }
@@ -300,12 +300,12 @@ public class ChangelogScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
-        int key = input.key();
+    public boolean keyPressed(KeyEvent input) {
+        int key = julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key());
         // If any entry is listening for a key, capture it
         for (Entry e : entries) {
             if (e.listening) {
-                if (key != GLFW.GLFW_KEY_ESCAPE) {
+                if (key != InputCompat.KEY_ESCAPE) {
                     e.keySet.accept(key);
                     WynnExtrasConfig.save();
                     MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
@@ -314,10 +314,10 @@ public class ChangelogScreen extends Screen {
                 return true;
             }
         }
-        if (key == GLFW.GLFW_KEY_ESCAPE) { close(); return true; }
+        if (key == InputCompat.KEY_ESCAPE) { onClose(); return true; }
         return super.keyPressed(input);
     }
 
     @Override
-    public void close() { client.setScreen(null); }
+    public void onClose() { minecraft.gui.setScreen(null); }
 }

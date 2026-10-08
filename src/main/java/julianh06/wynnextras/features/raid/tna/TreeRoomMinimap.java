@@ -12,18 +12,17 @@ import julianh06.wynnextras.annotations.WEModule;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.utils.Pair;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import julianh06.wynnextras.compat.client.HudRenderCallback;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
-import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.client.util.DefaultSkinHelper;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.client.resources.DefaultPlayerSkin;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import java.util.Map;
 
 @WEModule
@@ -36,8 +35,8 @@ public class TreeRoomMinimap {
     private static final float MAX_SCALE = 3.0f;
     private static final Texture mapTexture = Texture.WYNN_MAP_TEXTURES;
     private static final CustomColor fallbackBorderColor = CustomColor.fromHexString("70452F");
-    private static final Identifier background = Identifier.of("wynnextras", "textures/treeroomminimap/treeroomminimap.png");
-    private static final Identifier heart = Identifier.of("wynnextras", "textures/treeroomminimap/heart.png");
+    private static final Identifier background = Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/treeroomminimap.png");
+    private static final Identifier heart = Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/heart.png");
     private static final int grooves = 3;
 
     // Position - loaded from config
@@ -68,17 +67,17 @@ public class TreeRoomMinimap {
     );
 
     private static final Map<Grotto, Map<Boolean, Identifier>> pathTextures = Map.of(
-            Grotto.Gray, Map.of(true, Identifier.of("wynnextras", "textures/treeroomminimap/paths/entrance_to_gray.png"), false, Identifier.of("wynnextras", "textures/treeroomminimap/paths/gray_to_entrance.png")),
-            Grotto.Black, Map.of(true, Identifier.of("wynnextras", "textures/treeroomminimap/paths/gray_to_black.png"), false, Identifier.of("wynnextras", "textures/treeroomminimap/paths/black_to_gray.png")),
-            Grotto.White, Map.of(true, Identifier.of("wynnextras", "textures/treeroomminimap/paths/black_to_white.png"), false, Identifier.of("wynnextras", "textures/treeroomminimap/paths/white_to_black.png")),
-            Grotto.Orange, Map.of(true, Identifier.of("wynnextras", "textures/treeroomminimap/paths/white_to_orange.png"), false, Identifier.of("wynnextras", "textures/treeroomminimap/paths/orange_to_white.png")),
-            Grotto.Blue, Map.of(true, Identifier.of("wynnextras", "textures/treeroomminimap/paths/orange_to_blue.png"), false, Identifier.of("wynnextras", "textures/treeroomminimap/paths/blue_to_orange.png")),
-            Grotto.Entrance, Map.of(true, Identifier.of("wynnextras", "textures/treeroomminimap/paths/blue_to_entrance.png"), false, Identifier.of("wynnextras", "textures/treeroomminimap/paths/entrance_to_blue.png")),
-            Grotto.Outside, Map.of(true, Identifier.of("wynnextras", "textures/treeroomminimap/paths/entrance_to_outside.png"), false, Identifier.of("wynnextras", "textures/treeroomminimap/paths/outside_to_blue.png"))
+            Grotto.Gray, Map.of(true, Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/paths/entrance_to_gray.png"), false, Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/paths/gray_to_entrance.png")),
+            Grotto.Black, Map.of(true, Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/paths/gray_to_black.png"), false, Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/paths/black_to_gray.png")),
+            Grotto.White, Map.of(true, Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/paths/black_to_white.png"), false, Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/paths/white_to_black.png")),
+            Grotto.Orange, Map.of(true, Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/paths/white_to_orange.png"), false, Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/paths/orange_to_white.png")),
+            Grotto.Blue, Map.of(true, Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/paths/orange_to_blue.png"), false, Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/paths/blue_to_orange.png")),
+            Grotto.Entrance, Map.of(true, Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/paths/blue_to_entrance.png"), false, Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/paths/entrance_to_blue.png")),
+            Grotto.Outside, Map.of(true, Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/paths/entrance_to_outside.png"), false, Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/paths/outside_to_blue.png"))
     );
 
-    private static final Identifier specialPathTexture1 = Identifier.of("wynnextras", "textures/treeroomminimap/paths/special_path_1.png");
-    private static final Identifier specialPathTexture2 = Identifier.of("wynnextras", "textures/treeroomminimap/paths/special_path_2.png");
+    private static final Identifier specialPathTexture1 = Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/paths/special_path_1.png");
+    private static final Identifier specialPathTexture2 = Identifier.fromNamespaceAndPath("wynnextras", "textures/treeroomminimap/paths/special_path_2.png");
 
     private static boolean configLoaded = false;
 
@@ -116,9 +115,9 @@ public class TreeRoomMinimap {
     public static float getEffectiveScale(float configScale) {
         float scale = configScale;
         if (usesDefaultScale(configScale)) {
-            MinecraftClient mc = MinecraftClient.getInstance();
+            Minecraft mc = Minecraft.getInstance();
             if (mc.getWindow() != null) {
-                scale = mc.getWindow().getScaledHeight() * DEFAULT_SCREEN_HEIGHT_RATIO / DEFAULT_SIZE;
+                scale = mc.getWindow().getGuiScaledHeight() * DEFAULT_SCREEN_HEIGHT_RATIO / DEFAULT_SIZE;
             }
         }
         return clampScale(scale);
@@ -126,20 +125,20 @@ public class TreeRoomMinimap {
 
     public static void register() {
         HudRenderCallback.EVENT.register((context, renderTickCounter) -> {
-            MinecraftClient mc = MinecraftClient.getInstance();
-            if (mc.options.hudHidden) return;
-            boolean isInventory = mc.currentScreen instanceof InventoryScreen;
-            boolean isChat = mc.currentScreen instanceof ChatScreen;
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.gui.hud.isHidden()) return;
+            boolean isInventory = mc.gui.screen() instanceof InventoryScreen;
+            boolean isChat = mc.gui.screen() instanceof ChatScreen;
             if (isInventory || isChat) return;
 
             TreeRoomMinimap.render(context, renderTickCounter);
         });
     }
 
-    public static void render(DrawContext context, RenderTickCounter renderTickCounter) {
+    public static void render(GuiGraphicsExtractor context, DeltaTracker renderTickCounter) {
         if (!isVisible()) {
-            MinecraftClient mc = MinecraftClient.getInstance();
-            if (mc.player == null || mc.world == null) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player == null || mc.level == null) {
                 TnaApi.reset();
             }
             return;
@@ -148,10 +147,10 @@ public class TreeRoomMinimap {
         WynnExtrasConfig config = WynnExtrasConfig.INSTANCE;
 
         float scale = getEffectiveScale();
-        context.getMatrices().pushMatrix();
-        context.getMatrices().translate(xPos, yPos);
-        context.getMatrices().scale(scale, scale);
-        context.getMatrices().translate(-xPos, -yPos);
+        context.pose().pushMatrix();
+        context.pose().translate(xPos, yPos);
+        context.pose().scale(scale, scale);
+        context.pose().translate(-xPos, -yPos);
 
         RenderUtils.drawTexturedRect(
                 context,
@@ -168,16 +167,16 @@ public class TreeRoomMinimap {
                 113);
 
         renderHeart(TnaApi.getHeartGrotto(), context);
-        if(config.showPathsOnTreeMap && MinecraftClient.getInstance().player != null && TnaApi.inTree()) renderFullPath(context);
+        if(config.showPathsOnTreeMap && Minecraft.getInstance().player != null && TnaApi.inTree()) renderFullPath(context);
         renderPlayer(TnaApi.getPlayerGrotto(), context, getSkinTexture(TnaApi.getPlayerInTree()));
 
         renderOverlay(context);
-        context.getMatrices().popMatrix();
+        context.pose().popMatrix();
     }
 
     private static boolean isVisible() {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.player == null || mc.world == null) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) {
             return false;
         }
 
@@ -189,7 +188,7 @@ public class TreeRoomMinimap {
         return config.showTreeMapEverywhere || TnaApi.inTreeRoom();
     }
 
-    public static void renderOverlay(DrawContext context) {
+    public static void renderOverlay(GuiGraphicsExtractor context) {
         float renderX = xPos;
         float renderY = yPos;
 
@@ -208,7 +207,7 @@ public class TreeRoomMinimap {
 
         FontRenderer.getInstance().renderText(
                 context,
-                StyledText.fromComponent(Text.of("Tree Map")),
+                StyledText.fromComponent(Component.nullToEmpty("Tree Map")),
                 renderX + 7,
                 renderY + 16,
                 CustomColor.fromHexString("FF9900"),
@@ -219,7 +218,7 @@ public class TreeRoomMinimap {
         );
     }
 
-    private static void renderMapBorder(DrawContext guiGraphics, float renderX, float renderY, float width, float height) {
+    private static void renderMapBorder(GuiGraphicsExtractor guiGraphics, float renderX, float renderY, float width, float height) {
         // Scale to stay the same.
         float groovesWidth = grooves * width / DEFAULT_SIZE;
         float groovesHeight = grooves * height / DEFAULT_SIZE;
@@ -251,7 +250,7 @@ public class TreeRoomMinimap {
             mapTexture.height());
     }
 
-    private static void renderHeart(Grotto room, DrawContext context) {
+    private static void renderHeart(Grotto room, GuiGraphicsExtractor context) {
         Pair<Integer, Integer> position = heartPositionMap.getOrDefault(room, null);
 
         if(position == null) return;
@@ -271,7 +270,7 @@ public class TreeRoomMinimap {
                 128);
     }
 
-    private static void renderPlayer(Grotto room, DrawContext context, Identifier texture) {
+    private static void renderPlayer(Grotto room, GuiGraphicsExtractor context, Identifier texture) {
         Pair<Integer, Integer> position = playerPositionMap.getOrDefault(room, null);
 
         if(position == null || texture == null) return;
@@ -295,7 +294,7 @@ public class TreeRoomMinimap {
         );
     }
 
-    private static void renderFullPath(DrawContext context) {
+    private static void renderFullPath(GuiGraphicsExtractor context) {
         if(TnaApi.hasHeart()) {
             if(TnaApi.getPlayerGrotto().equals(Grotto.Entrance)) {
                 return;
@@ -382,7 +381,7 @@ public class TreeRoomMinimap {
         }
     }
 
-    private static void renderPath(Identifier path, DrawContext context) {
+    private static void renderPath(Identifier path, GuiGraphicsExtractor context) {
         RenderUtils.drawTexturedRect(
             context,
             path,
@@ -407,7 +406,7 @@ public class TreeRoomMinimap {
         if (!config.tnaTreeMap) return false;
 
         loadConfig();
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
 
         float scale = getEffectiveScale();
         int scaledW = (int) (WIDTH * scale);
@@ -425,8 +424,8 @@ public class TreeRoomMinimap {
 
         if (!inBounds) return false;
 
-        boolean inInventoryScreen = mc.currentScreen instanceof InventoryScreen;
-        boolean inChatScreen = mc.currentScreen instanceof ChatScreen;
+        boolean inInventoryScreen = mc.gui.screen() instanceof InventoryScreen;
+        boolean inChatScreen = mc.gui.screen() instanceof ChatScreen;
         boolean canInteract = inInventoryScreen || inChatScreen;
 
         if (action == 1) {
@@ -445,8 +444,8 @@ public class TreeRoomMinimap {
     public static void handleMouseMove(double mouseX, double mouseY) {
         if (!isDragging) return;
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.currentScreen == null) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.gui.screen() == null) {
             isDragging = false;
             return;
         }
@@ -455,8 +454,8 @@ public class TreeRoomMinimap {
         yPos = (int) mouseY - dragOffsetY;
 
         if (mc.getWindow() != null) {
-            int screenWidth = mc.getWindow().getScaledWidth();
-            int screenHeight = mc.getWindow().getScaledHeight();
+            int screenWidth = mc.getWindow().getGuiScaledWidth();
+            int screenHeight = mc.getWindow().getGuiScaledHeight();
             int scaledW = (int) (WIDTH * getEffectiveScale());
             int maxX = Math.max(0, screenWidth - scaledW);
             int maxY = Math.max(0, screenHeight - scaledW);
@@ -472,8 +471,8 @@ public class TreeRoomMinimap {
     public static boolean handleScroll(double mouseX, double mouseY, double verticalAmount) {
         WynnExtrasConfig config = WynnExtrasConfig.INSTANCE;
         if (!isVisible()) return false;
-        MinecraftClient mc = MinecraftClient.getInstance();
-        boolean inEditScreen = mc.currentScreen instanceof InventoryScreen || mc.currentScreen instanceof ChatScreen;
+        Minecraft mc = Minecraft.getInstance();
+        boolean inEditScreen = mc.gui.screen() instanceof InventoryScreen || mc.gui.screen() instanceof ChatScreen;
         if (!inEditScreen) return false;
 
         float scale = getEffectiveScale();
@@ -489,17 +488,17 @@ public class TreeRoomMinimap {
     }
 
     private static Identifier getSkinTexture(String name) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.getNetworkHandler() == null) {
-            return DefaultSkinHelper.getTexture();
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.getConnection() == null) {
+            return DefaultPlayerSkin.getDefaultTexture();
         }
 
-        PlayerListEntry entry = mc.getNetworkHandler().getPlayerListEntry(name);
+        PlayerInfo entry = mc.getConnection().getPlayerInfo(name);
 
         if (entry != null) {
-            return entry.getSkinTextures().body().texturePath();
+            return entry.getSkin().body().texturePath();
         }
 
-        return DefaultSkinHelper.getTexture();
+        return DefaultPlayerSkin.getDefaultTexture();
     }
 }

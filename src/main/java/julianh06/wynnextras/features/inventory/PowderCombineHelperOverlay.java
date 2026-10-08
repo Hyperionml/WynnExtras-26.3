@@ -9,22 +9,21 @@ import julianh06.wynnextras.utils.UI.Widget;
 import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.wynncraft.menu.MenuType;
 import julianh06.wynnextras.wynncraft.menu.WynncraftMenuService;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.text.Style;
-import net.minecraft.text.StyleSpriteSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -100,12 +99,12 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
     }
 
     @Override
-    protected void drawBackground(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        if (!(MinecraftClient.getInstance().currentScreen instanceof HandledScreen<?> screen) || !isSupportedScreen()) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+        if (!(Minecraft.getInstance().gui.screen() instanceof AbstractContainerScreen<?> screen) || !isSupportedScreen()) {
             return;
         }
 
@@ -114,10 +113,10 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
     }
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
     }
 
-    private void updateLayout(HandledScreen<?> screen) {
+    private void updateLayout(AbstractContainerScreen<?> screen) {
         int panelWidth;
         try {
             panelWidth = Math.clamp(HandledScreenAccess.backgroundWidth(screen), 150, screen.width - 4);
@@ -126,7 +125,7 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
         }
 
         int panelX = HandledScreenAccess.x(screen) + (HandledScreenAccess.backgroundWidth(screen) - panelWidth) / 2;
-        ScreenHandler handler = screen.getScreenHandler();
+        AbstractContainerMenu handler = screen.getMenu();
         boolean[][] visibleButtons = new boolean[ELEMENTS.length][6];
         int maxVisibleRows = 0;
         for (int column = 0; column < ELEMENTS.length; column++) {
@@ -174,7 +173,7 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
         status = "Combining " + element.name() + " " + TIER_NAMES[targetTier - 1] + "...";
     }
 
-    private static void updateTask(HandledScreen<?> screen) {
+    private static void updateTask(AbstractContainerScreen<?> screen) {
         CombineTask task = activeTask;
         if (task == null) return;
 
@@ -190,17 +189,17 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
         }
         if (now - task.phaseStartedAt() < ACTION_DELAY_MS) return;
 
-        ScreenHandler handler = screen.getScreenHandler();
+        AbstractContainerMenu handler = screen.getMenu();
         switch (task.phase()) {
             case ENSURE_COMBINE_TAB -> {
                 if (isCombineMenu(menuType)) {
                     if (hasOutput(handler)) {
-                        click(handler, OUTPUT_SLOT, SlotActionType.PICKUP);
+                        click(handler, OUTPUT_SLOT, ContainerInput.PICKUP);
                         setPhase(Phase.WAIT_EXISTING_OUTPUT, now, 0);
                     } else {
                         setPhase(Phase.SELECT_SOURCE, now, 0);
                     }
-                } else if (click(handler, tabSlot(menuType), SlotActionType.PICKUP)) {
+                } else if (click(handler, tabSlot(menuType), ContainerInput.PICKUP)) {
                     setPhase(Phase.WAIT_COMBINE_TAB, now, 0);
                 }
             }
@@ -212,11 +211,11 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
                 }
             }
             case WAIT_EXISTING_OUTPUT -> {
-                if (!hasOutput(handler) && handler.getCursorStack().isEmpty()) {
+                if (!hasOutput(handler) && handler.getCarried().isEmpty()) {
                     setPhase(Phase.FLUSH_INPUTS, now, 0);
-                } else if (!handler.getCursorStack().isEmpty()) {
+                } else if (!handler.getCarried().isEmpty()) {
                     int destination = findCursorDestination(handler);
-                    if (destination >= 0 && click(handler, destination, SlotActionType.PICKUP)) {
+                    if (destination >= 0 && click(handler, destination, ContainerInput.PICKUP)) {
                         setPhase(Phase.WAIT_EXISTING_OUTPUT, now, 0);
                     }
                 } else if (phaseTimedOut(task, now)) {
@@ -238,15 +237,15 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
                         return;
                     }
                     int sourceBeforeCombine = countPowder(handler, task.element(), task.targetTier() - 1);
-                    int combineClickRevision = handler.getRevision();
-                    if (click(handler, COMBINE_SLOT, SlotActionType.QUICK_MOVE)) {
+                    int combineClickRevision = handler.getStateId();
+                    if (click(handler, COMBINE_SLOT, ContainerInput.QUICK_MOVE)) {
                         setCombineResultPhase(now, sourceBeforeCombine, combineClickRevision);
                     }
                 } else {
                     int powderSlot = findPowderSlot(handler, task.element(), task.targetTier() - 1);
                     if (powderSlot < 0) {
                         failTask("Powder stack not found");
-                    } else if (click(handler, powderSlot, SlotActionType.PICKUP)) {
+                    } else if (click(handler, powderSlot, ContainerInput.PICKUP)) {
                         setPhase(Phase.WAIT_INPUTS, now, 0);
                     }
                 }
@@ -255,7 +254,7 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
                 int sourceCount = countPowder(handler, task.element(), task.targetTier() - 1);
                 if (sourceCount < task.sourceBeforeCombine()) {
                     if (hasOutput(handler)) {
-                        if (click(handler, OUTPUT_SLOT, SlotActionType.PICKUP)) {
+                        if (click(handler, OUTPUT_SLOT, ContainerInput.PICKUP)) {
                             setPhase(Phase.WAIT_OUTPUT_COLLECTION, now, 0);
                         }
                     } else {
@@ -264,13 +263,13 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
                             failTask("Combined powder output did not arrive");
                         }
                     }
-                } else if (handler.getRevision() > task.combineClickRevision() && inputsFilled(handler)) {
+                } else if (handler.getStateId() > task.combineClickRevision() && inputsFilled(handler)) {
                     if (hasLoreLine(handler, COMBINE_SLOT, "Cannot afford to upgrade")) {
                         failTask("Cannot afford to upgrade");
                         return;
                     }
-                    int retryRevision = handler.getRevision();
-                    if (click(handler, COMBINE_SLOT, SlotActionType.QUICK_MOVE)) {
+                    int retryRevision = handler.getStateId();
+                    if (click(handler, COMBINE_SLOT, ContainerInput.QUICK_MOVE)) {
                         setCombineResultPhase(now, task.sourceBeforeCombine(), retryRevision);
                     }
                 } else if (phaseTimedOut(task, now)) {
@@ -278,9 +277,9 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
                 }
             }
             case WAIT_OUTPUT_COLLECTION -> {
-                if (!handler.getCursorStack().isEmpty()) {
+                if (!handler.getCarried().isEmpty()) {
                     int destination = findCursorDestination(handler);
-                    if (destination >= 0 && click(handler, destination, SlotActionType.PICKUP)) {
+                    if (destination >= 0 && click(handler, destination, ContainerInput.PICKUP)) {
                         setPhase(Phase.WAIT_OUTPUT_COLLECTION, now, 0);
                     }
                 } else if (!hasOutput(handler)) {
@@ -296,38 +295,38 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
                     } else {
                         finishTask();
                     }
-                } else if (click(handler, FIRST_INPUT_SLOT, SlotActionType.PICKUP)) {
+                } else if (click(handler, FIRST_INPUT_SLOT, ContainerInput.PICKUP)) {
                     setPhase(Phase.FLUSH_INPUTS, now, 0);
                 }
             }
         }
     }
 
-    private static boolean inputsFilled(ScreenHandler handler) {
+    private static boolean inputsFilled(AbstractContainerMenu handler) {
         if (handler == null || handler.slots.size() <= LAST_INPUT_SLOT) return false;
         for (int slot = FIRST_INPUT_SLOT; slot <= LAST_INPUT_SLOT; slot++) {
-            if (isInputEmpty(handler.getSlot(slot).getStack())) return false;
+            if (isInputEmpty(handler.getSlot(slot).getItem())) return false;
         }
         return true;
     }
 
-    private static boolean hasAnyInput(ScreenHandler handler) {
+    private static boolean hasAnyInput(AbstractContainerMenu handler) {
         if (handler == null || handler.slots.size() <= LAST_INPUT_SLOT) return false;
         for (int slot = FIRST_INPUT_SLOT; slot <= LAST_INPUT_SLOT; slot++) {
-            if (!isInputEmpty(handler.getSlot(slot).getStack())) return true;
+            if (!isInputEmpty(handler.getSlot(slot).getItem())) return true;
         }
         return false;
     }
 
     private static boolean isInputEmpty(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return true;
-        String name = Formatting.strip(stack.getName().getString());
+        String name = ChatFormatting.stripFormatting(stack.getHoverName().getString());
         return name != null && EMPTY_INPUT_NAME.equalsIgnoreCase(name.trim());
     }
 
-    private static boolean hasOutput(ScreenHandler handler) {
+    private static boolean hasOutput(AbstractContainerMenu handler) {
         if (!hasStack(handler, OUTPUT_SLOT)) return false;
-        String name = Formatting.strip(handler.getSlot(OUTPUT_SLOT).getStack().getName().getString());
+        String name = ChatFormatting.stripFormatting(handler.getSlot(OUTPUT_SLOT).getItem().getHoverName().getString());
         return name == null || !EMPTY_OUTPUT_NAME.equalsIgnoreCase(name.trim());
     }
 
@@ -344,77 +343,77 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
         return menuType == MenuType.ITEM_UPGRADER ? ITEM_UPGRADER_TAB_SLOT : POWDER_MASTER_TAB_SLOT;
     }
 
-    private static boolean hasStack(ScreenHandler handler, int slot) {
-        return handler != null && slot >= 0 && slot < handler.slots.size() && handler.getSlot(slot).hasStack();
+    private static boolean hasStack(AbstractContainerMenu handler, int slot) {
+        return handler != null && slot >= 0 && slot < handler.slots.size() && handler.getSlot(slot).hasItem();
     }
 
-    private static boolean hasLoreLine(ScreenHandler handler, int slot, String text) {
+    private static boolean hasLoreLine(AbstractContainerMenu handler, int slot, String text) {
         if (!hasStack(handler, slot)) return false;
-        LoreComponent lore = handler.getSlot(slot).getStack().get(DataComponentTypes.LORE);
+        ItemLore lore = handler.getSlot(slot).getItem().get(DataComponents.LORE);
         if (lore == null) return false;
-        for (Text line : lore.lines()) {
+        for (Component line : lore.lines()) {
             if (line.getString().contains(text)) return true;
         }
         return false;
     }
 
-    private static int countPowder(ScreenHandler handler, Element element, int tier) {
+    private static int countPowder(AbstractContainerMenu handler, Element element, int tier) {
         if (handler == null) return 0;
         int count = 0;
         for (Slot slot : handler.slots) {
-            if (!(slot.inventory instanceof PlayerInventory)) continue;
-            if (isPowder(slot.getStack(), element, tier)) count += slot.getStack().getCount();
+            if (!(slot.container instanceof Inventory)) continue;
+            if (isPowder(slot.getItem(), element, tier)) count += slot.getItem().getCount();
         }
         return count;
     }
 
-    private static int findPowderSlot(ScreenHandler handler, Element element, int tier) {
+    private static int findPowderSlot(AbstractContainerMenu handler, Element element, int tier) {
         if (handler == null) return -1;
         for (Slot slot : handler.slots) {
-            if (slot.inventory instanceof PlayerInventory && isPowder(slot.getStack(), element, tier)) return slot.id;
+            if (slot.container instanceof Inventory && isPowder(slot.getItem(), element, tier)) return slot.index;
         }
         return -1;
     }
 
     private static boolean isPowder(ItemStack stack, Element element, int tier) {
         if (stack == null || stack.isEmpty() || tier < 1 || tier > TIER_NAMES.length) return false;
-        String name = stack.getName().getString().trim().toLowerCase(Locale.ROOT);
+        String name = stack.getHoverName().getString().trim().toLowerCase(Locale.ROOT);
         String suffix = (element.name() + " " + TIER_NAMES[tier - 1]).toLowerCase(Locale.ROOT);
         String powderSuffix = (element.name() + " Powder " + TIER_NAMES[tier - 1]).toLowerCase(Locale.ROOT);
         return name.endsWith(suffix) || name.endsWith(powderSuffix);
     }
 
-    private static int findCursorDestination(ScreenHandler handler) {
-        if (handler == null || handler.getCursorStack().isEmpty()) return -1;
-        ItemStack cursor = handler.getCursorStack();
+    private static int findCursorDestination(AbstractContainerMenu handler) {
+        if (handler == null || handler.getCarried().isEmpty()) return -1;
+        ItemStack cursor = handler.getCarried();
         int emptySlot = -1;
         for (Slot slot : handler.slots) {
-            if (!(slot.inventory instanceof PlayerInventory)) continue;
-            ItemStack stack = slot.getStack();
+            if (!(slot.container instanceof Inventory)) continue;
+            ItemStack stack = slot.getItem();
             if (stack.isEmpty()) {
-                if (emptySlot < 0) emptySlot = slot.id;
-            } else if (ItemStack.areItemsAndComponentsEqual(stack, cursor) && stack.getCount() < stack.getMaxCount()) {
-                return slot.id;
+                if (emptySlot < 0) emptySlot = slot.index;
+            } else if (ItemStack.isSameItemSameComponents(stack, cursor) && stack.getCount() < stack.getMaxStackSize()) {
+                return slot.index;
             }
         }
         return emptySlot;
     }
 
-    private static boolean click(ScreenHandler handler, int slot, SlotActionType actionType) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (handler == null || client.player == null || client.interactionManager == null) {
+    private static boolean click(AbstractContainerMenu handler, int slot, ContainerInput actionType) {
+        Minecraft client = Minecraft.getInstance();
+        if (handler == null || client.player == null || client.gameMode == null) {
             return false;
         }
         if (slot < 0 || slot >= handler.slots.size()) {
             return false;
         }
-        if (client.player.currentScreenHandler.syncId != handler.syncId) {
+        if (client.player.containerMenu.containerId != handler.containerId) {
             return false;
         }
-        if (actionType == SlotActionType.QUICK_MOVE) {
-            ContainerUtils.shiftClickOnSlot(slot, handler.syncId, handler.getRevision(), 0, handler.getStacks());
+        if (actionType == ContainerInput.QUICK_MOVE) {
+            ContainerUtils.shiftClickOnSlot(slot, handler.containerId, handler.getStateId(), 0, handler.getItems());
         } else {
-            ContainerUtils.clickOnSlot(slot, handler.syncId, handler.getRevision(), 0, handler.getStacks());
+            ContainerUtils.clickOnSlot(slot, handler.containerId, handler.getStateId(), 0, handler.getItems());
         }
         return true;
     }
@@ -451,22 +450,22 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
     }
 
     private record Element(String name, String symbol, boolean commonFont, int textColor, int backgroundColor) {
-        private Text symbolText() {
-            Text text = Text.literal(symbol);
+        private Component symbolText() {
+            Component text = Component.literal(symbol);
             if (!commonFont) return text;
-            return text.copy().fillStyle(Style.EMPTY.withFont(
-                    new StyleSpriteSource.Font(Identifier.of("minecraft", "common"))));
+            return text.copy().withStyle(Style.EMPTY.withFont(
+                    new FontDescription.Resource(Identifier.fromNamespaceAndPath("minecraft", "common"))));
         }
 
-        private Text combineTooltip(int targetTier) {
+        private Component combineTooltip(int targetTier) {
             int color = textColor & 0xFFFFFF;
-            return Text.empty()
-                    .append(Text.literal("Click to combine your "))
-                    .append(symbolText().copy().styled(style -> style.withColor(color)))
-                    .append(Text.literal(" " + name + " Powder " + TIER_NAMES[targetTier - 2])
-                            .styled(style -> style.withColor(color)))
-                    .append(Text.literal(" to "))
-                    .append(Text.literal(TIER_NAMES[targetTier - 1]).styled(style -> style.withColor(color)));
+            return Component.empty()
+                    .append(Component.literal("Click to combine your "))
+                    .append(symbolText().copy().withStyle(style -> style.withColor(color)))
+                    .append(Component.literal(" " + name + " Powder " + TIER_NAMES[targetTier - 2])
+                            .withStyle(style -> style.withColor(color)))
+                    .append(Component.literal(" to "))
+                    .append(Component.literal(TIER_NAMES[targetTier - 1]).withStyle(style -> style.withColor(color)));
         }
     }
 
@@ -487,7 +486,7 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
 
     private static final class PanelWidget extends Widget {
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawCenteredText(WynnExtras.addWynnExtrasPrefix("§6Powder combine helper"), x + width / 2f, y - 4,
                     CustomColor.fromHexString("FFFFFF"), 0.9f);
         }
@@ -501,7 +500,7 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawCenteredText(element.symbolText(), x + width / 2f, y + height / 2f,
                     CustomColor.fromInt(element.textColor()), 1f);
         }
@@ -515,7 +514,7 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             CustomColor color = activeTask == null ? CustomColor.fromInt(0xFFAAAAAA) : CustomColor.WHITE;
             ui.drawCenteredText(text, x + width / 2f, y + height / 2f, color, 0.75f);
         }
@@ -531,13 +530,13 @@ public class PowderCombineHelperOverlay extends WEMenuExtension {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             int background = hovered && enabled ? brighten(element.backgroundColor()) : element.backgroundColor();
             ui.drawRect(x, y, width, height, CustomColor.fromInt(background));
             ui.drawCenteredText(TIER_NAMES[targetTier - 1], x + width / 2f, y + height / 2f,
                     CustomColor.fromInt(enabled ? 0xFFFFFFFF : 0xFF888888), 1);
             if(hovered) {
-                ctx.drawTooltip(element.combineTooltip(targetTier), mouseX, mouseY);
+                ctx.setTooltipForNextFrame(element.combineTooltip(targetTier), mouseX, mouseY);
             }
         }
 

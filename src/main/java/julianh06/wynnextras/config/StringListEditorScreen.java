@@ -4,15 +4,15 @@ import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.utils.UI.TextInputWidget;
 import julianh06.wynnextras.utils.UI.UIUtils;
 import julianh06.wynnextras.utils.colors.CustomColor;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.MathHelper;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +32,7 @@ public class StringListEditorScreen extends Screen {
     double scroll = 0;
 
     public StringListEditorScreen(Screen parent, String title, List<String> items, Consumer<List<String>> setter, boolean dualInput) {
-        super(Text.literal("Edit: " + title));
+        super(Component.literal("Edit: " + title));
         this.parent = parent;
         this.items = new ArrayList<>(items);
         this.setter = setter;
@@ -99,7 +99,7 @@ public class StringListEditorScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext ctx, int mx, int my, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mx, int my, float delta) {
         boolean isEditing = editingIndex >= 0;
         if (ui == null) ui = new UIUtils(ctx, 1, 0, 0);
         else ui.updateContext(ctx, 1, 0, 0);
@@ -110,18 +110,18 @@ public class StringListEditorScreen extends Screen {
         ctx.fill(px, 20, px + pw, height - 20, BG_MEDIUM);
         ctx.fill(px + 2, 22, px + pw - 2, height - 22, BG_LIGHT);
 
-        ctx.drawCenteredTextWithShadow(textRenderer, title, width / 2, 35, GOLD);
+        ctx.centeredText(font, title, width / 2, 35, GOLD);
         ctx.fill(px + 20, 48, px + pw - 20, 49, GOLD_DARK);
 
         int inputY = 65;
         updateInputBounds(px, pw, inputY, isEditing);
         if (dualInput) {
-            ctx.drawTextWithShadow(textRenderer, "Trigger:", input1.getX(), inputY - 10, TEXT_DIM);
+            ctx.text(font, "Trigger:", input1.getX(), inputY - 10, TEXT_DIM);
             ctx.fill(input1.getX(), inputY, input1.getX() + input1.getWidth(), inputY + 24, BORDER_DARK);
             ctx.fill(input1.getX() + 1, inputY + 1, input1.getX() + input1.getWidth() - 1, inputY + 23,
                     input1.isFocused() ? PARCHMENT_LIGHT : PARCHMENT);
 
-            ctx.drawTextWithShadow(textRenderer, "Display:", input2.getX(), inputY - 10, TEXT_DIM);
+            ctx.text(font, "Display:", input2.getX(), inputY - 10, TEXT_DIM);
             ctx.fill(input2.getX(), inputY, input2.getX() + input2.getWidth(), inputY + 24, BORDER_DARK);
             ctx.fill(input2.getX() + 1, inputY + 1, input2.getX() + input2.getWidth() - 1, inputY + 23,
                     input2.isFocused() ? PARCHMENT_LIGHT : PARCHMENT);
@@ -137,17 +137,17 @@ public class StringListEditorScreen extends Screen {
             boolean saveH = mx >= px + pw - 115 && mx < px + pw - 68 && my >= inputY && my < inputY + 24;
             ctx.fill(px + pw - 115, inputY, px + pw - 68, inputY + 24, BORDER_DARK);
             ctx.fill(px + pw - 114, inputY + 1, px + pw - 69, inputY + 23, saveH ? TOGGLE_ON : PARCHMENT);
-            ctx.drawCenteredTextWithShadow(textRenderer, "Save", px + pw - 91, inputY + 8, TEXT_LIGHT);
+            ctx.centeredText(font, "Save", px + pw - 91, inputY + 8, TEXT_LIGHT);
 
             boolean cancelEditH = mx >= px + pw - 63 && mx < px + pw - 16 && my >= inputY && my < inputY + 24;
             ctx.fill(px + pw - 63, inputY, px + pw - 16, inputY + 24, BORDER_DARK);
             ctx.fill(px + pw - 62, inputY + 1, px + pw - 17, inputY + 23, cancelEditH ? ACCENT_RED : PARCHMENT);
-            ctx.drawCenteredTextWithShadow(textRenderer, "Cancel", px + pw - 39, inputY + 8, TEXT_LIGHT);
+            ctx.centeredText(font, "Cancel", px + pw - 39, inputY + 8, TEXT_LIGHT);
         } else {
             boolean addH = mx >= px + pw - 60 && mx < px + pw - 15 && my >= inputY && my < inputY + 24;
             ctx.fill(px + pw - 60, inputY, px + pw - 15, inputY + 24, BORDER_DARK);
             ctx.fill(px + pw - 59, inputY + 1, px + pw - 16, inputY + 23, addH ? TOGGLE_ON : PARCHMENT);
-            ctx.drawCenteredTextWithShadow(textRenderer, "+ Add", px + pw - 37, inputY + 8, TEXT_LIGHT);
+            ctx.centeredText(font, "+ Add", px + pw - 37, inputY + 8, TEXT_LIGHT);
         }
 
         int listTop = inputY + 30;
@@ -160,18 +160,18 @@ public class StringListEditorScreen extends Screen {
                 ctx.fill(px + 15, y, px + pw - 50, y + 24, isSelected ? PARCHMENT_LIGHT : (itemHover ? PARCHMENT_HOVER : PARCHMENT));
                 String t = items.get(i);
                 if (t.length() > 35) t = t.substring(0, 33) + "..";
-                ctx.drawTextWithShadow(textRenderer, t, px + 20, y + 8, isSelected ? GOLD : TEXT_LIGHT);
+                ctx.text(font, t, px + 20, y + 8, isSelected ? GOLD : TEXT_LIGHT);
 
                 boolean delH = mx >= px + pw - 45 && mx < px + pw - 15 && my >= y && my < y + 24;
                 ctx.fill(px + pw - 45, y, px + pw - 15, y + 24, BORDER_DARK);
                 ctx.fill(px + pw - 44, y + 1, px + pw - 16, y + 23, delH ? ACCENT_RED : PARCHMENT);
-                ctx.drawCenteredTextWithShadow(textRenderer, "X", px + pw - 30, y + 8, TEXT_LIGHT);
+                ctx.centeredText(font, "X", px + pw - 30, y + 8, TEXT_LIGHT);
             }
             y += 28;
         }
         ctx.disableScissor();
 
-        if (items.isEmpty()) ctx.drawCenteredTextWithShadow(textRenderer, "No items", width / 2, height / 2, TEXT_DIM);
+        if (items.isEmpty()) ctx.centeredText(font, "No items", width / 2, height / 2, TEXT_DIM);
 
         int by = height - 55;
         boolean cancelH = mx >= width / 2 - 105 && mx < width / 2 - 5 && my >= by && my < by + 24;
@@ -179,15 +179,15 @@ public class StringListEditorScreen extends Screen {
 
         ctx.fill(width / 2 - 105, by, width / 2 - 5, by + 24, BORDER_DARK);
         ctx.fill(width / 2 - 104, by + 1, width / 2 - 6, by + 23, cancelH ? ACCENT_RED : PARCHMENT);
-        ctx.drawCenteredTextWithShadow(textRenderer, "Cancel", width / 2 - 55, by + 8, TEXT_LIGHT);
+        ctx.centeredText(font, "Cancel", width / 2 - 55, by + 8, TEXT_LIGHT);
 
         ctx.fill(width / 2 + 5, by, width / 2 + 105, by + 24, BORDER_DARK);
         ctx.fill(width / 2 + 6, by + 1, width / 2 + 104, by + 23, doneH ? TOGGLE_ON : PARCHMENT);
-        ctx.drawCenteredTextWithShadow(textRenderer, "Done", width / 2 + 55, by + 8, TEXT_LIGHT);
+        ctx.centeredText(font, "Done", width / 2 + 55, by + 8, TEXT_LIGHT);
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean doubleClick) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubleClick) {
         double mx = click.x();
         double my = click.y();
 
@@ -196,11 +196,11 @@ public class StringListEditorScreen extends Screen {
         boolean isEditing = editingIndex >= 0;
         updateInputBounds(px, pw, inputY, isEditing);
 
-        if (input1.mouseClicked(mx, my, click.button())) {
+        if (input1.mouseClicked(mx, my, julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()))) {
             input2.setFocused(false);
             return true;
         }
-        if (dualInput && input2.mouseClicked(mx, my, click.button())) {
+        if (dualInput && input2.mouseClicked(mx, my, julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()))) {
             input1.setFocused(false);
             return true;
         }
@@ -230,13 +230,13 @@ public class StringListEditorScreen extends Screen {
 
         int by = height - 55;
         if (mx >= width / 2 - 105 && mx < width / 2 - 5 && my >= by && my < by + 24) {
-            client.setScreen(parent);
+            minecraft.gui.setScreen(parent);
             MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
             return true;
         }
         if (mx >= width / 2 + 5 && mx < width / 2 + 105 && my >= by && my < by + 24) {
             setter.accept(items);
-            client.setScreen(parent);
+            minecraft.gui.setScreen(parent);
             MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
             return true;
         }
@@ -264,55 +264,55 @@ public class StringListEditorScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
-        int key = input.key();
-        if (input1.keyPressed(key, input.scancode(), input.modifiers())
-                || dualInput && input2.keyPressed(key, input.scancode(), input.modifiers())) return true;
-        if (key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER) {
+    public boolean keyPressed(KeyEvent input) {
+        int key = julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key());
+        if (input1.keyPressed(key, input.keycode(), julianh06.wynnextras.compat.client.InputCompat.legacyModifiers(input.modifiers()))
+                || dualInput && input2.keyPressed(key, input.keycode(), julianh06.wynnextras.compat.client.InputCompat.legacyModifiers(input.modifiers()))) return true;
+        if (key == InputCompat.KEY_ENTER || key == InputCompat.KEY_KP_ENTER) {
             if (!input1.getInput().isEmpty()) saveCurrentInput();
             return true;
         }
-        if (key == GLFW.GLFW_KEY_TAB && dualInput) {
+        if (key == InputCompat.KEY_TAB && dualInput) {
             focusInput(input1.isFocused() ? input2 : input1);
             return true;
         }
-        if (key == GLFW.GLFW_KEY_ESCAPE) {
+        if (key == InputCompat.KEY_ESCAPE) {
             if (editingIndex >= 0) clearInputs();
-            else client.setScreen(parent);
+            else minecraft.gui.setScreen(parent);
             return true;
         }
         return super.keyPressed(input);
     }
 
     @Override
-    public boolean charTyped(CharInput charInput) {
+    public boolean charTyped(CharacterEvent charInput) {
         char chr = (char) charInput.codepoint();
-        if (input1.charTyped(chr, charInput.modifiers())
-                || dualInput && input2.charTyped(chr, charInput.modifiers())) return true;
+        if (input1.charTyped(chr, 0)
+                || dualInput && input2.charTyped(chr, 0)) return true;
         return super.charTyped(charInput);
     }
 
     @Override
-    public boolean mouseDragged(Click click, double dx, double dy) {
-        if (input1.mouseDragged(click.x(), click.y(), click.button(), dx, dy)
-                || dualInput && input2.mouseDragged(click.x(), click.y(), click.button(), dx, dy)) return true;
+    public boolean mouseDragged(MouseButtonEvent click, double dx, double dy) {
+        if (input1.mouseDragged(click.x(), click.y(), julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()), dx, dy)
+                || dualInput && input2.mouseDragged(click.x(), click.y(), julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()), dx, dy)) return true;
         return super.mouseDragged(click, dx, dy);
     }
 
     @Override
-    public boolean mouseReleased(Click click) {
-        if (input1.mouseReleased(click.x(), click.y(), click.button())
-                || dualInput && input2.mouseReleased(click.x(), click.y(), click.button())) return true;
+    public boolean mouseReleased(MouseButtonEvent click) {
+        if (input1.mouseReleased(click.x(), click.y(), julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()))
+                || dualInput && input2.mouseReleased(click.x(), click.y(), julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()))) return true;
         return super.mouseReleased(click);
     }
 
     @Override
     public boolean mouseScrolled(double mx, double my, double h, double v) {
         int max = Math.max(0, items.size() * 28 - (height - 165));
-        scroll = MathHelper.clamp(scroll - v * 25, 0, max);
+        scroll = Mth.clamp(scroll - v * 25, 0, max);
         return true;
     }
 
     @Override
-    public void close() { client.setScreen(parent); }
+    public void onClose() { minecraft.gui.setScreen(parent); }
 }

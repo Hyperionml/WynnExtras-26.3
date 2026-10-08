@@ -3,15 +3,14 @@ package julianh06.wynnextras.features.profileviewer.tabs;
 import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.utils.render.HorizontalAlignment;
 import julianh06.wynnextras.utils.render.VerticalAlignment;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.features.profileviewer.PV;
 import julianh06.wynnextras.features.profileviewer.PVScreen;
 import julianh06.wynnextras.features.profileviewer.data.GuildRaids;
 import julianh06.wynnextras.features.profileviewer.data.Raids;
 import julianh06.wynnextras.utils.UI.Widget;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.util.Identifier;
-
 import java.text.DecimalFormat;
 import java.util.Map;
 
@@ -19,18 +18,18 @@ import static julianh06.wynnextras.features.profileviewer.PVScreen.getClassName;
 import static julianh06.wynnextras.features.profileviewer.PVScreen.selectedCharacter;
 
 public class RaidsTabWidget extends PVScreen.TabWidget {
-    static Identifier raidBackgroundTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/raid/background.png");
-    static Identifier raidBackgroundTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/raid/background_dark.png");
+    static Identifier raidBackgroundTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/raid/background.png");
+    static Identifier raidBackgroundTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/raid/background_dark.png");
 
-    static Identifier raidBackgroundTextureLong = Identifier.of("wynnextras", "textures/gui/profileviewer/raid/background_long.png");
-    static Identifier raidBackgroundTextureDarkLong = Identifier.of("wynnextras", "textures/gui/profileviewer/raid/background_long_dark.png");
+    static Identifier raidBackgroundTextureLong = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/raid/background_long.png");
+    static Identifier raidBackgroundTextureDarkLong = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/raid/background_long_dark.png");
 
 
-    static Identifier NOTGTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/notg.png");
-    static Identifier NOLTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/nol.png");
-    static Identifier TCCTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/tcc.png");
-    static Identifier TNATexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/tna.png");
-    static Identifier TWPTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/rankingicons/twp.png");
+    static Identifier NOTGTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/notg.png");
+    static Identifier NOLTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/nol.png");
+    static Identifier TCCTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/tcc.png");
+    static Identifier TNATexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/tna.png");
+    static Identifier TWPTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/rankingicons/twp.png");
 
     public RaidsTabWidget() {
         super(0, 0, 0, 0);
@@ -54,7 +53,7 @@ public class RaidsTabWidget extends PVScreen.TabWidget {
     private TypeSwitcher typeSwitcher;
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if(PV.currentPlayerData == null) return;
         DecimalFormat formatter = new DecimalFormat("#,###");
         if(PV.currentPlayerData.getGlobalData() == null) {
@@ -315,7 +314,7 @@ public class RaidsTabWidget extends PVScreen.TabWidget {
 
     public static class TypeSwitcher extends Widget {
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawButtonCustom(x, y, width, height, 13, hovered, WynnExtrasConfig.INSTANCE.pvDarkmodeToggle);
 
             String text = "";

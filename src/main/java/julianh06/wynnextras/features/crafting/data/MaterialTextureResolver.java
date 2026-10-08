@@ -4,14 +4,13 @@ import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.utils.UI.UIUtils;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.NativeImageBackedTexture;
-import net.minecraft.resource.Resource;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.resource.ResourceType;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.resources.Resource;
+import net.minecraft.server.packs.resources.ResourceManager;
+import com.mojang.blaze3d.platform.NativeImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -19,7 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public final class MaterialTextureResolver implements SimpleSynchronousResourceReloadListener {
-    private static final Identifier RELOAD_ID = Identifier.of(WynnExtras.MOD_ID, "material_textures");
+    private static final Identifier RELOAD_ID = Identifier.fromNamespaceAndPath(WynnExtras.MOD_ID, "material_textures");
     private static final MaterialTextureResolver INSTANCE = new MaterialTextureResolver();
 
     private final Map<Identifier, Identifier> resolved = new HashMap<>();
@@ -29,7 +28,7 @@ public final class MaterialTextureResolver implements SimpleSynchronousResourceR
     }
 
     public static void register() {
-        ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(INSTANCE);
+        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(INSTANCE);
     }
 
     public static Identifier resolve(Identifier serverTexture) {
@@ -42,7 +41,7 @@ public final class MaterialTextureResolver implements SimpleSynchronousResourceR
     }
 
     @Override
-    public void reload(ResourceManager manager) {
+    public void onResourceManagerReload(ResourceManager manager) {
         this.manager = manager;
         resolved.clear();
         UIUtils.clearSeparatorCache();
@@ -70,7 +69,7 @@ public final class MaterialTextureResolver implements SimpleSynchronousResourceR
     }
 
     private Identifier normalizeIfNeeded(Identifier serverTexture, Resource resource) {
-        try (InputStream inputStream = resource.getInputStream()) {
+        try (InputStream inputStream = resource.open()) {
             NativeImage image = NativeImage.read(inputStream);
             if (image == null) {
                 return serverTexture;
@@ -84,27 +83,27 @@ public final class MaterialTextureResolver implements SimpleSynchronousResourceR
             NativeImage cropped = new NativeImage(width, width, false);
             for (int y = 0; y < width; y++) {
                 for (int x = 0; x < width; x++) {
-                    int color = image.getColorArgb(x, y);
-                    cropped.setColorArgb(x, y, color);
+                    int color = image.getPixel(x, y);
+                    cropped.setPixel(x, y, color);
                 }
             }
             image.close();
 
-            MinecraftClient client = MinecraftClient.getInstance();
+            Minecraft client = Minecraft.getInstance();
             if (client == null) {
                 return serverTexture;
             }
             Identifier dynamicId = buildDynamicId(serverTexture);
 
-            NativeImageBackedTexture texture =
-                    new NativeImageBackedTexture(
+            DynamicTexture texture =
+                    new DynamicTexture(
                             dynamicId::toString,
                             cropped
                     );
 
-            MinecraftClient.getInstance()
+            Minecraft.getInstance()
                     .getTextureManager()
-                    .registerTexture(dynamicId, texture);
+                    .register(dynamicId, texture);
 
             return dynamicId;
         } catch (IOException | RuntimeException ignored) {
@@ -114,7 +113,7 @@ public final class MaterialTextureResolver implements SimpleSynchronousResourceR
 
     private static Identifier buildDynamicId(Identifier serverTexture) {
         String sanitized = serverTexture.getPath().replace('/', '_');
-        return Identifier.of(WynnExtras.MOD_ID,
+        return Identifier.fromNamespaceAndPath(WynnExtras.MOD_ID,
                 "dynamic/materials/" + serverTexture.getNamespace() + "/" + sanitized);
     }
 
@@ -122,7 +121,7 @@ public final class MaterialTextureResolver implements SimpleSynchronousResourceR
         if (manager != null) {
             return manager;
         }
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client != null) {
             return client.getResourceManager();
         }

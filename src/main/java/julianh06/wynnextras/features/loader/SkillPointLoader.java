@@ -7,14 +7,13 @@ import julianh06.wynnextras.wynncraft.menu.WynncraftMenuService;
 import julianh06.wynnextras.wynncraft.state.SkillPoint;
 import julianh06.wynnextras.wynncraft.state.SkillPointState;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-import net.minecraft.util.Hand;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -75,15 +74,15 @@ public class SkillPointLoader {
 
         if (WynncraftMenuService.isCurrent(MenuType.CHARACTER_INFO)) return;
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null || client.interactionManager == null) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.player == null || client.gameMode == null) {
             fail("Could not open the character menu.");
             return;
         }
 
         int previousSlot = client.player.getInventory().getSelectedSlot();
         client.player.getInventory().setSelectedSlot(7);
-        client.interactionManager.interactItem(client.player, Hand.MAIN_HAND);
+        client.gameMode.useItem(client.player, InteractionHand.MAIN_HAND);
         client.player.getInventory().setSelectedSlot(previousSlot);
     }
 
@@ -105,7 +104,7 @@ public class SkillPointLoader {
     public static void init() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             SkillPointLoader loader = getInstance();
-            if (client.player == null || client.world == null) {
+            if (client.player == null || client.level == null) {
                 CompassMenuOverlay.setSelectingWeapon(false);
                 CompassMenuOverlay.clearStatus();
                 loader.characterMenuWasOpen = false;
@@ -127,7 +126,7 @@ public class SkillPointLoader {
             if (!loader.loading) return;
 
             long now = System.currentTimeMillis();
-            if (!(client.currentScreen instanceof HandledScreen<?> screen)
+            if (!(client.gui.screen() instanceof AbstractContainerScreen<?> screen)
                     || !WynncraftMenuService.isCurrent(MenuType.CHARACTER_INFO)) {
                 if (now - loader.startedAt >= MENU_STATE_TIMEOUT_MS) {
                     loader.fail("Character menu did not become ready in time.");
@@ -144,7 +143,7 @@ public class SkillPointLoader {
         });
     }
 
-    private void waitForInitialState(HandledScreen<?> screen, long now) {
+    private void waitForInitialState(AbstractContainerScreen<?> screen, long now) {
         if (!hasFreshStateAfter(startedAt)) {
             if (now - phaseStartedAt >= MENU_STATE_TIMEOUT_MS) {
                 fail("Could not read the current skill points.");
@@ -159,24 +158,24 @@ public class SkillPointLoader {
             return;
         }
 
-        if (screen.getScreenHandler().slots.size() <= RESET_SLOT
-                || !screen.getScreenHandler().getSlot(RESET_SLOT).hasStack()) {
+        if (screen.getMenu().slots.size() <= RESET_SLOT
+                || !screen.getMenu().getSlot(RESET_SLOT).hasItem()) {
             fail("The skill point reset button was not found.");
             return;
         }
 
-        ContainerUtils.shiftClickOnSlot(RESET_SLOT, screen.getScreenHandler().syncId, 0,
-                screen.getScreenHandler().getStacks());
+        ContainerUtils.shiftClickOnSlot(RESET_SLOT, screen.getMenu().containerId, 0,
+                screen.getMenu().getItems());
         phase = Phase.WAITING_FOR_RESET_PROMPT;
         phaseStartedAt = now;
         CompassMenuOverlay.setStatus(CompassMenuOverlay.StatusType.PROGRESS,
                 "Opening reset confirmation...", "Waiting for the confirmation prompt.");
     }
 
-    private void waitForResetPrompt(HandledScreen<?> screen, long now) {
+    private void waitForResetPrompt(AbstractContainerScreen<?> screen, long now) {
         if (isResetConfirmationPrompt(screen)) {
-            ContainerUtils.clickOnSlot(RESET_SLOT, screen.getScreenHandler().syncId, 0,
-                    screen.getScreenHandler().getStacks());
+            ContainerUtils.clickOnSlot(RESET_SLOT, screen.getMenu().containerId, 0,
+                    screen.getMenu().getItems());
             phase = Phase.WAITING_FOR_RESET;
             phaseStartedAt = now;
             CompassMenuOverlay.setStatus(CompassMenuOverlay.StatusType.PROGRESS,
@@ -190,7 +189,7 @@ public class SkillPointLoader {
         }
     }
 
-    private void waitForResetCompletion(HandledScreen<?> screen, long now) {
+    private void waitForResetCompletion(AbstractContainerScreen<?> screen, long now) {
         if (finishResetIfReady(screen)) return;
 
         if (now - phaseStartedAt >= RESET_CONFIRMATION_TIMEOUT_MS) {
@@ -199,7 +198,7 @@ public class SkillPointLoader {
         }
     }
 
-    private boolean finishResetIfReady(HandledScreen<?> screen) {
+    private boolean finishResetIfReady(AbstractContainerScreen<?> screen) {
         if (isResetConfirmationPrompt(screen)) return false;
 
         Integer available = resetAvailableSkillPoints(screen);
@@ -210,11 +209,11 @@ public class SkillPointLoader {
         return true;
     }
 
-    private static boolean isResetConfirmationPrompt(HandledScreen<?> screen) {
+    private static boolean isResetConfirmationPrompt(AbstractContainerScreen<?> screen) {
         return resetSlotText(screen).toLowerCase(Locale.ROOT).contains("click again to confirm");
     }
 
-    private static Integer resetAvailableSkillPoints(HandledScreen<?> screen) {
+    private static Integer resetAvailableSkillPoints(AbstractContainerScreen<?> screen) {
         Matcher matcher = RESET_AVAILABLE.matcher(resetSlotText(screen));
         if (!matcher.find()) return null;
         try {
@@ -224,15 +223,15 @@ public class SkillPointLoader {
         }
     }
 
-    private static String resetSlotText(HandledScreen<?> screen) {
-        if (screen == null || screen.getScreenHandler().slots.size() <= RESET_SLOT) return "";
-        ItemStack stack = screen.getScreenHandler().getSlot(RESET_SLOT).getStack();
+    private static String resetSlotText(AbstractContainerScreen<?> screen) {
+        if (screen == null || screen.getMenu().slots.size() <= RESET_SLOT) return "";
+        ItemStack stack = screen.getMenu().getSlot(RESET_SLOT).getItem();
         if (stack == null || stack.isEmpty()) return "";
 
-        StringBuilder text = new StringBuilder(stack.getName().getString());
-        LoreComponent lore = stack.get(DataComponentTypes.LORE);
+        StringBuilder text = new StringBuilder(stack.getHoverName().getString());
+        ItemLore lore = stack.get(DataComponents.LORE);
         if (lore != null) {
-            for (Text line : lore.lines()) text.append('\n').append(line.getString());
+            for (Component line : lore.lines()) text.append('\n').append(line.getString());
         }
         return text.toString().replaceAll("\\u00A7[0-9a-fk-or]", "");
     }
@@ -257,23 +256,23 @@ public class SkillPointLoader {
         updateProgress();
     }
 
-    private void assignNext(HandledScreen<?> screen) {
+    private void assignNext(AbstractContainerScreen<?> screen) {
         for (int i = 0; i < remaining.length; i++) {
             if (remaining[i] <= 0) continue;
 
             int amount = remaining[i] >= 5 ? 5 : 1;
             int slot = SLOT_OFFSET + i;
-            if (slot >= screen.getScreenHandler().slots.size()) {
+            if (slot >= screen.getMenu().slots.size()) {
                 fail("A skill point button is missing.");
                 return;
             }
 
             if (amount == 5) {
-                ContainerUtils.shiftClickOnSlot(slot, screen.getScreenHandler().syncId, 0,
-                        screen.getScreenHandler().getStacks());
+                ContainerUtils.shiftClickOnSlot(slot, screen.getMenu().containerId, 0,
+                        screen.getMenu().getItems());
             } else {
-                ContainerUtils.clickOnSlot(slot, screen.getScreenHandler().syncId, 0,
-                        screen.getScreenHandler().getStacks());
+                ContainerUtils.clickOnSlot(slot, screen.getMenu().containerId, 0,
+                        screen.getMenu().getItems());
             }
             remaining[i] -= amount;
             assignmentSent += amount;

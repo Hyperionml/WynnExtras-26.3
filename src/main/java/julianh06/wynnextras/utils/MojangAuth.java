@@ -2,13 +2,9 @@ package julianh06.wynnextras.utils;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.mojang.authlib.minecraft.MinecraftSessionService;
-import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 import julianh06.wynnextras.utils.MinecraftUtils;
+import net.minecraft.network.chat.Component;
 import julianh06.wynnextras.core.WynnExtras;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-
 import javax.naming.AuthenticationException;
 import java.math.BigInteger;
 import java.net.Proxy;
@@ -47,19 +43,15 @@ public class MojangAuth {
                     return null;
                 }
 
-                var session = mc.getSession();
+                var session = mc.getUser();
                 if (session == null) {
                     WynnExtras.LOGGER.error("Session is null");
                     return null;
                 }
-
-                YggdrasilAuthenticationService authService =
-                        new YggdrasilAuthenticationService(Proxy.NO_PROXY);
-                MinecraftSessionService sessionService =
-                        authService.createMinecraftSessionService();
+                var sessionService = mc.services().sessionService();
 
                 String serverId = generateServerId();
-                UUID playerUuid = mc.player.getUuid();
+                UUID playerUuid = mc.player.getUUID();
 
                 try {
                     // Authenticate with Mojang
@@ -77,7 +69,7 @@ public class MojangAuth {
                 } catch (Exception e) {
                     WynnExtras.LOGGER.error("Mojang authentication failed", e);
 
-                    MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.literal("§cAuthentication failed. Please restart Minecraft.")));
+                    MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.literal("§cAuthentication failed. Please restart Minecraft.")));
 
                     return null;
                 }

@@ -6,11 +6,11 @@ import julianh06.wynnextras.features.chat.mediapreview.ChatMediaPreview;
 import julianh06.wynnextras.features.guildviewer.GV;
 import julianh06.wynnextras.features.profileviewer.PV;
 import julianh06.wynnextras.utils.MinecraftUtils;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.Style;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -35,7 +35,7 @@ public abstract class ChatClickMixin {
     // Pattern for guild pill hover text: "... [TAG] Guild"
     private static final Pattern GUILD_PILL_PATTERN = Pattern.compile("\\[([A-Za-z0-9]{3,4})\\] Guild");
 
-    @Inject(method = "handleClickEvent", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "handleComponentClicked", at = @At("HEAD"), cancellable = true)
     private void onHandleTextClick(Style style, boolean insert, CallbackInfoReturnable<Boolean> cir) {
         try {
             if (ChatMediaPreview.handleClick(style)) {
@@ -49,13 +49,13 @@ public abstract class ChatClickMixin {
             String guildTag = null;
 
             ClickEvent clickEvent = style.getClickEvent();
-            if (clickEvent != null && clickEvent.getAction() != null && clickEvent instanceof ClickEvent.SuggestCommand suggestCommand) {
+            if (clickEvent != null && clickEvent.action() != null && clickEvent instanceof ClickEvent.SuggestCommand suggestCommand) {
                 String value = suggestCommand.command();
                 if (!value.contains("join") && value.contains("msg")) {
                     WynnExtras.LOGGER.info("ChatClick - Click value: [" + value + "]");
 
-                    if (clickEvent.getAction() == ClickEvent.Action.SUGGEST_COMMAND ||
-                            clickEvent.getAction() == ClickEvent.Action.RUN_COMMAND) {
+                    if (clickEvent.action() == ClickEvent.Action.SUGGEST_COMMAND ||
+                            clickEvent.action() == ClickEvent.Action.RUN_COMMAND) {
                         Matcher matcher = CMD_PATTERN.matcher(value);
                         if (matcher.find()) {
                             username = matcher.group(1);
@@ -66,8 +66,8 @@ public abstract class ChatClickMixin {
 
             // Try HoverEvent for player nickname or guild pill
             HoverEvent hoverEvent = style.getHoverEvent();
-            if (hoverEvent != null && hoverEvent.getAction() == HoverEvent.Action.SHOW_TEXT && hoverEvent instanceof HoverEvent.ShowText showText) {
-                Text hoverText = showText.value();
+            if (hoverEvent != null && hoverEvent.action() == HoverEvent.Action.SHOW_TEXT && hoverEvent instanceof HoverEvent.ShowText showText) {
+                Component hoverText = showText.value();
                 if (hoverText != null) {
                     String hoverString = hoverText.getString();
                     WynnExtras.LOGGER.info("ChatClick - Hover text: [" + hoverString + "]");

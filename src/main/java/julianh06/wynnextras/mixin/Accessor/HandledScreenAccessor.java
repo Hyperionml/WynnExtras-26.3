@@ -1,31 +1,28 @@
 package julianh06.wynnextras.mixin.Accessor;
 
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.Slot;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin (HandledScreen.class)
+@Mixin (AbstractContainerScreen.class)
 public interface HandledScreenAccessor {
-    @Accessor("focusedSlot")
+    @Accessor("hoveredSlot")
     void setFocusedSlot(Slot slot);
 
-    @Accessor("focusedSlot")
+    @Accessor("hoveredSlot")
     Slot getFocusedSlot();
 
-    @Accessor("touchDragStack")
-    ItemStack getTouchDragStack();
-
-    @Accessor("x")
+    @Accessor("leftPos")
     int getX();
 
-    @Accessor("y")
+    @Accessor("topPos")
     int getY();
 
     @Accessor
-    int getBackgroundWidth();
+    int getImageWidth();
 
     @Accessor
-    int getBackgroundHeight();
+    int getImageHeight();
 }

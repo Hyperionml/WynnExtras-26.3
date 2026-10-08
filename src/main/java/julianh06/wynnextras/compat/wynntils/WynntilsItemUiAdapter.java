@@ -1,12 +1,11 @@
 package julianh06.wynnextras.compat.wynntils;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 
 public final class WynntilsItemUiAdapter {
     private record ItemBinding(Object model, Method getWynnItem) {}
@@ -24,7 +23,7 @@ public final class WynntilsItemUiAdapter {
         Class<?> handlers = WynntilsCompat.requireClass("com.wynntils.core.components.Handlers");
         Object handler = handlers.getField("Item").get(null);
         Class<?> styledText = WynntilsCompat.requireClass("com.wynntils.core.text.StyledText");
-        Method factory = styledText.getMethod("fromComponent", Text.class);
+        Method factory = styledText.getMethod("fromComponent", Component.class);
         Method calculate = handler.getClass().getDeclaredMethod("calculateAnnotation", ItemStack.class, styledText);
         if (!calculate.trySetAccessible()) throw new IllegalAccessException("calculateAnnotation");
         return new AnnotationBinding(handler, calculate, factory);
@@ -45,7 +44,7 @@ public final class WynntilsItemUiAdapter {
 
     private WynntilsItemUiAdapter() {}
 
-    public static Optional<WynntilsBankAdapter.AnnotationHandle> calculateAnnotation(ItemStack stack, Text name) {
+    public static Optional<WynntilsBankAdapter.AnnotationHandle> calculateAnnotation(ItemStack stack, Component name) {
         return ANNOTATION.invoke(binding -> {
             Object value = binding.calculate.invoke(binding.handler, stack,
                     binding.styledTextFactory.invoke(null, name));
@@ -53,15 +52,15 @@ public final class WynntilsItemUiAdapter {
         });
     }
 
-    public static List<Text> getItemGuessTooltip(ItemStack stack) {
+    public static List<Component> getItemGuessTooltip(ItemStack stack) {
         Object gearBox = getInternalItem(stack).orElse(null);
         if (gearBox == null) return List.of();
         return ITEM_GUESS.invoke(binding -> {
-            if (!binding.gearBoxType.isInstance(gearBox)) return List.<Text>of();
+            if (!binding.gearBoxType.isInstance(gearBox)) return List.<Component>of();
             Object result = binding.tooltipAddon.invoke(binding.feature, gearBox);
-            if (!(result instanceof List<?> values)) return List.<Text>of();
-            List<Text> tooltip = new ArrayList<>(values.size());
-            for (Object value : values) if (value instanceof Text text) tooltip.add(text);
+            if (!(result instanceof List<?> values)) return List.<Component>of();
+            List<Component> tooltip = new ArrayList<>(values.size());
+            for (Object value : values) if (value instanceof Component text) tooltip.add(text);
             return tooltip;
         }).orElseGet(List::of);
     }

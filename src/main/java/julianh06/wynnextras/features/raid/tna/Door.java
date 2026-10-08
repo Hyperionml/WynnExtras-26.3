@@ -1,6 +1,6 @@
 package julianh06.wynnextras.features.raid.tna;
 
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.phys.Vec3;
 
-public record Door(Vec3d pos, Grotto to) {
+public record Door(Vec3 pos, Grotto to) {
 }

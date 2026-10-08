@@ -5,11 +5,11 @@ import julianh06.wynnextras.features.inventory.TradeMarketOverlay;
 import julianh06.wynnextras.features.misc.GuildRaidBlockOverlay;
 import julianh06.wynnextras.features.raid.RaidLootTrackerOverlay;
 import julianh06.wynnextras.features.raid.tna.TreeRoomMinimap;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,15 +18,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Screen.class)
 public class RaidLootOverlayScreenMixin {
 
-    @Inject(method = "render", at = @At("TAIL"))
-    private void renderOverlayOnScreen(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+    @Inject(method = "extractRenderState", at = @At("TAIL"))
+    private void renderOverlayOnScreen(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         RaidLootTrackerOverlay.renderOnScreen(context, mouseX, mouseY);
         TradeMarketOverlay.renderOnScreen(context);
         CraftingResultPreviewer.onRender(context);
         GuildRaidBlockOverlay.render(context);
 
-        boolean isInventory = MinecraftClient.getInstance().currentScreen instanceof InventoryScreen;
-        boolean isChat = MinecraftClient.getInstance().currentScreen instanceof ChatScreen;
+        boolean isInventory = Minecraft.getInstance().gui.screen() instanceof InventoryScreen;
+        boolean isChat = Minecraft.getInstance().gui.screen() instanceof ChatScreen;
         if (!isInventory && !isChat) return;
 
         TreeRoomMinimap.render(context, null);

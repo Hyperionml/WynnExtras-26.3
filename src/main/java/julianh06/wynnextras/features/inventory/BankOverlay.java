@@ -25,16 +25,16 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.core.NonNullList;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.neoforged.bus.api.SubscribeEvent;
-import org.lwjgl.glfw.GLFW;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.util.HashMap;
 import java.util.List;
@@ -46,7 +46,7 @@ public class BankOverlay {
             "bank",
             "Opens the cached bank in read-only mode",
             context -> {
-                MinecraftClient client = MinecraftClient.getInstance();
+                Minecraft client = Minecraft.getInstance();
                 if (client.player == null) {
                     MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix("§cNo player is available."));
                     return 0;
@@ -60,15 +60,15 @@ public class BankOverlay {
                 return 1;
             });
 
-    public static final DefaultedList<Slot> playerInvSlots = DefaultedList.of();
-    public static final DefaultedList<Slot> activeInvSlots = DefaultedList.of();
+    public static final NonNullList<Slot> playerInvSlots = NonNullList.create();
+    public static final NonNullList<Slot> activeInvSlots = NonNullList.create();
     private static WynntilsBankAdapter.StorageHandle personalStorageUtils;
 
     public static BankData Pages;
 
     public static int activeInv = -1;
 
-    public static ItemStack heldItem = Items.AIR.getDefaultStack();
+    public static ItemStack heldItem = ItemStack.EMPTY;
 
     public static final Map<Integer, List<WynntilsBankAdapter.AnnotationHandle>> annotationCache = new HashMap<>();
 
@@ -161,11 +161,11 @@ public class BankOverlay {
         if (!LunarCompat.isLunarClient()) return false;
         if (currentOverlayType == BankOverlayType.NONE && !ClassSelectionOverlay.isTextInputActive()) return false;
 
-        KeyInputEvent event = new KeyInputEvent(key, scanCode, GLFW.GLFW_PRESS, modifiers);
+        KeyInputEvent event = new KeyInputEvent(key, scanCode, InputCompat.PRESS, modifiers);
         handleKeyInput(event);
         return ClassSelectionOverlay.isTextInputActive()
                 || (currentOverlayType != BankOverlayType.NONE && (BankOverlay2.isAnyTextInputFocused()
-                || (GLFW.GLFW_KEY_1 <= key && key <= GLFW.GLFW_KEY_9)));
+                || (InputCompat.KEY_1 <= key && key <= InputCompat.KEY_9)));
     }
 
     public static boolean handleScreenCharTyped(char character) {
@@ -178,7 +178,7 @@ public class BankOverlay {
 
     private static void handleKeyInput(KeyInputEvent event) {
         if (ClassSelectionOverlay.handleKeyInput(event)) return;
-        if(event.getAction() == GLFW.GLFW_PRESS || event.getAction() == GLFW.GLFW_REPEAT) {
+        if(event.getAction() == InputCompat.PRESS || event.getAction() == InputCompat.REPEAT) {
             BankOverlay2.handleKeyPressed(event.getKey(), event.getScanCode(), event.getModifiers());
         }
         if(activeTextInput != null) {
@@ -198,9 +198,9 @@ public class BankOverlay {
     }
 
     private static boolean isCtrlHeld() {
-        long window = net.minecraft.client.MinecraftClient.getInstance().getWindow().getHandle();
-        return org.lwjgl.glfw.GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS
-            || org.lwjgl.glfw.GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
+        long window = net.minecraft.client.Minecraft.getInstance().getWindow().handle();
+        return julianh06.wynnextras.compat.client.InputCompat.keyState(window, InputCompat.KEY_LEFT_CONTROL) == InputCompat.PRESS
+            || julianh06.wynnextras.compat.client.InputCompat.keyState(window, InputCompat.KEY_RIGHT_CONTROL) == InputCompat.PRESS;
     }
 
     @SubscribeEvent
@@ -223,13 +223,13 @@ public class BankOverlay {
         if (now - lastHeldWeaponCheckMs < 1000) return;
         lastHeldWeaponCheckMs = now;
 
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client == null || client.player == null) return;
         if (!MinecraftUtils.isOnWynncraft()) return;
         boolean syncedCharacterId = syncCurrentCharacterId();
         if (!syncedCharacterId && !hasValidCurrentCharacterId()) return;
 
-        ItemStack held = client.player.getMainHandStack();
+        ItemStack held = client.player.getMainHandItem();
         boolean detectedWeapon = isWeapon(held);
         if (!detectedWeapon) return;
         ItemStack weapon = held;
@@ -250,7 +250,7 @@ public class BankOverlay {
 
     private static String getStackKey(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return "empty";
-        return stack.getItem() + "|" + stack.getName().getString() + "|" + stack.getComponents().hashCode();
+        return stack.getItem() + "|" + stack.getHoverName().getString() + "|" + stack.getComponents().hashCode();
     }
 
     public static void updateOverlayType() {
@@ -282,18 +282,24 @@ public class BankOverlay {
         WynnExtras.LOGGER.info("Registering Bankoverlay for " + WynnExtras.MOD_ID);
 
         ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
-            if (!(screen instanceof HandledScreen<?>)) return;
+            if (screen instanceof AbstractContainerScreen<?>
+                    || screen instanceof julianh06.wynnextras.features.bankoverlay.BankViewerScreen) {
+                // Fallback for wheel dispatch that bypasses the native MouseHandler callback.
+                ScreenMouseEvents.allowMouseScroll(screen).register((s, mouseX, mouseY, horizontal, vertical) ->
+                        !BankOverlay2.handleMouseScrolled(vertical));
+            }
+            if (!(screen instanceof AbstractContainerScreen<?>)) return;
             ScreenKeyboardEvents.allowKeyPress(screen).register((s, input) ->
-                    !handleScreenKeyPress(input.key(), input.scancode(), input.modifiers()));
+                    !handleScreenKeyPress(julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key()), input.keycode(), julianh06.wynnextras.compat.client.InputCompat.legacyModifiers(input.modifiers())));
         });
 
         ClientTickEvents.START_CLIENT_TICK.register((tick) -> {
-            MinecraftClient client = MinecraftClient.getInstance();
-            if(client.player == null || client.world == null) { return; }
+            Minecraft client = Minecraft.getInstance();
+            if(client.player == null || client.level == null) { return; }
 
-            ScreenHandler currScreenHandler = MinecraftUtils.containerMenu();
+            AbstractContainerMenu currScreenHandler = MinecraftUtils.containerMenu();
 
-            Screen currScreen = MinecraftUtils.mc().currentScreen;
+            Screen currScreen = MinecraftUtils.mc().gui.screen();
             if(currScreen == null) {
                 resetScrollRegistration();
                 return;
@@ -304,7 +310,7 @@ public class BankOverlay {
                 return;
             }
 
-            if(registeredScroll && (registeredScrollScreen != currScreen || registeredScrollSyncId != currScreenHandler.syncId)) {
+            if(registeredScroll && (registeredScrollScreen != currScreen || registeredScrollSyncId != currScreenHandler.containerId)) {
                 resetScrollRegistration();
             }
 
@@ -318,19 +324,9 @@ public class BankOverlay {
             if(BankOverlay.currentOverlayType != BankOverlayType.NONE) {
                 registeredScroll = true;
                 registeredScrollScreen = currScreen;
-                registeredScrollSyncId = currScreenHandler.syncId;
-                ScreenMouseEvents.afterMouseScroll(MinecraftClient.getInstance().currentScreen).register((
-                        screen,
-                        mX,
-                        mY,
-                        horizontalAmount,
-                        verticalAmount,
-                        consumed
-                ) -> {
-                    return BankOverlay2.handleMouseScrolled(verticalAmount);
-                });
+                registeredScrollSyncId = currScreenHandler.containerId;
             }
-            BankOverlay2.setBankSyncId(currScreenHandler.syncId);
+            BankOverlay2.setBankSyncId(currScreenHandler.containerId);
 
             //most (almost all) of the functionality is in HandledScreenMixin
         });
@@ -346,7 +342,7 @@ public class BankOverlay {
         currentCharacterID = null;
         activeInvSlots.clear();
         annotationCache.clear();
-        heldItem = Items.AIR.getDefaultStack();
+        heldItem = ItemStack.EMPTY;
         resetScrollRegistration();
         lastHeldWeaponCheckMs = 0;
         lastPersistedHeldWeaponKey = "";

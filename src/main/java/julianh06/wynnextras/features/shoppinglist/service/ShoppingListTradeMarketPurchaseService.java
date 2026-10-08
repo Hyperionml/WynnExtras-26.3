@@ -5,12 +5,12 @@ import julianh06.wynnextras.features.shoppinglist.ShoppingListFeature;
 import julianh06.wynnextras.features.shoppinglist.cart.ShoppingEntry;
 import julianh06.wynnextras.features.shoppinglist.model.RequirementType;
 import julianh06.wynnextras.features.shoppinglist.util.ShoppingListMaterialNameNormalizer;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.Slot;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.util.Map;
 
@@ -27,10 +27,10 @@ public final class ShoppingListTradeMarketPurchaseService {
 
     private ShoppingListTradeMarketPurchaseService() {}
 
-    public static void handleAmountSlotClick(HandledScreen<?> screen, Slot focusedSlot, int button) {
-        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT || screen == null || screen.getTitle() == null
+    public static void handleAmountSlotClick(AbstractContainerScreen<?> screen, Slot focusedSlot, int button) {
+        if (button != InputCompat.MOUSE_BUTTON_LEFT || screen == null || screen.getTitle() == null
                 || !screen.getTitle().getString().startsWith(PURCHASE_MENU_TITLE_PREFIX)
-                || focusedSlot == null || focusedSlot.id != AMOUNT_SLOT) {
+                || focusedSlot == null || focusedSlot.index != AMOUNT_SLOT) {
             clear();
             return;
         }
@@ -41,18 +41,18 @@ public final class ShoppingListTradeMarketPurchaseService {
     }
 
     public static PurchaseContext currentContext() {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (pendingContext == null || client == null) {
             return null;
         }
         if (amountPromptScreen != null) {
-            if (client.currentScreen == amountPromptScreen) {
+            if (client.gui.screen() == amountPromptScreen) {
                 return pendingContext;
             }
             clear();
             return null;
         }
-        if (!(client.currentScreen instanceof ChatScreen chatScreen)) {
+        if (!(client.gui.screen() instanceof ChatScreen chatScreen)) {
             if (System.currentTimeMillis() - pendingContextCreatedAtMs > PENDING_CONTEXT_TIMEOUT_MS) {
                 clear();
             }
@@ -72,27 +72,27 @@ public final class ShoppingListTradeMarketPurchaseService {
 
     public static boolean submitAmount(int amount) {
         PurchaseContext context = currentContext();
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (context == null || amount <= 0 || client == null || client.player == null
-                || client.player.networkHandler == null) {
+                || client.player.connection == null) {
             return false;
         }
 
         String message = Integer.toString(amount);
-        client.player.networkHandler.sendChatMessage(message);
-        if (client.inGameHud != null) {
-            client.inGameHud.getChatHud().addToMessageHistory(message);
+        client.player.connection.sendChat(message);
+        if (client.gui != null) {
+            client.gui.hud.getChat().addRecentChat(message);
         }
         clear();
-        client.setScreen(null);
+        client.gui.setScreen(null);
         return true;
     }
 
-    private static PurchaseContext findContext(HandledScreen<?> screen) {
-        if (screen.getScreenHandler() == null || screen.getScreenHandler().slots.size() <= PURCHASE_ITEM_SLOT) {
+    private static PurchaseContext findContext(AbstractContainerScreen<?> screen) {
+        if (screen.getMenu() == null || screen.getMenu().slots.size() <= PURCHASE_ITEM_SLOT) {
             return null;
         }
-        ItemStack purchaseStack = screen.getScreenHandler().slots.get(PURCHASE_ITEM_SLOT).getStack();
+        ItemStack purchaseStack = screen.getMenu().slots.get(PURCHASE_ITEM_SLOT).getItem();
         if (purchaseStack == null || purchaseStack.isEmpty()) {
             return null;
         }

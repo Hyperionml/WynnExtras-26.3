@@ -10,7 +10,7 @@ import julianh06.wynnextras.core.command.SubCommand;
 import julianh06.wynnextras.features.crafting.calc.CraftXpCalculator;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.utils.enums.WEProfessionType;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 
 import java.util.List;
@@ -18,11 +18,11 @@ import java.util.List;
 @WEModule
 public class ProfessionLevelGoalCommand {
     private static final RequiredArgumentBuilder<FabricClientCommandSource, String> PROFESSION_ARGUMENT =
-            ClientCommandManager.argument("profession", StringArgumentType.word())
+            ClientCommands.argument("profession", StringArgumentType.word())
                     .executes(context -> showGoal(StringArgumentType.getString(context, "profession")))
-                    .then(ClientCommandManager.literal("clear")
+                    .then(ClientCommands.literal("clear")
                             .executes(context -> clearGoal(StringArgumentType.getString(context, "profession"))))
-                    .then(ClientCommandManager.argument("level",
+                    .then(ClientCommands.argument("level",
                                     IntegerArgumentType.integer(1, CraftXpCalculator.CURVE_MAX_LEVEL))
                             .executes(context -> setGoal(
                                     StringArgumentType.getString(context, "profession"),

@@ -1,16 +1,16 @@
 package julianh06.wynnextras.features.profileviewer.tabs;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.features.profileviewer.PVScreen;
+import julianh06.wynnextras.features.profileviewer.PVScreen.DarkModeToggleWidget;
 import julianh06.wynnextras.features.profileviewer.data.CharacterData;
 import julianh06.wynnextras.utils.UI.Widget;
 import julianh06.wynnextras.utils.WynncraftApiHandler;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.Identifier;
-
 import java.util.List;
 
 import static julianh06.wynnextras.features.profileviewer.PVScreen.*;
@@ -19,28 +19,28 @@ public class ClassWidget extends Widget {
     private static final int GAMEMODE_ICON_SIZE = 30;
     private static final int GAMEMODE_TEXTURE_SIZE = 20;
 
-    static Identifier classBackgroundTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundinactive.png");
-    static Identifier classBackgroundTextureGold = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundinactivegold.png");
-    static Identifier classBackgroundTextureActive = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundactive.png");
+    static Identifier classBackgroundTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundinactive.png");
+    static Identifier classBackgroundTextureGold = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundinactivegold.png");
+    static Identifier classBackgroundTextureActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundactive.png");
 
-    static Identifier classBackgroundTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundinactive_dark.png");
-    static Identifier classBackgroundTextureGoldDark = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundinactivegold_dark.png");
-    static Identifier classBackgroundTextureActiveDark = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundactive_dark.png");
+    static Identifier classBackgroundTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundinactive_dark.png");
+    static Identifier classBackgroundTextureGoldDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundinactivegold_dark.png");
+    static Identifier classBackgroundTextureActiveDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundactive_dark.png");
 
-    static Identifier classBackgroundTextureHovered = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundhovered.png");
-    static Identifier classBackgroundTextureHoveredDark = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundhovered_dark.png");
-    static Identifier classBackgroundTextureActiveHovered = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundactivehovered.png");
-    static Identifier classBackgroundTextureActiveHoveredDark = Identifier.of("wynnextras", "textures/gui/profileviewer/classbackgroundactivehovered_dark.png");
+    static Identifier classBackgroundTextureHovered = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundhovered.png");
+    static Identifier classBackgroundTextureHoveredDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundhovered_dark.png");
+    static Identifier classBackgroundTextureActiveHovered = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundactivehovered.png");
+    static Identifier classBackgroundTextureActiveHoveredDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/classbackgroundactivehovered_dark.png");
 
-    static Identifier ironmanTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/gamemodes/ironman.png");
-    static Identifier ultimateIronmanTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/gamemodes/ultimateironman.png");
-    static Identifier huntedTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/gamemodes/hunted.png");
-    static Identifier hardcoreTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/gamemodes/hardcore.png");
-    static Identifier hardcoreFailedTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/gamemodes/hardcorefailed.png");
-    static Identifier craftsmanTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/gamemodes/craftsman.png");
+    static Identifier ironmanTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/gamemodes/ironman.png");
+    static Identifier ultimateIronmanTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/gamemodes/ultimateironman.png");
+    static Identifier huntedTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/gamemodes/hunted.png");
+    static Identifier hardcoreTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/gamemodes/hardcore.png");
+    static Identifier hardcoreFailedTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/gamemodes/hardcorefailed.png");
+    static Identifier craftsmanTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/gamemodes/craftsman.png");
 
-    static Identifier onlineCircleTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/onlinecircle_dark.png");
-    static Identifier onlineCircleTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/onlinecircle.png");
+    static Identifier onlineCircleTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/onlinecircle_dark.png");
+    static Identifier onlineCircleTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/onlinecircle.png");
 
     CharacterData characterData;
     private final Runnable action;
@@ -68,7 +68,7 @@ public class ClassWidget extends Widget {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if(x == 0) return;
 
         Identifier classTexture;

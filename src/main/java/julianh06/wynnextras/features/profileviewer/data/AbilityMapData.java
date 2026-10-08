@@ -1,15 +1,14 @@
 package julianh06.wynnextras.features.profileviewer.data;
 
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.NbtComponent;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
-
 import java.util.*;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomData;
 
 public class AbilityMapData {
     public transient Map<String, Archetype> archetypes;
@@ -66,7 +65,7 @@ public class AbilityMapData {
                 String val = (String) icon.value;
                 Identifier id = Identifier.tryParse(val);
                 if (id != null) {
-                    Item item = Registries.ITEM.get(id);
+                    Item item = BuiltInRegistries.ITEM.getValue(id);
                     if (item != Items.AIR) return Optional.of(new ItemStack(item));
                 }
                 return Optional.empty();
@@ -77,7 +76,7 @@ public class AbilityMapData {
                 if (iv.id != null) {
                     Identifier id = Identifier.tryParse(iv.id);
                     if (id != null) {
-                        Item item = Registries.ITEM.get(id);
+                        Item item = BuiltInRegistries.ITEM.getValue(id);
                         if (item != Items.AIR) {
                             ItemStack stack = new ItemStack(item);
                             if (iv.customModelData != null) {
@@ -100,7 +99,7 @@ public class AbilityMapData {
             String val = (String) metaIcon;
             Identifier id = Identifier.tryParse(val);
             if (id != null) {
-                Item item = Registries.ITEM.get(id);
+                Item item = BuiltInRegistries.ITEM.getValue(id);
                 if (item != Items.AIR) return Optional.of(new ItemStack(item));
             }
             // The String can also be a connector name -> no ItemStack
@@ -111,10 +110,10 @@ public class AbilityMapData {
     }
 
     private static void putCustomModelData(ItemStack stack, int cmd) {
-        NbtCompound compTag = new NbtCompound();
+        CompoundTag compTag = new CompoundTag();
         compTag.putInt("CustomModelData", cmd);
-        NbtComponent customComp = NbtComponent.of(compTag);
-        stack.set(DataComponentTypes.CUSTOM_DATA, customComp);
+        CustomData customComp = CustomData.of(compTag);
+        stack.set(DataComponents.CUSTOM_DATA, customComp);
     }
 
     private static Integer parseCustomModelInt(Object o) {

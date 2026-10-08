@@ -10,8 +10,8 @@ import julianh06.wynnextras.utils.render.TextShadow;
 import julianh06.wynnextras.utils.render.Texture;
 import julianh06.wynnextras.utils.render.VerticalAlignment;
 import julianh06.wynnextras.utils.text.StyledText;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
@@ -22,13 +22,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Pseudo
 @Mixin(targets = "com.wynntils.screens.maps.GuildMapScreen", remap = false)
 public class GuildMapScreenMixin {
-    @Inject(method = "renderPois(Lnet/minecraft/client/gui/DrawContext;II)V", at = @At("HEAD"), remap = false, require = 0)
-    private void fixTradeRoutes(DrawContext context, int mouseX, int mouseY, CallbackInfo ci) {
+    @Inject(method = "renderPois(Lnet/minecraft/client/gui/GuiGraphicsExtractor;II)V", at = @At("HEAD"), remap = false, require = 0)
+    private void fixTradeRoutes(GuiGraphicsExtractor context, int mouseX, int mouseY, CallbackInfo ci) {
         if (WynnExtrasConfig.INSTANCE.territoryEstimateToggle) WynntilsGuildAdapter.fixTradeRoutes();
     }
 
     @Inject(method = "renderTerritoryTooltip", at = @At("HEAD"), cancellable = true, remap = false, require = 0)
-    private static void renderTerritoryTooltip(DrawContext context, int xOffset, int yOffset,
+    private static void renderTerritoryTooltip(GuiGraphicsExtractor context, int xOffset, int yOffset,
                                                @Coerce Object territoryPoi, CallbackInfo ci) {
         if (!WynnExtrasConfig.INSTANCE.territoryEstimateToggle) return;
         WynntilsGuildAdapter.Territory territory = WynntilsGuildAdapter.territory(territoryPoi);
@@ -66,16 +66,16 @@ public class GuildMapScreenMixin {
             }
         }
         renderY += 10;
-        draw(context, Formatting.GRAY + "✦ Treasury: " + territory.treasury(), 10 + xOffset, 10 + renderY, CustomColor.WHITE);
+        draw(context, ChatFormatting.GRAY + "✦ Treasury: " + territory.treasury(), 10 + xOffset, 10 + renderY, CustomColor.WHITE);
         renderY += 10;
-        draw(context, Formatting.GRAY + "Territory Defences: " + territory.defences(), 10 + xOffset, 10 + renderY, CustomColor.WHITE);
+        draw(context, ChatFormatting.GRAY + "Territory Defences: " + territory.defences(), 10 + xOffset, 10 + renderY, CustomColor.WHITE);
         if (territory.headquarters()) {
             renderY += 20;
             draw(context, "Guild Headquarters", 10 + xOffset, 10 + renderY, CustomColor.RED);
         }
         if (territory.estimates() != null) {
             renderY += 20;
-            draw(context, Formatting.GRAY + "Estimated Defences: " + Formatting.DARK_GRAY + "(by @drzxm)",
+            draw(context, ChatFormatting.GRAY + "Estimated Defences: " + ChatFormatting.DARK_GRAY + "(by @drzxm)",
                     10 + xOffset, 10 + renderY, CustomColor.WHITE);
             for (String line : territory.estimates()) {
                 renderY += 10;
@@ -83,7 +83,7 @@ public class GuildMapScreenMixin {
             }
         }
         renderY += 20;
-        draw(context, Formatting.GRAY + "Time Held: " + territory.timeHeld(), 10 + xOffset, 10 + renderY, CustomColor.WHITE);
+        draw(context, ChatFormatting.GRAY + "Time Held: " + territory.timeHeld(), 10 + xOffset, 10 + renderY, CustomColor.WHITE);
         FontRenderer.getInstance().renderAlignedTextInBox(context, StyledText.fromString(territory.name()),
                 7 + xOffset, textureWidth + xOffset, Texture.MAP_INFO_TOOLTIP_TOP.height() + centerHeight + yOffset,
                 Texture.MAP_INFO_TOOLTIP_TOP.height() + centerHeight + Texture.MAP_INFO_NAME_BOX.height() + yOffset,
@@ -91,7 +91,7 @@ public class GuildMapScreenMixin {
         ci.cancel();
     }
 
-    private static void draw(DrawContext context, String text, float x, float y, CustomColor color) {
+    private static void draw(GuiGraphicsExtractor context, String text, float x, float y, CustomColor color) {
         FontRenderer.getInstance().renderText(context, StyledText.fromString(text), x, y, color,
                 HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.OUTLINE);
     }

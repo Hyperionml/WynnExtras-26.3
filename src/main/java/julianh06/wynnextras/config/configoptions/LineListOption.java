@@ -1,10 +1,9 @@
 package julianh06.wynnextras.config.configoptions;
 
 import julianh06.wynnextras.utils.MinecraftUtils;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.sound.SoundEvents;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.sounds.SoundEvents;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -51,11 +50,11 @@ public class LineListOption extends ConfigOption {
     }
 
     @Override
-    public void render(DrawContext ctx, int x, int y, int w, int h, int mx, int my, boolean hovered, int categoryColor) {
+    public void render(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int mx, int my, boolean hovered, int categoryColor) {
         lastX = x;
         lastY = y;
         lastW = w;
-        var tr = MinecraftClient.getInstance().textRenderer;
+        var tr = Minecraft.getInstance().font;
         ctx.fill(x, y, x + w, y + h - 5, hovered ? PARCHMENT_HOVER : PARCHMENT);
         ctx.fill(x, y, x + w, y + 1, BORDER_LIGHT);
         ctx.fill(x, y + h - 6, x + w, y + h - 5, BORDER_DARK);
@@ -64,17 +63,17 @@ public class LineListOption extends ConfigOption {
         int listX = x + 8;
         int listW = w - 16;
         int rowY = y + 48;
-        ctx.drawTextWithShadow(tr, activeTitle, listX, rowY - 11, categoryColor);
+        ctx.text(tr, activeTitle, listX, rowY - 11, categoryColor);
         for (String id : activeGetter.get()) {
             drawLineRow(ctx, listX, rowY, listW, id, mx, my);
             rowY += ROW_HEIGHT;
         }
 
         int availableY = rowY + 23;
-        ctx.drawTextWithShadow(tr, availableTitle, listX, availableY - 11, categoryColor);
+        ctx.text(tr, availableTitle, listX, availableY - 11, categoryColor);
         List<String> available = availableGetter.get();
         if (available.isEmpty()) {
-            ctx.drawTextWithShadow(tr, "None", listX + 6, availableY + 4, TEXT_DIM);
+            ctx.text(tr, "None", listX + 6, availableY + 4, TEXT_DIM);
         } else {
             for (String id : available) {
                 drawLineRow(ctx, listX, availableY, listW, id, mx, my);
@@ -91,21 +90,21 @@ public class LineListOption extends ConfigOption {
         }
     }
 
-    private void drawLineRow(DrawContext ctx, int x, int y, int w, String id, int mx, int my) {
-        var tr = MinecraftClient.getInstance().textRenderer;
+    private void drawLineRow(GuiGraphicsExtractor ctx, int x, int y, int w, String id, int mx, int my) {
+        var tr = Minecraft.getInstance().font;
         boolean hover = mx >= x && mx < x + w && my >= y && my < y + ROW_HEIGHT - 2;
         int bg = id.equals(draggedLine) ? BG_DARK : (hover ? BG_LIGHT : BG_MEDIUM);
         ctx.fill(x, y, x + w, y + ROW_HEIGHT - 2, bg);
         ctx.fill(x, y, x + w, y + 1, BORDER_LIGHT);
-        ctx.drawTextWithShadow(tr, "=", x + 6, y + 5, TEXT_DIM);
-        ctx.drawTextWithShadow(tr, displayName(id), x + 18, y + 5, TEXT_LIGHT);
+        ctx.text(tr, "=", x + 6, y + 5, TEXT_DIM);
+        ctx.text(tr, displayName(id), x + 18, y + 5, TEXT_LIGHT);
     }
 
-    private void drawGhostRow(DrawContext ctx, int x, int y, int w, String id) {
-        var tr = MinecraftClient.getInstance().textRenderer;
+    private void drawGhostRow(GuiGraphicsExtractor ctx, int x, int y, int w, String id) {
+        var tr = Minecraft.getInstance().font;
         ctx.fill(x, y, x + w, y + ROW_HEIGHT - 2, 0xDD4d3c2d);
         ctx.fill(x, y, x + w, y + 1, GOLD);
-        ctx.drawTextWithShadow(tr, displayName(id), x + 8, y + 5, TEXT_LIGHT);
+        ctx.text(tr, displayName(id), x + 8, y + 5, TEXT_LIGHT);
     }
 
     @Override

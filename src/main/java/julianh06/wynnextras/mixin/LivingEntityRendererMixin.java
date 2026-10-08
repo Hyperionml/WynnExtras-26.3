@@ -1,26 +1,26 @@
 package julianh06.wynnextras.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.mojang.blaze3d.vertex.PoseStack;
 import julianh06.wynnextras.duck.EntityRenderStateAccess;
 import julianh06.wynnextras.features.misc.HuntedModeTracker;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.features.render.PlayerRenderFilter;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.client.render.entity.EntityRenderer;
-import net.minecraft.client.render.entity.EntityRendererFactory;
-import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.client.render.entity.feature.FeatureRendererContext;
-import net.minecraft.client.render.entity.model.EntityModel;
-import net.minecraft.client.render.entity.state.LivingEntityRenderState;
-import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
-import net.minecraft.client.render.state.CameraRenderState;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.EntityModel;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.entity.LivingEntityRenderer;
+import net.minecraft.client.renderer.entity.RenderLayerParent;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -29,38 +29,38 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 
 @Mixin(LivingEntityRenderer.class)
-public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extends LivingEntityRenderState, M extends EntityModel<? super S>> extends EntityRenderer<T, S> implements FeatureRendererContext<S, M> {
-    protected LivingEntityRendererMixin(EntityRendererFactory.Context context) {
+public abstract class LivingEntityRendererMixin<T extends LivingEntity, S extends LivingEntityRenderState, M extends EntityModel<? super S>> extends EntityRenderer<T, S> implements RenderLayerParent<S, M> {
+    protected LivingEntityRendererMixin(EntityRendererProvider.Context context) {
         super(context);
     }
 
-    @Inject(method = "render", at = @At("HEAD"), cancellable = true)
-    private void onRender(S state, MatrixStack matrices, OrderedRenderCommandQueue renderQueue, CameraRenderState camera, CallbackInfo ci) {
+    @Inject(method = "submit", at = @At("HEAD"), cancellable = true)
+    private void onRender(S state, PoseStack matrices, SubmitNodeCollector renderQueue, CameraRenderState camera, CallbackInfo ci) {
         Entity entity = ((EntityRenderStateAccess) state).wynnExtras$getEntity();
-        if (entity instanceof PlayerEntity player && PlayerRenderFilter.isHidden(player)) ci.cancel();
+        if (entity instanceof Player player && PlayerRenderFilter.isHidden(player)) ci.cancel();
     }
 
-    @ModifyExpressionValue(method = "hasLabel(Lnet/minecraft/entity/LivingEntity;D)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/MinecraftClient;getCameraEntity()Lnet/minecraft/entity/Entity;"))
+    @ModifyExpressionValue(method = "shouldShowName(Lnet/minecraft/world/entity/LivingEntity;D)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;getCameraEntity()Lnet/minecraft/world/entity/Entity;"))
     private Entity showOwnNameTag(Entity entity) {
-        if(entity == MinecraftClient.getInstance().player && WynnExtrasConfig.INSTANCE.showOwnNametag) return null;
+        if(entity == Minecraft.getInstance().player && WynnExtrasConfig.INSTANCE.showOwnNametag) return null;
 
         return entity;
     }
 
-    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/entity/EntityRenderer;render(Lnet/minecraft/client/render/entity/state/EntityRenderState;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/command/OrderedRenderCommandQueue;Lnet/minecraft/client/render/state/CameraRenderState;)V"))
-    private void beforeSuperRender(S state, MatrixStack matrices, OrderedRenderCommandQueue renderQueue, CameraRenderState camera, CallbackInfo ci) {
-        if (!(state instanceof PlayerEntityRenderState playerState)) return;
-        MinecraftClient mc = MinecraftClient.getInstance();
+    @Inject(method = "submit", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/entity/EntityRenderer;submit(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V"))
+    private void beforeSuperRender(S state, PoseStack matrices, SubmitNodeCollector renderQueue, CameraRenderState camera, CallbackInfo ci) {
+        if (!(state instanceof AvatarRenderState playerState)) return;
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || playerState.id != mc.player.getId()) return;
         if (!WynnExtrasConfig.INSTANCE.showOwnNametag) return;
         if (!HuntedModeTracker.huntedMode) return;
 
-        Text pvpPrefix = Text.literal("[PvP] ").formatted(Formatting.RED);
-        if (playerState.playerName != null) {
-            playerState.playerName = pvpPrefix.copy().append(playerState.playerName);
+        Component pvpPrefix = Component.literal("[PvP] ").withStyle(ChatFormatting.RED);
+        if (playerState.scoreText != null) {
+            playerState.scoreText = pvpPrefix.copy().append(playerState.scoreText);
         }
-        if (playerState.displayName != null) {
-            playerState.displayName = pvpPrefix.copy().append(playerState.displayName);
+        if (playerState.nameTag != null) {
+            playerState.nameTag = pvpPrefix.copy().append(playerState.nameTag);
         }
     }
 }

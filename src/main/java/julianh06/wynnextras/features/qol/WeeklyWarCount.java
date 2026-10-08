@@ -3,11 +3,11 @@ package julianh06.wynnextras.features.qol;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.utils.BossBarUtils;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.client.gui.hud.ClientBossBar;
+import julianh06.wynnextras.compat.client.HudRenderCallback;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.LerpingBossEvent;
 
 public class WeeklyWarCount {
     private static final long WEEK_MS = 604_800_000L;
@@ -29,8 +29,8 @@ public class WeeklyWarCount {
         WynnExtrasConfig.INSTANCE.weeklyWars.removeIf(t -> t < cutoff);
     }
 
-    private static void checkBossBars(MinecraftClient client) {
-        for (ClientBossBar bar : BossBarUtils.getBossBars(client.inGameHud.getBossBarHud())) {
+    private static void checkBossBars(Minecraft client) {
+        for (LerpingBossEvent bar : BossBarUtils.getBossBars(client.gui.hud.getBossOverlay())) {
             String name = bar.getName().getString();
             if (name == null) continue;
             String clean = name.replaceAll("§[0-9a-fk-or]", "");
@@ -46,10 +46,10 @@ public class WeeklyWarCount {
         }
     }
 
-    private static void render(DrawContext ctx, RenderTickCounter tickCounter) {
+    private static void render(GuiGraphicsExtractor ctx, DeltaTracker tickCounter) {
         if (!WynnExtrasConfig.INSTANCE.weeklyWarCountEnabled) return;
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.player == null || mc.options.hudHidden) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.gui.hud.isHidden()) return;
 
         int count = WynnExtrasConfig.INSTANCE.weeklyWars.size();
         String text = count + " war" + (count == 1 ? "" : "s");
@@ -58,14 +58,14 @@ public class WeeklyWarCount {
         int x = WynnExtrasConfig.INSTANCE.weeklyWarCountX;
         int y = WynnExtrasConfig.INSTANCE.weeklyWarCountY;
 
-        ctx.getMatrices().pushMatrix();
-        ctx.getMatrices().translate(x, y);
-        ctx.getMatrices().scale(scale, scale);
+        ctx.pose().pushMatrix();
+        ctx.pose().translate(x, y);
+        ctx.pose().scale(scale, scale);
 
         Integer override = WynnExtrasConfig.INSTANCE.hudColorOverrides.get("weeklyWars");
         int color = override != null ? (override | 0xFF000000) : 0xFFFF55FF;
-        ctx.drawTextWithShadow(mc.textRenderer, text, 0, 0, color);
+        ctx.text(mc.font, text, 0, 0, color);
 
-        ctx.getMatrices().popMatrix();
+        ctx.pose().popMatrix();
     }
 }

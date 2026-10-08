@@ -1,6 +1,6 @@
 package julianh06.wynnextras.utils.render;
 
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 
 // These textures are unavailable without Wynntils installed, avoid using them
 public enum Texture {
@@ -26,7 +26,7 @@ public enum Texture {
     private final int height;
 
     Texture(String path, int width, int height) {
-        this.identifier = Identifier.of("wynntils", "textures/" + path);
+        this.identifier = Identifier.fromNamespaceAndPath("wynntils", "textures/" + path);
         this.width = width;
         this.height = height;
     }

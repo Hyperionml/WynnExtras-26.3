@@ -16,17 +16,16 @@ import julianh06.wynnextras.utils.UI.UIUtils;
 import julianh06.wynnextras.utils.UI.WEScreen;
 import julianh06.wynnextras.utils.UI.Widget;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ConfirmScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.BlockPos;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
 import java.util.*;
 
 public class WaypointScreen extends WEScreen {
@@ -52,7 +51,7 @@ public class WaypointScreen extends WEScreen {
     private static int ACCENT_RED = 0xFFa83232;
     private static int SUBCATEGORY_BG = 0xFF694d33;
     private static final String UNCATEGORIZED_CATEGORY_TOOLTIP = "This category cannot be deleted and it's name can't be changed";
-    private static final Identifier MOVE_ICON = Identifier.of("wynnextras", "textures/gui/waypointeditmodeui/move_icon.png");
+    private static final Identifier MOVE_ICON = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/waypointeditmodeui/move_icon.png");
 
     // ==================== LAYOUT ====================
     private static final int SIDEBAR_WIDTH = 120;
@@ -85,7 +84,7 @@ public class WaypointScreen extends WEScreen {
     }
 
     protected WaypointScreen(WaypointPackage initialPackage, Waypoint initialWaypoint) {
-        super(Text.of("WynnExtras Waypoint Screen"));
+        super(Component.nullToEmpty("WynnExtras Waypoint Screen"));
         String initialPackageId = initialPackage == null ? null : initialPackage.id;
         String initialPackageName = initialPackage == null ? null : initialPackage.name;
         String initialWaypointId = initialWaypoint == null ? null : initialWaypoint.id;
@@ -100,9 +99,9 @@ public class WaypointScreen extends WEScreen {
     }
 
     public static void open(WaypointPackage initialPackage, Waypoint initialWaypoint) {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client == null) return;
-        client.send(() -> client.setScreen(new WaypointScreen(initialPackage, initialWaypoint)));
+        client.schedule(() -> client.gui.setScreen(new WaypointScreen(initialPackage, initialWaypoint)));
     }
 
     @Override
@@ -125,7 +124,7 @@ public class WaypointScreen extends WEScreen {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         //ctx.fill(0, 0, width, height, BG_DARK);
 
         // Disable hover when dropdown is open
@@ -144,7 +143,7 @@ public class WaypointScreen extends WEScreen {
     }
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if (feedbackMessage.isEmpty() || System.currentTimeMillis() > feedbackUntil) return;
         int logicalWidth = getLogicalWidth();
         int logicalHeight = getLogicalHeight();
@@ -166,7 +165,7 @@ public class WaypointScreen extends WEScreen {
         feedbackUntil = System.currentTimeMillis() + FEEDBACK_DURATION_MS;
     }
 
-    private static void drawDiamond(DrawContext context, int cx, int cy, int size, int color) {
+    private static void drawDiamond(GuiGraphicsExtractor context, int cx, int cy, int size, int color) {
         for (int i = 0; i <= size; i++) {
             context.fill(cx - i, cy - size + i, cx + i + 1, cy - size + i + 1, color);
             context.fill(cx - i, cy + size - i, cx + i + 1, cy + size - i + 1, color);
@@ -188,7 +187,7 @@ public class WaypointScreen extends WEScreen {
         ui.drawRect(x + 4, y + height - 5, width - 8, 2, CustomColor.fromInt(accent));
     }
 
-    private void drawFooter(DrawContext ctx, int mouseX, int mouseY) {
+    private void drawFooter(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
         int footerY = height - FOOTER_HEIGHT + 5;
 
 //        if (selectedCategory < 0 || selectedCategory >= categories.size()) return;
@@ -208,17 +207,17 @@ public class WaypointScreen extends WEScreen {
         drawButton(ctx, cancelX, btnY, 100, 24, "Cancel", cancelHover, ACCENT_RED);
     }
 
-    private void drawButton(DrawContext ctx, int x, int y, int w, int h, String text, boolean hover, int accent) {
+    private void drawButton(GuiGraphicsExtractor ctx, int x, int y, int w, int h, String text, boolean hover, int accent) {
         ctx.fill(x, y, x + w, y + h, hover ? PARCHMENT_HOVER : PARCHMENT);
         ctx.fill(x, y, x + w, y + 1, hover ? GOLD : BORDER_LIGHT);
         ctx.fill(x, y + h - 1, x + w, y + h, BORDER_DARK);
         ctx.fill(x + 2, y + h - 3, x + w - 2, y + h - 2, accent);
-        ctx.drawCenteredTextWithShadow(textRenderer, text, x + w / 2, y + 8, TEXT_LIGHT);
+        ctx.centeredText(font, text, x + w / 2, y + 8, TEXT_LIGHT);
     }
 
     @Override
-    public boolean mouseDragged(Click click, double dx, double dy) {
-        sideBarWidget.mouseDragged(click.x() / matrixScale, click.y() / matrixScale, click.button(), dx / matrixScale, dy / matrixScale);
+    public boolean mouseDragged(MouseButtonEvent click, double dx, double dy) {
+        sideBarWidget.mouseDragged(click.x() / matrixScale, click.y() / matrixScale, julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()), dx / matrixScale, dy / matrixScale);
         return super.mouseDragged(click, dx, dy);
     }
 
@@ -239,7 +238,7 @@ public class WaypointScreen extends WEScreen {
         private float packageScrollOffset = 0;
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             if(!initialized) {
                 rebuildPackageWidgetsFromData();
                 initialized = true;
@@ -260,7 +259,7 @@ public class WaypointScreen extends WEScreen {
             int listEndY = addSeparatorY - 16;
             int listHeight = Math.max(0, listEndY - packageY);
             float maxScroll = Math.max(0, packageWidgets.size() * (packageHeight + spacing) - spacing - listHeight);
-            packageScrollTarget = MathHelper.clamp(packageScrollTarget, 0, maxScroll);
+            packageScrollTarget = Mth.clamp(packageScrollTarget, 0, maxScroll);
             float diff = packageScrollTarget - packageScrollOffset;
             if (Math.abs(diff) < 0.5f || !WynnExtrasConfig.INSTANCE.smoothScrollToggle) packageScrollOffset = packageScrollTarget;
             else packageScrollOffset += diff * 0.3f * tickDelta;
@@ -475,7 +474,7 @@ public class WaypointScreen extends WEScreen {
 
         private void importPackageFromClipboard(double mx, double my) {
             try {
-                WaypointPackage imported = WaypointActions.importPackageFromJson(MinecraftClient.getInstance().keyboard.getClipboard());
+                WaypointPackage imported = WaypointActions.importPackageFromJson(Minecraft.getInstance().keyboardHandler.getClipboard());
                 MainWidget.activePackage = imported;
                 WaypointData.INSTANCE.activePackage = imported;
                 rebuildPackageWidgetsFromData();
@@ -508,7 +507,7 @@ public class WaypointScreen extends WEScreen {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 boolean selected = MainWidget.activePackage == waypointPackage;
                 boolean disabled = !waypointPackage.enabled;
                 drawConfigRow(ui, x, y, width, height, hovered, selected, disabled ? ACCENT_RED : GOLD_DARK);
@@ -522,7 +521,7 @@ public class WaypointScreen extends WEScreen {
                 drawEnabledToggle(waypointPackage.enabled, isToggleHovered(mouseX, mouseY));
             }
 
-            private void drawDraggedPreview(DrawContext ctx, int mouseX, int mouseY) {
+            private void drawDraggedPreview(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
                 float dragX = mouseX * ui.getScaleFactorF();
                 float dragY = mouseY * ui.getScaleFactorF();
                 boolean disabled = !waypointPackage.enabled;
@@ -582,7 +581,7 @@ public class WaypointScreen extends WEScreen {
             }
 
             private int textWidth(String text, float scale) {
-                return (int) Math.ceil(MinecraftClient.getInstance().textRenderer.getWidth(text) * scale);
+                return (int) Math.ceil(Minecraft.getInstance().font.width(text) * scale);
             }
 
             @Override
@@ -691,7 +690,7 @@ public class WaypointScreen extends WEScreen {
         }
 
         @Override
-        public void draw(DrawContext ctx, int mouseX, int mouseY, float tickDelta, UIUtils ui) {
+        public void draw(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta, UIUtils ui) {
             this.ui = ui;
             if(!visible || this.ui == null) return;
 
@@ -705,7 +704,7 @@ public class WaypointScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             if (waypointsTab == null) {
                 waypointsTab = new WaypointsTabContent();
                 categoriesTab = new CategoriesTabContent();
@@ -830,7 +829,7 @@ public class WaypointScreen extends WEScreen {
         }
 
         private int textWidth(String text, float textScale) {
-            return (int) Math.ceil(MinecraftClient.getInstance().textRenderer.getWidth(text) * textScale);
+            return (int) Math.ceil(Minecraft.getInstance().font.width(text) * textScale);
         }
 
         @Override
@@ -871,7 +870,7 @@ public class WaypointScreen extends WEScreen {
 
         private static class MainAreaWidget extends Widget {
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             }
         }
 
@@ -883,7 +882,7 @@ public class WaypointScreen extends WEScreen {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 drawConfigRow(ui, x, y, width, height, hovered, tab == activeTab, GOLD_DARK);
 
                 CustomColor color = tab == activeTab ? CustomColor.fromInt(TEXT_LIGHT) : CustomColor.fromInt(TEXT_DIM);
@@ -935,7 +934,7 @@ public class WaypointScreen extends WEScreen {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 drawConfigRow(ui, x, y, width, height, hovered, false, GOLD_DARK);
                 ui.drawCenteredText(text, x + width / 2f, y + height / 2f, CustomColor.fromInt(TEXT_LIGHT), 2.6f);
             }
@@ -949,19 +948,19 @@ public class WaypointScreen extends WEScreen {
         }
 
         private static void openConfirm(String title, String message, Runnable confirmedAction) {
-            MinecraftClient client = MinecraftClient.getInstance();
-            Screen parent = client.currentScreen;
+            Minecraft client = Minecraft.getInstance();
+            Screen parent = client.gui.screen();
             openConfirm(title, message, confirmedAction, () -> parent);
         }
 
         private static void openConfirm(String title, String message, Runnable confirmedAction, java.util.function.Supplier<Screen> returnScreenSupplier) {
-            MinecraftClient client = MinecraftClient.getInstance();
-            Screen parent = client.currentScreen;
-            client.setScreen(new ConfirmScreen(confirmed -> {
+            Minecraft client = Minecraft.getInstance();
+            Screen parent = client.gui.screen();
+            client.gui.setScreen(new ConfirmScreen(confirmed -> {
                 if (confirmed) confirmedAction.run();
                 Screen returnScreen = confirmed ? returnScreenSupplier.get() : parent;
-                client.setScreen(returnScreen);
-            }, Text.of(title), Text.of(message), Text.of("Delete"), Text.of("Cancel")));
+                client.gui.setScreen(returnScreen);
+            }, Component.nullToEmpty(title), Component.nullToEmpty(message), Component.nullToEmpty("Delete"), Component.nullToEmpty("Cancel")));
         }
 
         private static class ScreenTextInput extends TextInputWidget {
@@ -1015,7 +1014,7 @@ public class WaypointScreen extends WEScreen {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 if (scrollBar == null) {
                     scrollBar = new WaypointScrollBarWidget(ScrollType.Waypoints);
                     addChild(scrollBar);
@@ -1099,7 +1098,7 @@ public class WaypointScreen extends WEScreen {
             }
 
             @Override
-            protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 try {
                     ctx.disableScissor();
                 } catch (Exception ignored) {}
@@ -1154,7 +1153,7 @@ public class WaypointScreen extends WEScreen {
                 }
 
                 @Override
-                public void draw(DrawContext ctx, int mouseX, int mouseY, float tickDelta, UIUtils ui) {
+                public void draw(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta, UIUtils ui) {
                     this.ui = ui;
                     if(!visible || this.ui == null) return;
                     boolean mouseInViewport = MainWidget.waypointsTab != null && MainWidget.waypointsTab.isInViewport(mouseX, mouseY);
@@ -1174,7 +1173,7 @@ public class WaypointScreen extends WEScreen {
                 }
 
                 @Override
-                protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+                protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                     drawConfigRow(ui, x, y, width, height, hovered, false, GOLD_DARK);
 
                     String name = category == null ? WaypointData.UNCATEGORIZED_CATEGORY_NAME : category.name;
@@ -1232,8 +1231,8 @@ public class WaypointScreen extends WEScreen {
                 }
 
                 private void addWaypointInCategory() {
-                    MinecraftClient client = MinecraftClient.getInstance();
-                    BlockPos pos = BlockPos.ORIGIN;
+                    Minecraft client = Minecraft.getInstance();
+                    BlockPos pos = BlockPos.ZERO;
                     if (client.player != null) {
                         pos = new BlockPos((int) Math.floor(client.player.getX()), (int) Math.floor(client.player.getY()) - 1, (int) Math.floor(client.player.getZ()));
                     }
@@ -1302,7 +1301,7 @@ public class WaypointScreen extends WEScreen {
                 }
 
                 @Override
-                protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+                protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                     boolean headerHovered = isIn(mouseX, mouseY, x, y, width, COLLAPSED_HEIGHT);
                     drawConfigRow(ui, x, y, width, COLLAPSED_HEIGHT, headerHovered && mainAreaWidget.isHovered(), false, GOLD_DARK);
                     if (expanded) {
@@ -1321,7 +1320,7 @@ public class WaypointScreen extends WEScreen {
                     }
                 }
 
-                private void drawExpandedContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta, String categoryName) {
+                private void drawExpandedContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta, String categoryName) {
                     int contentX = x + 15;
                     int contentY = y + COLLAPSED_HEIGHT + 18;
                     int inputHeight = 44;
@@ -1585,7 +1584,7 @@ public class WaypointScreen extends WEScreen {
             private int categoryUnderMouseIndex = -1;
 
             @Override
-            public void draw(DrawContext ctx, int mouseX, int mouseY, float tickDelta, UIUtils ui) {
+            public void draw(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta, UIUtils ui) {
                 this.ui = ui;
                 if(!visible || this.ui == null) return;
                 hovered = contains(mouseX, mouseY);
@@ -1614,7 +1613,7 @@ public class WaypointScreen extends WEScreen {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 if (addCategoryButton == null) {
                     addCategoryButton = new ActionButtonWidget("New Category", this::addCategory);
                     addChild(addCategoryButton);
@@ -1665,7 +1664,7 @@ public class WaypointScreen extends WEScreen {
             }
 
             @Override
-            protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 drawCategoryDropLine();
                 for (CategoryRowWidget row : rows) {
                     if (row.isDragging) {
@@ -1861,14 +1860,14 @@ public class WaypointScreen extends WEScreen {
                 }
 
                 @Override
-                public void draw(DrawContext ctx, int mouseX, int mouseY, float tickDelta, UIUtils ui) {
+                public void draw(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta, UIUtils ui) {
                     int effectiveMouseX = isInListViewport(mouseX, mouseY) ? mouseX : -1;
                     int effectiveMouseY = isInListViewport(mouseX, mouseY) ? mouseY : -1;
                     super.draw(ctx, effectiveMouseX, effectiveMouseY, tickDelta, ui);
                 }
 
                 @Override
-                protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+                protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                     boolean uncategorized = WaypointData.isUncategorizedCategory(category);
                     drawConfigRow(ui, x, y, width, 148, hovered, false, category.color == null ? GOLD_DARK : category.color.asInt());
                     drawMoveHandle(mouseX, mouseY);
@@ -1981,7 +1980,7 @@ public class WaypointScreen extends WEScreen {
                     ui.drawImage(MOVE_ICON, handleX - 1, handleY - 1, handleSize, handleSize, CustomColor.fromInt(isDragging ? 0xFFFFE36A : TEXT_DIM));
                 }
 
-                private void drawDraggedPreview(DrawContext ctx, int mouseX, int mouseY) {
+                private void drawDraggedPreview(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
                     float dragX = mouseX * ui.getScaleFactorF();
                     float dragY = mouseY * ui.getScaleFactorF();
                     drawConfigRow(ui, dragX, dragY, width, 148, true, true, category.color == null ? GOLD_DARK : category.color.asInt());
@@ -1990,10 +1989,10 @@ public class WaypointScreen extends WEScreen {
                 }
 
                 @Override
-                protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+                protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                     if (!WaypointData.isUncategorizedCategory(category)) return;
                     if (!isIn(mouseX, mouseY, x + width - 128, y + 52, 112, 44)) return;
-                    TextInputWidget.drawFittingTooltip(ctx, List.of(Text.of(UNCATEGORIZED_CATEGORY_TOOLTIP)), mouseX, mouseY);
+                    TextInputWidget.drawFittingTooltip(ctx, List.of(Component.nullToEmpty(UNCATEGORIZED_CATEGORY_TOOLTIP)), mouseX, mouseY);
                 }
 
                 private int getTotalHeight() {
@@ -2010,7 +2009,7 @@ public class WaypointScreen extends WEScreen {
             private WaypointPackage inputPackage;
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 if (activePackage == null) {
                     ui.drawText("Select a package first", x + 35, y + 35, CustomColor.fromInt(TEXT_DIM), HorizontalAlignment.LEFT, VerticalAlignment.TOP, 3f);
                     return;
@@ -2072,7 +2071,7 @@ public class WaypointScreen extends WEScreen {
                 }
                 if (isIn(mx, my, contentX + 400, buttonY, 180, 44)) {
                     try {
-                        MinecraftClient.getInstance().keyboard.setClipboard(WaypointData.gson.toJson(activePackage));
+                        Minecraft.getInstance().keyboardHandler.setClipboard(WaypointData.gson.toJson(activePackage));
                         showFeedback("Exported package \"" + activePackage.name + "\" to clipboard.", true, mx, my, ui);
                     } catch (Exception e) {
                         showFeedback("Failed to export package.", false, mx, my, ui);
@@ -2148,7 +2147,7 @@ public class WaypointScreen extends WEScreen {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 float contentHeight = activeTabWidget.calculateTotalHeight();
                 float viewportHeight = mainAreaWidget.getHeight();
                 float maxOffset = Math.max(0, contentHeight - viewportHeight);

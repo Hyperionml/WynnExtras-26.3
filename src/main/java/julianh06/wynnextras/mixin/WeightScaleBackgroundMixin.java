@@ -1,26 +1,26 @@
 package julianh06.wynnextras.mixin;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.features.inventory.TradeMarketComparisonPanel;
 import julianh06.wynnextras.features.inventory.WeightDisplay;
 import julianh06.wynnextras.features.inventory.ScaleBackgroundRenderState;
 import julianh06.wynnextras.utils.ItemHighlightRenderer;
 import julianh06.wynnextras.features.misc.SlotNumberDebugger;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.Slot;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(value = HandledScreen.class, priority = 1100)
+@Mixin(value = AbstractContainerScreen.class, priority = 1100)
 public abstract class WeightScaleBackgroundMixin {
-    @Inject(method = "drawSlot", at = @At("HEAD"))
-    private void drawScaleBackground(DrawContext context, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
-        ItemStack stack = slot.getStack();
+    @Inject(method = "extractSlot", at = @At("HEAD"))
+    private void drawScaleBackground(GuiGraphicsExtractor context, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
+        ItemStack stack = slot.getItem();
         WeightDisplay.ItemData itemData = ScaleBackgroundRenderState.resolve(stack);
         if (itemData == null) return;
 
@@ -51,12 +51,12 @@ public abstract class WeightScaleBackgroundMixin {
         );
         // GUI drawing is deferred and batched by render type in 1.21.11. Start a new
         // root layer so the item is guaranteed to be submitted above the background.
-        context.createNewRootLayer();
+        context.nextStratum();
     }
 
-    @Inject(method = "drawSlot", at = @At("RETURN"))
+    @Inject(method = "extractSlot", at = @At("RETURN"))
     private void clearScaleBackgroundRenderState(
-            DrawContext context,
+            GuiGraphicsExtractor context,
             Slot slot,
             int mouseX,
             int mouseY,
@@ -65,14 +65,14 @@ public abstract class WeightScaleBackgroundMixin {
         ScaleBackgroundRenderState.end();
     }
 
-    @Inject(method = "drawSlot", at = @At("TAIL"))
-    private void drawComparisonBorder(DrawContext context, Slot slot, int mx, int my, CallbackInfo ci) {
+    @Inject(method = "extractSlot", at = @At("TAIL"))
+    private void drawComparisonBorder(GuiGraphicsExtractor context, Slot slot, int mx, int my, CallbackInfo ci) {
         SlotNumberDebugger.render(context, slot);
 
         if (!ScaleBackgroundRenderState.isInTradeMarket()) return;
         if (!TradeMarketComparisonPanel.hasAnyComparison()) return;
 
-        ItemStack stack = slot.getStack();
+        ItemStack stack = slot.getItem();
         if (stack == null || stack.isEmpty()) return;
 
         int borderColor = TradeMarketComparisonPanel.getComparisonBorderColor(stack);

@@ -6,10 +6,9 @@ import julianh06.wynnextras.wynncraft.menu.MenuType;
 import julianh06.wynnextras.wynncraft.menu.WynncraftMenuService;
 import julianh06.wynnextras.wynncraft.state.CharacterState;
 import julianh06.wynnextras.wynncraft.state.SkillPoint;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.ItemStack;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.item.ItemStack;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -31,14 +30,14 @@ public final class TomeState {
         syncCharacter();
         if (loadedCharacterId == null || !WynncraftMenuService.isCurrent(MenuType.TOME)) return;
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (!(client.currentScreen instanceof HandledScreen<?> screen)) return;
+        Minecraft client = Minecraft.getInstance();
+        if (!(client.gui.screen() instanceof AbstractContainerScreen<?> screen)) return;
 
         List<EquippedTome> scanned = new ArrayList<>();
         for (Map.Entry<Integer, TomeType> entry : TOME_SLOTS.entrySet()) {
             int slotIndex = entry.getKey();
-            if (slotIndex >= screen.getScreenHandler().slots.size()) continue;
-            ItemStack stack = screen.getScreenHandler().slots.get(slotIndex).getStack();
+            if (slotIndex >= screen.getMenu().slots.size()) continue;
+            ItemStack stack = screen.getMenu().slots.get(slotIndex).getItem();
             if (isEquippedTome(stack)) scanned.add(new EquippedTome(slotIndex, entry.getValue(), stack));
         }
 
@@ -78,7 +77,7 @@ public final class TomeState {
             if (hasBonus(bonuses)) return bonuses;
         }
 
-        String name = stack.getName().getString().toLowerCase(Locale.ROOT);
+        String name = stack.getHoverName().getString().toLowerCase(Locale.ROOT);
         int[] fallback = new int[SkillPoint.values().length];
         if (name.contains("assimilator's tome of allegiance")) {
             java.util.Arrays.fill(fallback, 1);
@@ -98,7 +97,7 @@ public final class TomeState {
 
     private static boolean isEquippedTome(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
-        String name = stack.getName().getString().toLowerCase(Locale.ROOT);
+        String name = stack.getHoverName().getString().toLowerCase(Locale.ROOT);
         return name.startsWith("tome of ") || name.contains(" tome of ");
     }
 
@@ -114,7 +113,7 @@ public final class TomeState {
             EquippedTome b = right.get(i);
             if (a.slot() != b.slot() || a.type() != b.type()
                     || a.stack().getCount() != b.stack().getCount()
-                    || !ItemStack.areItemsAndComponentsEqual(a.stack(), b.stack())) return false;
+                    || !ItemStack.isSameItemSameComponents(a.stack(), b.stack())) return false;
         }
         return true;
     }

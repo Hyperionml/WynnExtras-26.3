@@ -5,9 +5,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import julianh06.wynnextras.features.raid.RaidLootTrackerOverlay;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.util.Formatting;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.screens.Screen;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -416,8 +416,8 @@ public class WynnExtrasConfig {
     public boolean craftingHelperOverlay = true;
     public boolean powderCombineHelper = true;
     public boolean craftingAutoStart = false;
-    public int craftingLoadClipboardKey = GLFW.GLFW_KEY_T;
-    public int craftingReuseLastKey = GLFW.GLFW_KEY_SPACE;
+    public int craftingLoadClipboardKey = InputCompat.KEY_T;
+    public int craftingReuseLastKey = InputCompat.KEY_SPACE;
     public List<String> craftingLastMaterialNames = new ArrayList<>();
     public List<Integer> craftingLastMaterialCounts = new ArrayList<>();
     public List<String> craftingLastIngredientNames = new ArrayList<>();
@@ -431,7 +431,7 @@ public class WynnExtrasConfig {
     public boolean shoppingListMenuEnabled = false;
     public boolean shoppingListShowQuickToggleButton = true;
     public boolean shoppingListWynnMarketSearchCompatibility = true;
-    public int shoppingListToggleKey = GLFW.GLFW_KEY_UNKNOWN;
+    public int shoppingListToggleKey = InputCompat.KEY_UNKNOWN;
     public boolean shoppingListProfessionSpeed = false;
     public int shoppingListCraftMultiplier = 1;
     public int shoppingListMenuWidth = 190;
@@ -482,7 +482,7 @@ public class WynnExtrasConfig {
     public float raidSessionHudScale = 1.0f;
     public boolean toggleFastRequeue = false;
     public boolean quickRepairEnabled = true;
-    public int quickRepairKey = org.lwjgl.glfw.GLFW.GLFW_KEY_R;
+    public int quickRepairKey = julianh06.wynnextras.compat.client.InputCompat.KEY_R;
     public int quickRepairDurabilityThreshold = 35;
     public boolean shiftDisableGuildRaid = true;
 
@@ -522,20 +522,20 @@ public class WynnExtrasConfig {
     public boolean warBeaconEnabled = false;
     public HashMap<String, Integer> hudColorOverrides = new HashMap<>();
     public boolean territoryMenuKeyEnabled = false;
-    public int territoryMenuKey = org.lwjgl.glfw.GLFW.GLFW_KEY_I;
+    public int territoryMenuKey = julianh06.wynnextras.compat.client.InputCompat.KEY_I;
     public boolean guildBankKeyEnabled = false;
-    public int guildBankKey = org.lwjgl.glfw.GLFW.GLFW_KEY_Y;
+    public int guildBankKey = julianh06.wynnextras.compat.client.InputCompat.KEY_Y;
     public int waypointMaxRange = 1000;
-    public int waypointEditFreeMoveToggleKey = GLFW.GLFW_KEY_I;
-    public int waypointEditAddKey = GLFW.GLFW_KEY_ENTER;
-    public int waypointEditRemoveKey = GLFW.GLFW_KEY_BACKSPACE;
-    public int waypointEditExistingKey = GLFW.GLFW_KEY_E;
-    public int waypointEditForwardKey = GLFW.GLFW_KEY_W;
-    public int waypointEditLeftKey = GLFW.GLFW_KEY_A;
-    public int waypointEditBackwardKey = GLFW.GLFW_KEY_S;
-    public int waypointEditRightKey = GLFW.GLFW_KEY_D;
-    public int waypointEditUpKey = GLFW.GLFW_KEY_SPACE;
-    public int waypointEditDownKey = GLFW.GLFW_KEY_LEFT_SHIFT;
+    public int waypointEditFreeMoveToggleKey = InputCompat.KEY_I;
+    public int waypointEditAddKey = InputCompat.KEY_ENTER;
+    public int waypointEditRemoveKey = InputCompat.KEY_BACKSPACE;
+    public int waypointEditExistingKey = InputCompat.KEY_E;
+    public int waypointEditForwardKey = InputCompat.KEY_W;
+    public int waypointEditLeftKey = InputCompat.KEY_A;
+    public int waypointEditBackwardKey = InputCompat.KEY_S;
+    public int waypointEditRightKey = InputCompat.KEY_D;
+    public int waypointEditUpKey = InputCompat.KEY_SPACE;
+    public int waypointEditDownKey = InputCompat.KEY_LEFT_SHIFT;
     public boolean provokeTimerToggle = false;
     public Map<String, Long> raidPBs = new HashMap<>();
     public boolean chiropTimer = false;
@@ -602,7 +602,7 @@ public class WynnExtrasConfig {
 
     // ==================== CHAT PEEK ====================
     public boolean chatPeekEnabled = false;
-    public int chatPeekKey = GLFW.GLFW_KEY_Y;
+    public int chatPeekKey = InputCompat.KEY_Y;
     public boolean chatPeekToggle = false;
     public boolean chatPeekAllowVanillaScroll = false;
     //WIP, not used currently
@@ -685,7 +685,7 @@ public class WynnExtrasConfig {
     public boolean sourceOfTruthToggle = false;
     public boolean territoryEstimateToggle = false;
     public boolean removeChroma = false;
-    public int debugItemComponentsKey = GLFW.GLFW_KEY_UNKNOWN;
+    public int debugItemComponentsKey = InputCompat.KEY_UNKNOWN;
     public int debugItemComponentsWindowX = 20;
     public int debugItemComponentsWindowY = 20;
     public int debugItemComponentsWindowW = 360;
@@ -713,23 +713,23 @@ public class WynnExtrasConfig {
     public boolean hideTetrisBackgroundBlur = false;
     public boolean tetris20GEnabled = false;
     public int tetris20GLevel = 20;
-    public int tetrisMoveRightKey = GLFW.GLFW_KEY_RIGHT;
-    public int tetrisMoveRightAltKey = GLFW.GLFW_KEY_D;
-    public int tetrisMoveLeftKey = GLFW.GLFW_KEY_LEFT;
-    public int tetrisMoveLeftAltKey = GLFW.GLFW_KEY_A;
-    public int tetrisSoftDropKey = GLFW.GLFW_KEY_DOWN;
-    public int tetrisSoftDropAltKey = GLFW.GLFW_KEY_S;
-    public int tetrisRotateClockwiseKey = GLFW.GLFW_KEY_UP;
-    public int tetrisRotateClockwiseAltKey = GLFW.GLFW_KEY_W;
-    public int tetrisRotateCounterClockwiseKey = GLFW.GLFW_KEY_Z;
-    public int tetrisRotateCounterClockwiseAltKey = GLFW.GLFW_KEY_X;
-    public int tetrisHardDropKey = GLFW.GLFW_KEY_SPACE;
-    public int tetrisHoldKey = GLFW.GLFW_KEY_C;
-    public int tetrisHoldAltKey = GLFW.GLFW_KEY_LEFT_SHIFT;
-    public int tetrisStartKey = GLFW.GLFW_KEY_ENTER;
-    public int tetrisRestartKey = GLFW.GLFW_KEY_R;
-    public int tetrisToggleModeKey = GLFW.GLFW_KEY_TAB;
-    public int tetrisQuitKey = GLFW.GLFW_KEY_Q;
+    public int tetrisMoveRightKey = InputCompat.KEY_RIGHT;
+    public int tetrisMoveRightAltKey = InputCompat.KEY_D;
+    public int tetrisMoveLeftKey = InputCompat.KEY_LEFT;
+    public int tetrisMoveLeftAltKey = InputCompat.KEY_A;
+    public int tetrisSoftDropKey = InputCompat.KEY_DOWN;
+    public int tetrisSoftDropAltKey = InputCompat.KEY_S;
+    public int tetrisRotateClockwiseKey = InputCompat.KEY_UP;
+    public int tetrisRotateClockwiseAltKey = InputCompat.KEY_W;
+    public int tetrisRotateCounterClockwiseKey = InputCompat.KEY_Z;
+    public int tetrisRotateCounterClockwiseAltKey = InputCompat.KEY_X;
+    public int tetrisHardDropKey = InputCompat.KEY_SPACE;
+    public int tetrisHoldKey = InputCompat.KEY_C;
+    public int tetrisHoldAltKey = InputCompat.KEY_LEFT_SHIFT;
+    public int tetrisStartKey = InputCompat.KEY_ENTER;
+    public int tetrisRestartKey = InputCompat.KEY_R;
+    public int tetrisToggleModeKey = InputCompat.KEY_TAB;
+    public int tetrisQuitKey = InputCompat.KEY_Q;
 
     //==================== Dark Modes ==========================
     public boolean darkmodeToggle = false; //for bank overlay (dont wanna change the variable cause it would reset it to false for everyone)
@@ -741,35 +741,35 @@ public class WynnExtrasConfig {
     }
 
     public enum TextColor {
-        WHITE(Formatting.WHITE),
-        BLACK(Formatting.BLACK),
-        AQUA(Formatting.AQUA),
-        RED(Formatting.RED),
-        YELLOW(Formatting.YELLOW),
-        BLUE(Formatting.BLUE),
-        GREEN(Formatting.GREEN),
-        DARK_BLUE(Formatting.DARK_BLUE),
-        DARK_GREEN(Formatting.DARK_GREEN),
-        DARK_AQUA(Formatting.DARK_AQUA),
-        DARK_RED(Formatting.DARK_RED),
-        DARK_PURPLE(Formatting.DARK_PURPLE),
-        LIGHT_PURPLE(Formatting.LIGHT_PURPLE),
-        GRAY(Formatting.GRAY),
-        DARK_GRAY(Formatting.DARK_GRAY),
-        GOLD(Formatting.GOLD);
+        WHITE(ChatFormatting.WHITE),
+        BLACK(ChatFormatting.BLACK),
+        AQUA(ChatFormatting.AQUA),
+        RED(ChatFormatting.RED),
+        YELLOW(ChatFormatting.YELLOW),
+        BLUE(ChatFormatting.BLUE),
+        GREEN(ChatFormatting.GREEN),
+        DARK_BLUE(ChatFormatting.DARK_BLUE),
+        DARK_GREEN(ChatFormatting.DARK_GREEN),
+        DARK_AQUA(ChatFormatting.DARK_AQUA),
+        DARK_RED(ChatFormatting.DARK_RED),
+        DARK_PURPLE(ChatFormatting.DARK_PURPLE),
+        LIGHT_PURPLE(ChatFormatting.LIGHT_PURPLE),
+        GRAY(ChatFormatting.GRAY),
+        DARK_GRAY(ChatFormatting.DARK_GRAY),
+        GOLD(ChatFormatting.GOLD);
 
-        private final Formatting formatting;
+        private final ChatFormatting formatting;
 
-        TextColor(Formatting formatting) {
+        TextColor(ChatFormatting formatting) {
             this.formatting = formatting;
         }
 
-        public Formatting getFormatting() {
+        public ChatFormatting getFormatting() {
             return formatting;
         }
 
         public int getRGB() {
-            Integer color = formatting.getColorValue();
+            Integer color = julianh06.wynnextras.compat.client.FormattingCompat.color(formatting);
             return color != null ? color : 0xFFFFFF;
         }
     }

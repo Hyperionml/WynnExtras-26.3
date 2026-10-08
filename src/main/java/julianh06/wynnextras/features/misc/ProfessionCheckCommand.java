@@ -10,9 +10,8 @@ import julianh06.wynnextras.features.profileviewer.data.CharacterData;
 import julianh06.wynnextras.features.profileviewer.data.PlayerData;
 import julianh06.wynnextras.features.profileviewer.data.Profession;
 import julianh06.wynnextras.utils.WynncraftApiHandler;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
-import net.minecraft.client.MinecraftClient;
-
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
+import net.minecraft.client.Minecraft;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -27,7 +26,7 @@ public class ProfessionCheckCommand {
                 return 1;
             },
             null,
-            List.of(ClientCommandManager.argument("name", StringArgumentType.word()))
+            List.of(ClientCommands.argument("name", StringArgumentType.word()))
     );
 
     private static final Command profCheckNoArgsCmd = new Command(
@@ -41,9 +40,9 @@ public class ProfessionCheckCommand {
 
     private static void check(String name) {
         WynncraftApiHandler.fetchPlayerData(name, true).thenAccept(playerData -> {
-            MinecraftClient.getInstance().send(() -> sendResult(name, playerData));
+            Minecraft.getInstance().schedule(() -> sendResult(name, playerData));
         }).exceptionally(ex -> {
-            MinecraftClient.getInstance().send(() -> WynnExtras.sendMessageToClient("§cError fetching profession data: " + ex.getMessage()));
+            Minecraft.getInstance().schedule(() -> WynnExtras.sendMessageToClient("§cError fetching profession data: " + ex.getMessage()));
             return null;
         });
     }

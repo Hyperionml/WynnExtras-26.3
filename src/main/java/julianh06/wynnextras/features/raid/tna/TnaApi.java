@@ -5,8 +5,8 @@ import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.event.ChatEvent;
 import julianh06.wynnextras.event.RenderWorldEvent;
 import julianh06.wynnextras.utils.path.Path;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.awt.*;
@@ -28,11 +28,11 @@ public class TnaApi {
 
 
     public static boolean inTreeRoom() {
-        ClientPlayerEntity player = MinecraftClient.getInstance().player;
-        if (player == null || player.getEntityPos().getX() < 24100 ||
-                player.getEntityPos().getX() > 24300 ||
-                player.getEntityPos().getZ() > -22100 ||
-                player.getEntityPos().getZ() < -22400
+        LocalPlayer player = Minecraft.getInstance().player;
+        if (player == null || player.position().x() < 24100 ||
+                player.position().x() > 24300 ||
+                player.position().z() > -22100 ||
+                player.position().z() < -22400
         ) {
             path = null;
             return false;
@@ -41,12 +41,12 @@ public class TnaApi {
     }
 
     public static boolean inTree() {
-        if (MinecraftClient.getInstance().player == null) {
+        if (Minecraft.getInstance().player == null) {
             reset();
             return false;
         }
         if (!inTreeRoom()) return false;
-        return playerInTree.equals(MinecraftClient.getInstance().player.getName().getString());
+        return playerInTree.equals(Minecraft.getInstance().player.getName().getString());
     }
 
     public static boolean hasHeart() {
@@ -87,8 +87,8 @@ public class TnaApi {
         collectedHeartLast = collectedHeart;
         inTreeLastFrame = inTree;
 
-        ClientPlayerEntity player = MinecraftClient.getInstance().player;
-        if (path != null && player != null) path.draw(event, Color.green, player.getEntityPos());
+        LocalPlayer player = Minecraft.getInstance().player;
+        if (path != null && player != null) path.draw(event, Color.green, player.position());
     }
 
     private void recalcPath() {
@@ -103,7 +103,7 @@ public class TnaApi {
             needsPathRecalculation = false;
             return;
         }
-        path = TreeGraph.TreeGraph.findPath(MinecraftClient.getInstance().player.getEntityPos(), target);
+        path = TreeGraph.TreeGraph.findPath(Minecraft.getInstance().player.position(), target);
         needsPathRecalculation = false;
     }
 

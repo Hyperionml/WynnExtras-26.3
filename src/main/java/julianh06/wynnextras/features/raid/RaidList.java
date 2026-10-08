@@ -5,7 +5,7 @@ import julianh06.wynnextras.annotations.WEModule;
 import julianh06.wynnextras.core.command.Command;
 import julianh06.wynnextras.event.*;
 import julianh06.wynnextras.wynncraft.state.PartyState;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import net.neoforged.bus.api.SubscribeEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,8 +20,8 @@ public class RaidList {
             "raidlist",
             "",
             context -> {
-                MinecraftClient client = context.getSource().getClient();
-                client.send(() -> client.setScreen(null));
+                Minecraft client = context.getSource().getClient();
+                client.schedule(() -> client.gui.setScreen(null));
                 inRaidListMenu = true;
                 return 1;
             },
@@ -57,7 +57,7 @@ public class RaidList {
     @SubscribeEvent
     void onTick(TickEvent event) {
         if(inRaidListMenu) {
-            MinecraftClient.getInstance().send(() -> MinecraftClient.getInstance().setScreen(new RaidListScreen()));
+            Minecraft.getInstance().schedule(() -> Minecraft.getInstance().gui.setScreen(new RaidListScreen()));
             inRaidListMenu = false;
         }
     }

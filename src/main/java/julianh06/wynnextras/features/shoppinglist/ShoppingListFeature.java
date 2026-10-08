@@ -12,10 +12,9 @@ import julianh06.wynnextras.features.shoppinglist.ui.ShoppingListScreenContext;
 import julianh06.wynnextras.features.shoppinglist.ui.ShoppingListMenuExtension;
 import julianh06.wynnextras.features.shoppinglist.ui.ShoppingListMenuLauncherButton;
 import julianh06.wynnextras.utils.MinecraftUtils;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -113,13 +112,13 @@ public final class ShoppingListFeature {
     }
 
     private static ShoppingListScreenContext currentScreenContext() {
-        if (MinecraftClient.getInstance().currentScreen instanceof HandledScreen<?> screen) {
+        if (Minecraft.getInstance().gui.screen() instanceof AbstractContainerScreen<?> screen) {
             return ShoppingListScreenContext.detect(screen, false);
         }
-        if (MinecraftClient.getInstance().currentScreen instanceof ChatScreen) {
+        if (Minecraft.getInstance().gui.screen() instanceof ChatScreen) {
             return ShoppingListScreenContext.CHAT;
         }
-        if (MinecraftClient.getInstance().currentScreen == null) {
+        if (Minecraft.getInstance().gui.screen() == null) {
             return ShoppingListScreenContext.HUD;
         }
         return ShoppingListScreenContext.UNSUPPORTED;

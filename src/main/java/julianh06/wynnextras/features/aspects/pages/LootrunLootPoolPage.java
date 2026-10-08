@@ -1,6 +1,12 @@
 package julianh06.wynnextras.features.aspects.pages;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.core.ResetTimeConfig;
@@ -10,13 +16,7 @@ import julianh06.wynnextras.features.crafting.data.WynnDataService;
 import julianh06.wynnextras.utils.UI.UIUtils;
 import julianh06.wynnextras.utils.WynncraftApiHandler;
 import julianh06.wynnextras.utils.UI.Widget;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import org.lwjgl.glfw.GLFW;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.time.Duration;
 import java.time.ZoneId;
@@ -46,7 +46,7 @@ public class LootrunLootPoolPage extends PageWidget {
 
     static List<LootPoolWidget> lootPoolWidgets = new ArrayList<>();
 
-    private static List<Text> hoveredTooltip = new ArrayList<>();
+    private static List<Component> hoveredTooltip = new ArrayList<>();
 
     private static float hScrollOffset = 0f;
     private static float hScrollTarget = 0f;
@@ -84,7 +84,7 @@ public class LootrunLootPoolPage extends PageWidget {
     }
 
     @Override
-    protected void drawContent(DrawContext context, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor context, int mouseX, int mouseY, float tickDelta) {
         hoveredTooltip = new ArrayList<>();
 
         float scaleFactor = ui.getScaleFactorF();
@@ -200,7 +200,7 @@ public class LootrunLootPoolPage extends PageWidget {
                 }
             }
 
-            MinecraftClient.getInstance().execute(() -> {
+            Minecraft.getInstance().execute(() -> {
                 officialLootPools.clear();
                 officialLootPools.putAll(newOfficialLootPools);
 
@@ -269,18 +269,18 @@ public class LootrunLootPoolPage extends PageWidget {
     }
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if(hoveredTooltip.isEmpty()) return;
         int absX = (int)(mouseX * parent.getMatrixScale());
         int absY = (int)(mouseY * parent.getMatrixScale());
-        ctx.drawTooltip(MinecraftClient.getInstance().textRenderer, hoveredTooltip, Optional.empty(), absX, absY + 20);
+        ctx.setTooltipForNextFrame(Minecraft.getInstance().font, hoveredTooltip, Optional.empty(), absX, absY + 20);
     }
 
     @Override
     public boolean mouseScrolled(double mx, double my, double delta) {
-        long window = MinecraftClient.getInstance().getWindow().getHandle();
-        boolean shiftHeld = GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS
-                || GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
+        long window = Minecraft.getInstance().getWindow().handle();
+        boolean shiftHeld = InputCompat.keyState(window, InputCompat.KEY_LEFT_SHIFT) == InputCompat.PRESS
+                || InputCompat.keyState(window, InputCompat.KEY_RIGHT_SHIFT) == InputCompat.PRESS;
 
         if (shiftHeld && hScrollMax > 0) {
             if (delta > 0) hScrollTarget -= 60f;
@@ -326,41 +326,41 @@ public class LootrunLootPoolPage extends PageWidget {
     }
 
     static class LootPoolWidget extends Widget {
-        Identifier ltop = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/ltop.png");
-        Identifier rtop = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/rtop.png");
-        Identifier ttop = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/ttop.png");
-        Identifier btop = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/btop.png");
-        Identifier tltop = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/tltop.png");
-        Identifier trtop = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/trtop.png");
-        Identifier bltop = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/bltop.png");
-        Identifier brtop = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/brtop.png");
+        Identifier ltop = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/ltop.png");
+        Identifier rtop = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/rtop.png");
+        Identifier ttop = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/ttop.png");
+        Identifier btop = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/btop.png");
+        Identifier tltop = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/tltop.png");
+        Identifier trtop = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/trtop.png");
+        Identifier bltop = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/bltop.png");
+        Identifier brtop = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/brtop.png");
 
-        Identifier l = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/l.png");
-        Identifier r = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/r.png");
-        Identifier t = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/t.png");
-        Identifier b = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/b.png");
-        Identifier tl = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/tl.png");
-        Identifier tr = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/tr.png");
-        Identifier bl = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/bl.png");
-        Identifier br = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/br.png");
+        Identifier l = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/l.png");
+        Identifier r = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/r.png");
+        Identifier t = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/t.png");
+        Identifier b = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/b.png");
+        Identifier tl = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/tl.png");
+        Identifier tr = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/tr.png");
+        Identifier bl = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/bl.png");
+        Identifier br = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/br.png");
 
-        Identifier ltopd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/ltop.png");
-        Identifier rtopd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/rtop.png");
-        Identifier ttopd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/ttop.png");
-        Identifier btopd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/btop.png");
-        Identifier tltopd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/tltop.png");
-        Identifier trtopd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/trtop.png");
-        Identifier bltopd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/bltop.png");
-        Identifier brtopd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/brtop.png");
+        Identifier ltopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/ltop.png");
+        Identifier rtopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/rtop.png");
+        Identifier ttopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/ttop.png");
+        Identifier btopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/btop.png");
+        Identifier tltopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/tltop.png");
+        Identifier trtopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/trtop.png");
+        Identifier bltopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/bltop.png");
+        Identifier brtopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/brtop.png");
 
-        Identifier ld = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/l.png");
-        Identifier rd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/r.png");
-        Identifier td = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/t.png");
-        Identifier bd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/b.png");
-        Identifier tld = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/tl.png");
-        Identifier trd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/tr.png");
-        Identifier bld = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/bl.png");
-        Identifier brd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/br.png");
+        Identifier ld = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/l.png");
+        Identifier rd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/r.png");
+        Identifier td = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/t.png");
+        Identifier bd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/b.png");
+        Identifier tld = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/tl.png");
+        Identifier trd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/tr.png");
+        Identifier bld = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/bl.png");
+        Identifier brd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/br.png");
 
         LootPoolWidget.ScrollBarWidget scrollBarWidget;
 
@@ -389,7 +389,7 @@ public class LootrunLootPoolPage extends PageWidget {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             int topHeight = 94;
 
             ui.drawVanillaPanel(x, y, width, height, 12, 17, 17, 80, 20);
@@ -475,7 +475,7 @@ public class LootrunLootPoolPage extends PageWidget {
             scrollBarWidget.draw(ctx, mouseX, mouseY, tickDelta, ui);
         }
 
-        private float drawShinyItems(DrawContext context, float x, float textY, List<LootrunLootPoolData.LootrunItem> items,
+        private float drawShinyItems(GuiGraphicsExtractor context, float x, float textY, List<LootrunLootPoolData.LootrunItem> items,
                                    float colWidth, float mouseX, float mouseY, float contentStartY, float contentHeight, float scrollOffset) {
             int itemSpacing = 32;
             List<LootrunLootPoolData.LootrunItem> shinyItems = items.stream()
@@ -490,7 +490,7 @@ public class LootrunLootPoolPage extends PageWidget {
             return textY + 20;
         }
 
-        private float drawMythicItems(DrawContext context, float x, float textY, List<LootrunLootPoolData.LootrunItem> items,
+        private float drawMythicItems(GuiGraphicsExtractor context, float x, float textY, List<LootrunLootPoolData.LootrunItem> items,
                                       float colWidth, float mouseX, float mouseY, float contentStartY, float contentHeight, float scrollOffset) {
             int itemSpacing = 32;
             List<LootrunLootPoolData.LootrunItem> mythicItems = items.stream()
@@ -505,7 +505,7 @@ public class LootrunLootPoolPage extends PageWidget {
             return textY + 20;
         }
 
-        private float drawWardItems(DrawContext context, float x, float textY, List<LootrunLootPoolData.LootrunItem> items,
+        private float drawWardItems(GuiGraphicsExtractor context, float x, float textY, List<LootrunLootPoolData.LootrunItem> items,
                                       float colWidth, float mouseX, float mouseY, float contentStartY, float contentHeight, float scrollOffset) {
             int itemSpacing = 32;
 
@@ -526,7 +526,7 @@ public class LootrunLootPoolPage extends PageWidget {
             return textY + 20;
         }
 
-        private float drawTomeItems(DrawContext context, float x, float textY, List<LootrunLootPoolData.LootrunItem> items,
+        private float drawTomeItems(GuiGraphicsExtractor context, float x, float textY, List<LootrunLootPoolData.LootrunItem> items,
                                     float colWidth, float mouseX, float mouseY, float contentStartY, float contentHeight, float scrollOffset) {
             int itemSpacing = 32;
             List<LootrunLootPoolData.LootrunItem> tomeItems = items.stream()
@@ -541,7 +541,7 @@ public class LootrunLootPoolPage extends PageWidget {
             return textY + 20;
         }
 
-        private float drawItemsByRarity(DrawContext context, float x, float textY, List<LootrunLootPoolData.LootrunItem> items,
+        private float drawItemsByRarity(GuiGraphicsExtractor context, float x, float textY, List<LootrunLootPoolData.LootrunItem> items,
                                       String rarity, float colWidth, float mouseX, float mouseY, float contentStartY, float contentHeight, float scrollOffset) {
             int itemSpacing = 32;
             List<LootrunLootPoolData.LootrunItem> filteredItems = items.stream()
@@ -556,7 +556,7 @@ public class LootrunLootPoolPage extends PageWidget {
             return textY + 20;
         }
 
-        private float drawOtherItems(DrawContext context, float x, float textY, List<LootrunLootPoolData.LootrunItem> items,
+        private float drawOtherItems(GuiGraphicsExtractor context, float x, float textY, List<LootrunLootPoolData.LootrunItem> items,
                                      float colWidth, float mouseX, float mouseY, float contentStartY, float contentHeight, float scrollOffset) {
             int itemSpacing = 32;
             List<LootrunLootPoolData.LootrunItem> otherItems = items.stream()
@@ -574,7 +574,7 @@ public class LootrunLootPoolPage extends PageWidget {
             return textY + 20;
         }
 
-        private float drawItem(DrawContext context, float x, float textY, LootrunLootPoolData.LootrunItem item,
+        private float drawItem(GuiGraphicsExtractor context, float x, float textY, LootrunLootPoolData.LootrunItem item,
                                float colWidth, float mouseX, float mouseY, float contentStartY, float contentHeight, float scrollOffset, float itemSpacing) {
             if (textY + itemSpacing >= contentStartY && textY <= contentStartY + contentHeight) {
                 boolean hovering = mouseX * ui.getScaleFactorF() >= x + 12 && mouseX * ui.getScaleFactorF() <= x + width - 12 &&
@@ -611,7 +611,7 @@ public class LootrunLootPoolPage extends PageWidget {
         }
 
         private float getFittingTextScale(String text, float maxWidth, float defaultScale, float minScale) {
-            int textWidth = MinecraftClient.getInstance().textRenderer.getWidth(text);
+            int textWidth = Minecraft.getInstance().font.width(text);
             if (textWidth == 0) return defaultScale;
             return Math.max(minScale, Math.min(defaultScale, maxWidth / textWidth));
         }
@@ -641,21 +641,21 @@ public class LootrunLootPoolPage extends PageWidget {
                     .trim();
         }
 
-        static List<Text> buildTooltipFromApi(LootrunLootPoolData.LootrunItem lootrunItem,
+        static List<Component> buildTooltipFromApi(LootrunLootPoolData.LootrunItem lootrunItem,
                                                       WynnDataService.ItemData apiItem,
                                                       String rarityColor, String displayName) {
-            List<Text> tooltip = new ArrayList<>();
+            List<Component> tooltip = new ArrayList<>();
             tooltip.add(coloredName(displayName.replace("⬡ ", ""), rarityColor));
 
             String tier = capitalize(apiItem.tier());
             String subType = formatCamelName(apiItem.subType());
             if (!tier.isEmpty() || !subType.isEmpty()) {
-                tooltip.add(Text.of("§7" + (tier + " " + subType).trim()));
+                tooltip.add(Component.nullToEmpty("§7" + (tier + " " + subType).trim()));
             }
 
             String attackSpeed = formatCamelName(apiItem.attackSpeed());
             if (!attackSpeed.isEmpty()) {
-                tooltip.add(Text.of("§7" + attackSpeed + " Attack Speed"));
+                tooltip.add(Component.nullToEmpty("§7" + attackSpeed + " Attack Speed"));
             }
 
             addBaseStats(tooltip, apiItem);
@@ -663,51 +663,51 @@ public class LootrunLootPoolPage extends PageWidget {
             addIdentifications(tooltip, apiItem);
 
             if (apiItem.powderSlots() != null) {
-                tooltip.add(Text.of("§7Powder Slots: §f" + apiItem.powderSlots()));
+                tooltip.add(Component.nullToEmpty("§7Powder Slots: §f" + apiItem.powderSlots()));
             }
 
             if (lootrunItem.shinyStat != null && !lootrunItem.shinyStat.isEmpty()) {
-                tooltip.add(Text.of("§7" + lootrunItem.shinyStat.replace(": §f0", "")));
+                tooltip.add(Component.nullToEmpty("§7" + lootrunItem.shinyStat.replace(": §f0", "")));
             }
 
             return tooltip;
         }
 
-        static List<Text> buildFallbackTooltip(LootrunLootPoolData.LootrunItem item, String rarityColor, String displayName) {
-            List<Text> tooltip = new ArrayList<>();
+        static List<Component> buildFallbackTooltip(LootrunLootPoolData.LootrunItem item, String rarityColor, String displayName) {
+            List<Component> tooltip = new ArrayList<>();
             tooltip.add(coloredName(displayName.replace("⬡ ", ""), rarityColor));
 
             if (item.tooltip != null && !item.tooltip.isEmpty()) {
                 for (String line : item.tooltip.split("\\R")) {
-                    if (!line.isBlank()) tooltip.add(Text.of("§7" + line));
+                    if (!line.isBlank()) tooltip.add(Component.nullToEmpty("§7" + line));
                 }
             }
 
             if (item.shinyStat != null && !item.shinyStat.isEmpty()) {
-                tooltip.add(Text.of("§7" + item.shinyStat.replace(": §f0", "")));
+                tooltip.add(Component.nullToEmpty("§7" + item.shinyStat.replace(": §f0", "")));
             }
 
             return tooltip;
         }
 
-        private static Text coloredName(String name, String rarityColor) {
+        private static Component coloredName(String name, String rarityColor) {
             if(rarityColor.startsWith("§#")) {
                 String hex = rarityColor.substring(2);
                 int r = Integer.parseInt(hex.substring(0, 2), 16);
                 int g = Integer.parseInt(hex.substring(2, 4), 16);
                 int b = Integer.parseInt(hex.substring(4, 6), 16);
 
-                return Text.literal(name)
-                        .styled(style -> style.withColor(net.minecraft.util.math.ColorHelper.getArgb(255, r, g, b)));
+                return Component.literal(name)
+                        .withStyle(style -> style.withColor(net.minecraft.util.ARGB.color(255, r, g, b)));
             }
-            return Text.of(rarityColor + name);
+            return Component.nullToEmpty(rarityColor + name);
         }
 
-        private static void addBaseStats(List<Text> tooltip, WynnDataService.ItemData item) {
+        private static void addBaseStats(List<Component> tooltip, WynnDataService.ItemData item) {
             Map<String, WynnDataService.StatValue> base = item.baseStats();
             if (base.isEmpty()) return;
 
-            tooltip.add(Text.empty());
+            tooltip.add(Component.empty());
 
             addBaseLine(tooltip, base, "baseHealth", "§cHealth");
             addBaseLine(tooltip, base, "baseDamage", "§6✣ Neutral Damage");
@@ -723,18 +723,18 @@ public class LootrunLootPoolPage extends PageWidget {
             addBaseLine(tooltip, base, "baseAirDefence", "§f❋ Air Defence");
         }
 
-        private static void addBaseLine(List<Text> tooltip, Map<String, WynnDataService.StatValue> base,
+        private static void addBaseLine(List<Component> tooltip, Map<String, WynnDataService.StatValue> base,
                                         String key, String label) {
             WynnDataService.StatValue value = base.get(key);
             if (value == null) return;
-            tooltip.add(Text.of(label + ": §f" + formatStatValue(value, false)));
+            tooltip.add(Component.nullToEmpty(label + ": §f" + formatStatValue(value, false)));
         }
 
-        private static void addRequirements(List<Text> tooltip, WynnDataService.ItemData item) {
+        private static void addRequirements(List<Component> tooltip, WynnDataService.ItemData item) {
             Map<String, String> requirements = item.requirements();
             if (requirements.isEmpty()) return;
 
-            tooltip.add(Text.empty());
+            tooltip.add(Component.empty());
 
             addRequirementLine(tooltip, requirements, "level", "Combat Lv. Min");
             addRequirementLine(tooltip, requirements, "classRequirement", "Class Req");
@@ -745,24 +745,24 @@ public class LootrunLootPoolPage extends PageWidget {
             addRequirementLine(tooltip, requirements, "agility", "Agility Min");
         }
 
-        private static void addRequirementLine(List<Text> tooltip, Map<String, String> requirements,
+        private static void addRequirementLine(List<Component> tooltip, Map<String, String> requirements,
                                                String key, String label) {
             String value = requirements.get(key);
             if (value == null) return;
             if (key.equals("classRequirement")) value = capitalize(value);
-            tooltip.add(Text.of("§7" + label + ": §f" + value));
+            tooltip.add(Component.nullToEmpty("§7" + label + ": §f" + value));
         }
 
-        private static void addIdentifications(List<Text> tooltip, WynnDataService.ItemData item) {
+        private static void addIdentifications(List<Component> tooltip, WynnDataService.ItemData item) {
             Map<String, WynnDataService.StatValue> ids = item.identifications();
             if (ids.isEmpty()) return;
 
-            tooltip.add(Text.empty());
+            tooltip.add(Component.empty());
 
             for (Map.Entry<String, WynnDataService.StatValue> entry : ids.entrySet()) {
                 String value = formatStatValue(entry.getValue(), isPercentIdentification(entry.getKey()));
                 String color = value.startsWith("-") ? "§c" : "§a";
-                tooltip.add(Text.of(color + value + " §7" + formatLine(entry.getKey())));
+                tooltip.add(Component.nullToEmpty(color + value + " §7" + formatLine(entry.getKey())));
             }
         }
 
@@ -843,10 +843,10 @@ public class LootrunLootPoolPage extends PageWidget {
         }
 
         private String truncate(String text, int maxLen) {
-            TextRenderer tr = MinecraftClient.getInstance().textRenderer;
+            Font tr = Minecraft.getInstance().font;
 
-            if (tr.getWidth(text) > maxLen) {
-                text = tr.trimToWidth(text, maxLen - tr.getWidth("...")) + "...";
+            if (tr.width(text) > maxLen) {
+                text = tr.plainSubstrByWidth(text, maxLen - tr.width("...")) + "...";
             }
             return text;
         }
@@ -924,7 +924,7 @@ public class LootrunLootPoolPage extends PageWidget {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 currentMouseY = mouseY;
 
                 int scrollAreaHeight = height;
@@ -974,7 +974,7 @@ public class LootrunLootPoolPage extends PageWidget {
                 }
 
                 @Override
-                protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+                protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                     ui.drawRect(x, y, width, height, UIUtils.getVanillaSeparatorColor(hovered || isHold));
                 }
 
@@ -1000,7 +1000,7 @@ public class LootrunLootPoolPage extends PageWidget {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawButton(x, y, width, height, hovered);
             ui.drawCenteredText("Reload lootpools", x + width / 2f, y + height / 2f);
         }
@@ -1062,7 +1062,7 @@ public class LootrunLootPoolPage extends PageWidget {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             currentMouseX = mouseX;
             ui.drawSliderBackground(x, y, width, height);
 
@@ -1106,7 +1106,7 @@ public class LootrunLootPoolPage extends PageWidget {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 ui.drawButton(x, y, width, height, hovered || isHold);
             }
 

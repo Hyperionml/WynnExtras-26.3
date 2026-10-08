@@ -4,10 +4,10 @@ import julianh06.wynnextras.annotations.WEModule;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.event.ChatEvent;
 import julianh06.wynnextras.utils.MinecraftUtils;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 
 @WEModule
@@ -24,20 +24,20 @@ public class PrivateMessageSound {
         if (!recipient.equalsIgnoreCase(MinecraftUtils.playerName())) return;
 
         MinecraftUtils.playSoundAmbient(
-                SoundEvent.of(Identifier.of(WynnExtrasConfig.INSTANCE.privateMessageSoundType.getSoundId())),
+                SoundEvent.createVariableRangeEvent(Identifier.parse(WynnExtrasConfig.INSTANCE.privateMessageSoundType.getSoundId())),
                 WynnExtrasConfig.INSTANCE.privateMessageSoundVolume / 100,
                 WynnExtrasConfig.INSTANCE.privateMessageSoundPitch / 100);
     }
 
-    private static boolean isPrivateMessage(Text message) {
+    private static boolean isPrivateMessage(Component message) {
         TextColor color = firstColor(message);
-        return color != null && (color.getRgb() & 0xFFFFFF) == PRIVATE_MESSAGE_COLOR;
+        return color != null && (color.getValue() & 0xFFFFFF) == PRIVATE_MESSAGE_COLOR;
     }
 
-    private static TextColor firstColor(Text text) {
+    private static TextColor firstColor(Component text) {
         TextColor own = text.getStyle().getColor();
         if (own != null) return own;
-        for (Text sibling : text.getSiblings()) {
+        for (Component sibling : text.getSiblings()) {
             TextColor found = firstColor(sibling);
             if (found != null) return found;
         }

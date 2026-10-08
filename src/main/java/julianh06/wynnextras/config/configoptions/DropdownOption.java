@@ -1,10 +1,9 @@
 package julianh06.wynnextras.config.configoptions;
 
 import julianh06.wynnextras.utils.MinecraftUtils;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.sound.SoundEvents;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.sounds.SoundEvents;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -30,8 +29,8 @@ public abstract class DropdownOption<T> extends ConfigOption {
     public int controlWidth() { return 140; }
 
     @Override
-    public void render(DrawContext ctx, int x, int y, int w, int h, int mx, int my, boolean hovered, int categoryColor) {
-        var tr = MinecraftClient.getInstance().textRenderer;
+    public void render(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int mx, int my, boolean hovered, int categoryColor) {
+        var tr = Minecraft.getInstance().font;
         ctx.fill(x, y, x + w, y + h - 5, hovered ? PARCHMENT_HOVER : PARCHMENT);
         ctx.fill(x, y, x + w, y + 1, BORDER_LIGHT);
         ctx.fill(x, y + h - 6, x + w, y + h - 5, BORDER_DARK);
@@ -46,8 +45,8 @@ public abstract class DropdownOption<T> extends ConfigOption {
 
         String txt = val.toString();
         if (txt.length() > 14) txt = txt.substring(0, 12) + "..";
-        ctx.drawTextWithShadow(tr, txt, btnX + 8, btnY + 7, TEXT_LIGHT);
-        ctx.drawTextWithShadow(tr, "▼", btnX + btnW - 14, btnY + 7, TEXT_DIM);
+        ctx.text(tr, txt, btnX + 8, btnY + 7, TEXT_LIGHT);
+        ctx.text(tr, "▼", btnX + btnW - 14, btnY + 7, TEXT_DIM);
     }
 
     @Override

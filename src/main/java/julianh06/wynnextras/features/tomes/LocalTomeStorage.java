@@ -8,8 +8,7 @@ import julianh06.wynnextras.features.misc.ItemStackDeserializer;
 import julianh06.wynnextras.features.misc.ItemStackSerializer;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.item.ItemStack;
-
+import net.minecraft.world.item.ItemStack;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -56,7 +55,7 @@ public final class LocalTomeStorage {
 
     private static Path dataFile(String characterId) {
         if (MinecraftUtils.player() == null || characterId == null || !characterId.matches("[a-z0-9]{8}")) return null;
-        String uuid = MinecraftUtils.player().getUuidAsString();
+        String uuid = MinecraftUtils.player().getStringUUID();
         return FabricLoader.getInstance().getConfigDir()
                 .resolve("wynnextras").resolve(uuid).resolve("tomes").resolve(characterId + ".json");
     }

@@ -10,24 +10,22 @@ import julianh06.wynnextras.utils.render.TextShadow;
 import julianh06.wynnextras.utils.render.VerticalAlignment;
 import julianh06.wynnextras.annotations.WEModule;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.util.Window;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 import net.neoforged.bus.api.SubscribeEvent;
-
+import com.mojang.blaze3d.platform.Window;
 import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
 public abstract class WEScreen extends Screen {
-    protected DrawContext drawContext;
+    protected GuiGraphicsExtractor drawContext;
     protected double scaleFactor;
     protected double matrixScale = 1.0;
     protected int xStart;
@@ -49,10 +47,10 @@ public abstract class WEScreen extends Screen {
     private static long lastScrollTime = 0;
     private static final long scrollCooldown = 0; // in ms
 
-    protected WEScreen(Text title) {
+    protected WEScreen(Component title) {
         super(title);
-        screenWidth = MinecraftClient.getInstance().getWindow().getScaledWidth();
-        screenHeight = MinecraftClient.getInstance().getWindow().getScaledHeight();
+        screenWidth = Minecraft.getInstance().getWindow().getGuiScaledWidth();
+        screenHeight = Minecraft.getInstance().getWindow().getGuiScaledHeight();
     }
 
     protected void registerScrolling() {
@@ -88,29 +86,29 @@ public abstract class WEScreen extends Screen {
     }
 
     @Override
-    public void blur() {
-        if (shouldRenderBlur()) super.blur();
+    public void clearFocus() {
+        if (shouldRenderBlur()) super.clearFocus();
     }
 
     @Override
-    public void applyBlur(DrawContext context) {
-        if (shouldRenderBlur()) super.applyBlur(context);
+    public void extractBlurredBackground(GuiGraphicsExtractor context) {
+        if (shouldRenderBlur()) super.extractBlurredBackground(context);
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
-        if (shouldRenderBackground()) super.renderBackground(context, mouseX, mouseY, deltaTicks);
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float deltaTicks) {
+        if (shouldRenderBackground()) super.extractBackground(context, mouseX, mouseY, deltaTicks);
     }
 
     @Override
-    public void renderInGameBackground(DrawContext context) {
-        if (shouldRenderBackground()) super.renderInGameBackground(context);
+    public void extractTransparentBackground(GuiGraphicsExtractor context) {
+        if (shouldRenderBackground()) super.extractTransparentBackground(context);
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         try {
-            if (super.client != null) applyBlur(context);
+            if (super.minecraft != null) extractBlurredBackground(context);
         } catch (Exception ignored) {}
 
         this.drawContext = context;
@@ -123,8 +121,8 @@ public abstract class WEScreen extends Screen {
 
         if (shouldRenderBackground()) ui.drawBackground();
 
-        context.getMatrices().pushMatrix();
-        context.getMatrices().scale((float) matrixScale, (float) matrixScale);
+        context.pose().pushMatrix();
+        context.pose().scale((float) matrixScale, (float) matrixScale);
         updateValues();
         drawBackground(context, mx, my, delta);
         drawContent(context, mx, my, delta);
@@ -135,12 +133,12 @@ public abstract class WEScreen extends Screen {
 
         drawForeground(context, mx, my, delta);
 
-        context.getMatrices().popMatrix();
+        context.pose().popMatrix();
     }
 
-    protected void drawBackground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) { /* override */ }
-    protected abstract void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta);
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) { /* override */ }
+    protected void drawBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) { /* override */ }
+    protected abstract void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta);
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) { /* override */ }
 
     protected void updateWidgetBounds() {
         if (ui == null) return;
@@ -157,10 +155,10 @@ public abstract class WEScreen extends Screen {
     protected void updateValues() {}
 
     @Override
-    public boolean mouseClicked(Click click, boolean doubleClick) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubleClick) {
         double mouseX = click.x() / matrixScale;
         double mouseY = click.y() / matrixScale;
-        int button = click.button();
+        int button = julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button());
 
         clearUiFocus();
 
@@ -176,10 +174,10 @@ public abstract class WEScreen extends Screen {
         return super.mouseClicked(click, doubleClick);
     }
 
-    @Override public boolean mouseReleased(Click click) {
+    @Override public boolean mouseReleased(MouseButtonEvent click) {
         double mouseX = click.x() / matrixScale;
         double mouseY = click.y() / matrixScale;
-        int button = click.button();
+        int button = julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button());
 
         for (int i = rootWidgets.size() - 1; i >= 0; i--) {
             if (rootWidgets.get(i).mouseReleased(mouseX, mouseY, button)) return true;
@@ -189,10 +187,10 @@ public abstract class WEScreen extends Screen {
 
 
     @Override
-    public boolean mouseDragged(Click click, double dx, double dy) {
+    public boolean mouseDragged(MouseButtonEvent click, double dx, double dy) {
         double mouseX = click.x() / matrixScale;
         double mouseY = click.y() / matrixScale;
-        int button = click.button();
+        int button = julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button());
 
         if(ui == null) return false;
         if (focusedWidget != null && focusedWidget.mouseDragged(mouseX, mouseY, button, dx, dy)) return true;
@@ -205,10 +203,10 @@ public abstract class WEScreen extends Screen {
 
 
     @Override
-    public boolean keyPressed(KeyInput input) {
-        int keyCode = input.key();
-        int scanCode = input.scancode();
-        int modifiers = input.modifiers();
+    public boolean keyPressed(KeyEvent input) {
+        int keyCode = julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key());
+        int scanCode = input.keycode();
+        int modifiers = julianh06.wynnextras.compat.client.InputCompat.legacyModifiers(input.modifiers());
 
         if (focusedWidget != null && focusedWidget.keyPressed(keyCode, scanCode, modifiers)) return true;
         for (Widget w : rootWidgets) {
@@ -218,9 +216,9 @@ public abstract class WEScreen extends Screen {
     }
 
     @Override
-    public boolean charTyped(CharInput input) {
+    public boolean charTyped(CharacterEvent input) {
         char chr = (char) input.codepoint();
-        int modifiers = input.modifiers();
+        int modifiers = 0;
 
         if (focusedWidget != null && focusedWidget.charTyped(chr, modifiers)) return true;
         for (Widget w : rootWidgets) {
@@ -248,11 +246,11 @@ public abstract class WEScreen extends Screen {
     private int lastScreenHeight = -1;
 
     public void computeScaleAndOffsets() {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         Window w = client.getWindow();
         if (w == null) return;
 
-        double actualScale = Math.max(1.0, w.getScaleFactor());
+        double actualScale = Math.max(1.0, w.getGuiScale());
         this.actualScale = actualScale;
         double target = getTargetScaleFactor();
         if (target > 1.0 && actualScale > target) {
@@ -265,11 +263,11 @@ public abstract class WEScreen extends Screen {
 
         int minW = getMinLogicalWidth();
         int minH = getMinLogicalHeight();
-        if (minW > 0) matrixScale = Math.min(matrixScale, w.getScaledWidth()  * scaleFactor / (double) minW);
-        if (minH > 0) matrixScale = Math.min(matrixScale, w.getScaledHeight() * scaleFactor / (double) minH);
+        if (minW > 0) matrixScale = Math.min(matrixScale, w.getGuiScaledWidth()  * scaleFactor / (double) minW);
+        if (minH > 0) matrixScale = Math.min(matrixScale, w.getGuiScaledHeight() * scaleFactor / (double) minH);
         matrixScale = Math.min(1.0, matrixScale);
-        this.screenWidth = (int) Math.round(w.getScaledWidth() / matrixScale);
-        this.screenHeight = (int) Math.round(w.getScaledHeight() / matrixScale);
+        this.screenWidth = (int) Math.round(w.getGuiScaledWidth() / matrixScale);
+        this.screenHeight = (int) Math.round(w.getGuiScaledHeight() / matrixScale);
 
         this.xStart = 0;
         this.yStart = 0;
@@ -289,13 +287,13 @@ public abstract class WEScreen extends Screen {
     }
 
     protected int getLogicalWidth() {
-        Window w = MinecraftClient.getInstance().getWindow();
-        return (int) Math.round(w.getScaledWidth() * scaleFactor / matrixScale);
+        Window w = Minecraft.getInstance().getWindow();
+        return (int) Math.round(w.getGuiScaledWidth() * scaleFactor / matrixScale);
     }
 
     protected int getLogicalHeight() {
-        Window w = MinecraftClient.getInstance().getWindow();
-        return (int) Math.round(w.getScaledHeight() * scaleFactor / matrixScale);
+        Window w = Minecraft.getInstance().getWindow();
+        return (int) Math.round(w.getGuiScaledHeight() * scaleFactor / matrixScale);
     }
 
     public void addRootWidget(Widget w) {
@@ -359,7 +357,7 @@ public abstract class WEScreen extends Screen {
         drawCenteredText(text, x, y, CustomColor.fromHexString("FFFFFF"));
     }
 
-    protected void drawImage(net.minecraft.util.Identifier texture, float x, float y, float width, float height) {
+    protected void drawImage(net.minecraft.resources.Identifier texture, float x, float y, float width, float height) {
         if (ui == null) return;
         ui.drawImage(texture, x, y, width, height);
     }
@@ -369,19 +367,19 @@ public abstract class WEScreen extends Screen {
      * Usage: WEScreen.open(() -> new MainScreen());
      */
     public static void open(Supplier<? extends WEScreen> screenSupplier) {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client == null) return;
-        client.send(() -> {
+        client.schedule(() -> {
             WEScreen current = null;
-            if (client.currentScreen instanceof WEScreen) current = (WEScreen) client.currentScreen;
+            if (client.gui.screen() instanceof WEScreen) current = (WEScreen) client.gui.screen();
             if (current != null && current.getClass() == screenSupplier.get().getClass()) {
                 return;
             }
-            client.setScreen(screenSupplier.get());
+            client.gui.setScreen(screenSupplier.get());
         });
     }
 
-    public void setDrawContext(DrawContext drawContext) {
+    public void setDrawContext(GuiGraphicsExtractor drawContext) {
         this.drawContext = drawContext;
     }
 

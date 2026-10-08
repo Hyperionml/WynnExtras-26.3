@@ -10,22 +10,21 @@ import julianh06.wynnextras.event.api.WEEventBus;
 import julianh06.wynnextras.features.achievements.AchievementTracking;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
-import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.scoreboard.Scoreboard;
-import net.minecraft.scoreboard.ScoreboardDisplaySlot;
-import net.minecraft.scoreboard.ScoreboardEntry;
-import net.minecraft.scoreboard.ScoreboardObjective;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.Vec3d;
+import julianh06.wynnextras.compat.client.HudRenderCallback;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.ContainerScreen;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.scores.DisplaySlot;
+import net.minecraft.world.scores.Objective;
+import net.minecraft.world.scores.PlayerScoreEntry;
+import net.minecraft.world.scores.Scoreboard;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.ArrayList;
@@ -116,17 +115,17 @@ public class AttackTimer {
         // Scan open "Attacking: X" menus for defense info and cache it
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             observeNewAttacks(client);
-            if (!(client.currentScreen instanceof GenericContainerScreen gcs)) return;
+            if (!(client.gui.screen() instanceof ContainerScreen gcs)) return;
             String title = gcs.getTitle().getString();
             if (!title.contains("Attacking: ")) return;
             String territory = title.split(": ", 2)[1];
-            ScreenHandler handler = client.player != null ? client.player.currentScreenHandler : null;
+            AbstractContainerMenu handler = client.player != null ? client.player.containerMenu : null;
             if (handler == null || handler.slots.size() <= 13) return;
-            ItemStack info = handler.slots.get(13).getStack();
+            ItemStack info = handler.slots.get(13).getItem();
             if (info.isEmpty()) return;
-            LoreComponent lore = info.get(DataComponentTypes.LORE);
+            ItemLore lore = info.get(DataComponents.LORE);
             if (lore == null) return;
-            for (Text line : lore.lines()) {
+            for (Component line : lore.lines()) {
                 String clean = line.getString().replaceAll("§[0-9a-fk-or]", "");
                 if (clean.contains("Territory Defences")) {
                     String[] parts = clean.split(":\\s*", 2);
@@ -168,9 +167,9 @@ public class AttackTimer {
                     if (terr.equals(lastSelfLookupTerritory)
                             && System.currentTimeMillis() - lastSelfLookupAt < 5000) {
                         String def = cachedDefenses.get(territoryKey(terr));
-                        if (def != null && MinecraftClient.getInstance().player != null) {
-                            MinecraftClient.getInstance().player.networkHandler
-                                    .sendChatCommand("g " + terr + " defense is " + def);
+                        if (def != null && Minecraft.getInstance().player != null) {
+                            Minecraft.getInstance().player.connection
+                                    .sendCommand("g " + terr + " defense is " + def);
                             lastSelfLookupTerritory = null;
                         }
                     }
@@ -182,21 +181,21 @@ public class AttackTimer {
     public static List<String> getUpcomingAttacks() {
         long now = System.currentTimeMillis();
         if (now < upcomingAttacksCacheExpiresAt) return cachedUpcomingAttacks;
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.player == null || mc.world == null) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) {
             cachedUpcomingAttacks = List.of();
             upcomingAttacksCacheExpiresAt = now + ATTACK_SCOREBOARD_CACHE_MS;
             return cachedUpcomingAttacks;
         }
 
-        Scoreboard scoreboard = mc.world.getScoreboard();
+        Scoreboard scoreboard = mc.level.getScoreboard();
         List<String> upcoming = new ArrayList<>();
         Set<String> seen = new HashSet<>();
-        ScoreboardObjective objective = scoreboard.getObjectiveForSlot(ScoreboardDisplaySlot.SIDEBAR);
+        Objective objective = scoreboard.getDisplayObjective(DisplaySlot.SIDEBAR);
 
         if (objective != null) {
-            for (ScoreboardEntry entry : scoreboard.getScoreboardEntries(objective)) {
-                String name = entry.name().getString();
+            for (PlayerScoreEntry entry : scoreboard.listPlayerScores(objective)) {
+                String name = entry.ownerName().getString();
                 if (ATTACK_PATTERN.matcher(name).find()) {
                     String stripped = strip(name).substring(2);
                     if (seen.add(stripped)) upcoming.add(stripped);
@@ -247,8 +246,8 @@ public class AttackTimer {
         return def;
     }
 
-    private static void observeNewAttacks(MinecraftClient client) {
-        if (client.player == null || client.world == null) {
+    private static void observeNewAttacks(Minecraft client) {
+        if (client.player == null || client.level == null) {
             worldJoinObservedAt = -1;
             attackBaselineReady = false;
             activeAttackTerritories.clear();
@@ -381,7 +380,7 @@ public class AttackTimer {
         MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix("§eSaved territory defence snapshots:"));
         queuedAttackDefenses.values().stream()
                 .sorted(Comparator.comparingLong(QueuedDefense::startsAt))
-                .forEach(attack -> MinecraftUtils.sendMessageToClient(Text.of("§7- §f" + attack.territory
+                .forEach(attack -> MinecraftUtils.sendMessageToClient(Component.nullToEmpty("§7- §f" + attack.territory
                         + "§7: " + (attack.defense == null ? "§cUnknown" : "§f" + attack.defense)
                         + " §7(" + (attack.startsAt - now < 0 ? "§c" : "§a")
                         + formatDebugTime(attack.startsAt - now) + "§7)"
@@ -389,21 +388,21 @@ public class AttackTimer {
     }
 
     private static String getCurrentTerritory() {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return null;
 
         return TerritoryState.currentTerritory().orElse(null);
     }
 
-    private static MutableText styledPart(String text, int color, boolean bold) {
-        return Text.literal(text).styled(style -> style
-                .withColor(net.minecraft.text.TextColor.fromRgb(color & 0xFFFFFF))
+    private static MutableComponent styledPart(String text, int color, boolean bold) {
+        return Component.literal(text).withStyle(style -> style
+                .withColor(net.minecraft.network.chat.TextColor.fromRgb(color & 0xFFFFFF))
                 .withBold(bold));
     }
 
-    private static Text buildAttackLine(String time, String territory, String defense, boolean currentTerritory) {
+    private static Component buildAttackLine(String time, String territory, String defense, boolean currentTerritory) {
         int lineColor = currentTerritory ? currentTerritoryColor() : normalColor();
-        MutableText line = styledPart(time + " " + territory, lineColor, currentTerritory);
+        MutableComponent line = styledPart(time + " " + territory, lineColor, currentTerritory);
         if (defense != null) {
             line.append(styledPart(" (", lineColor, currentTerritory));
             line.append(styledPart(defense, defenseColor(defense), currentTerritory));
@@ -414,10 +413,10 @@ public class AttackTimer {
 
     private record QueuedDefense(String territory, String defense, long startsAt, boolean used) {}
 
-    private static void render(DrawContext ctx, RenderTickCounter tickCounter) {
+    private static void render(GuiGraphicsExtractor ctx, DeltaTracker tickCounter) {
         if (!WynnExtrasConfig.INSTANCE.attackTimerMenuEnabled) return;
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.player == null || mc.options.hudHidden) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.gui.hud.isHidden()) return;
 
         long now = System.currentTimeMillis();
         Map<String, QueuedDefense> visibleAttacks = new HashMap<>();
@@ -450,7 +449,7 @@ public class AttackTimer {
 
         // Build display lines with defense if known
         String currentTerritory = getCurrentTerritory();
-        List<Text> lines = new ArrayList<>();
+        List<Component> lines = new ArrayList<>();
         for (QueuedDefense attack : attacks) {
             String time = formatTimerTime(attack.startsAt - now);
             boolean isCurrentTerritory = currentTerritory != null && currentTerritory.equalsIgnoreCase(attack.territory);
@@ -458,12 +457,12 @@ public class AttackTimer {
         }
 
         int maxW = 0;
-        for (Text line : lines) maxW = Math.max(maxW, mc.textRenderer.getWidth(line));
+        for (Component line : lines) maxW = Math.max(maxW, mc.font.width(line));
         ctx.fill(x - 2, y - 2, x + maxW + 4, y + lines.size() * rowH + 2, 0x66000000);
 
         int i = 0;
-        for (Text line : lines) {
-            ctx.drawTextWithShadow(mc.textRenderer, line, x, y + i * rowH, 0xFFFFFFFF);
+        for (Component line : lines) {
+            ctx.text(mc.font, line, x, y + i * rowH, 0xFFFFFFFF);
             i++;
         }
     }

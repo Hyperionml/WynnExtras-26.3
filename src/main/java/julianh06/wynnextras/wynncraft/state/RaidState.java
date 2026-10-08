@@ -15,13 +15,13 @@ import julianh06.wynnextras.features.raid.WERaidKind;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.wynncraft.menu.MenuType;
 import julianh06.wynnextras.wynncraft.menu.WynncraftMenuService;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.scoreboard.Scoreboard;
-import net.minecraft.scoreboard.ScoreboardDisplaySlot;
-import net.minecraft.scoreboard.ScoreboardEntry;
-import net.minecraft.scoreboard.ScoreboardObjective;
-import net.minecraft.scoreboard.Team;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.scores.DisplaySlot;
+import net.minecraft.world.scores.Objective;
+import net.minecraft.world.scores.PlayerScoreEntry;
+import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.world.scores.Scoreboard;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.LinkedHashMap;
@@ -91,7 +91,7 @@ public final class RaidState {
         }
     }
 
-    public static void observeTitle(Text title) {
+    public static void observeTitle(Component title) {
         if (title == null) return;
         String text = clean(title.getString());
         String lower = text.toLowerCase(Locale.ROOT);
@@ -111,15 +111,15 @@ public final class RaidState {
     public static void observeScoreboard() {
         try {
             if (!isInRaid() && !awaitingRaidResume) return;
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client.world == null) return;
-            Scoreboard scoreboard = client.world.getScoreboard();
-            ScoreboardObjective objective = scoreboard.getObjectiveForSlot(ScoreboardDisplaySlot.SIDEBAR);
+            Minecraft client = Minecraft.getInstance();
+            if (client.level == null) return;
+            Scoreboard scoreboard = client.level.getScoreboard();
+            Objective objective = scoreboard.getDisplayObjective(DisplaySlot.SIDEBAR);
             if (objective == null) return;
             confirmRaidResume(clean(objective.getDisplayName().getString()));
             long observedAt = System.currentTimeMillis();
-            for (ScoreboardEntry entry : scoreboard.getScoreboardEntries(objective)) {
-                Text displayedName = Team.decorateName(scoreboard.getScoreHolderTeam(entry.owner()), entry.name());
+            for (PlayerScoreEntry entry : scoreboard.listPlayerScores(objective)) {
+                Component displayedName = PlayerTeam.formatNameForTeam(scoreboard.getPlayersTeam(entry.owner()), entry.ownerName());
                 observeScoreboardLine(clean(displayedName.getString()), observedAt);
             }
         } catch (Throwable ignored) {}
@@ -139,7 +139,7 @@ public final class RaidState {
     @SubscribeEvent
     public void onTick(TickEvent event) {
         if (awaitingRaidResume && --raidResumeTicksRemaining <= 0) interruptRaid();
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client.player == null) return;
         observeScoreboard();
         if (isInRaid() && WynncraftMenuService.isCurrent(MenuType.RAID_REWARD)) phase = Phase.REWARD;
@@ -224,7 +224,7 @@ public final class RaidState {
         ROOMS.clear();
         PlayerHider.onRaidEnded();
         MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(
-                Text.literal("§cRaid tracking has been interrupted; timestamps for the current raid are no longer available.")));
+                Component.literal("§cRaid tracking has been interrupted; timestamps for the current raid are no longer available.")));
     }
 
     private static void startRoomFromSignal(String line, long observedAt) {

@@ -1,16 +1,15 @@
 package julianh06.wynnextras.features.inventory;
 
 import julianh06.wynnextras.utils.TooltipUtils;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.core.WynnExtras;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Text;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -32,7 +31,7 @@ public class TradeMarketComparisonPanel {
 
     private static class ComparisonPanel {
         ItemStack item;
-        List<Text> tooltip;
+        List<Component> tooltip;
         int x, y;
         int width, height;
         float scale = 1.0f;
@@ -42,7 +41,7 @@ public class TradeMarketComparisonPanel {
         int slotIndex;
         String itemId; // For matching items in slots
 
-        ComparisonPanel(ItemStack item, List<Text> tooltip, int x, int y, int slotIndex) {
+        ComparisonPanel(ItemStack item, List<Component> tooltip, int x, int y, int slotIndex) {
             this.item = item;
             this.tooltip = tooltip;
             this.slotIndex = slotIndex;
@@ -69,12 +68,12 @@ public class TradeMarketComparisonPanel {
         }
 
 
-        private static int calculateWidth(List<Text> tooltip) {
-            MinecraftClient mc = MinecraftClient.getInstance();
-            TextRenderer textRenderer = mc.textRenderer;
+        private static int calculateWidth(List<Component> tooltip) {
+            Minecraft mc = Minecraft.getInstance();
+            Font textRenderer = mc.font;
             int width = 0;
-            for (Text line : tooltip) {
-                int lineWidth = textRenderer.getWidth(line);
+            for (Component line : tooltip) {
+                int lineWidth = textRenderer.width(line);
                 if (lineWidth > width) {
                     width = lineWidth;
                 }
@@ -85,7 +84,7 @@ public class TradeMarketComparisonPanel {
         static String getItemIdentifier(ItemStack stack) {
             // Use name + component toString for reliable matching
             // Components contain all the item data including stat rolls
-            String name = stack.getName().getString();
+            String name = stack.getHoverName().getString();
             String components = stack.getComponents().toString();
             return name + "|" + components.hashCode();
         }
@@ -93,7 +92,7 @@ public class TradeMarketComparisonPanel {
 
     private static final List<ComparisonPanel> panels = new ArrayList<>();
     private static ItemStack lastHoveredStack = null;
-    private static List<Text> lastHoveredTooltip = null;
+    private static List<Component> lastHoveredTooltip = null;
 
     private static boolean slotDebugEnabled = false;
 
@@ -119,16 +118,16 @@ public class TradeMarketComparisonPanel {
     );
 
     // Called from ItemStatInfoFeatureMixin to cache the fully processed tooltip
-    public static void cacheHoveredTooltip(ItemStack stack, List<Text> tooltip) {
+    public static void cacheHoveredTooltip(ItemStack stack, List<Component> tooltip) {
         lastHoveredStack = stack;
         lastHoveredTooltip = tooltip;
     }
 
     public static boolean isInTradeMarket() {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.currentScreen == null) return false;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.gui.screen() == null) return false;
 
-        String title = mc.currentScreen.getTitle().getString();
+        String title = mc.gui.screen().getTitle().getString();
         for (String marketTitle : TRADE_MARKET_TITLES) {
             if (title.contains(marketTitle)) return true;
         }
@@ -138,7 +137,7 @@ public class TradeMarketComparisonPanel {
     public static boolean handleF1Press(Slot slot) {
         if (slot == null) return false;
 
-        ItemStack stack = slot.getStack();
+        ItemStack stack = slot.getItem();
         if (stack == null || stack.isEmpty()) return false;
 
         addPanel(stack.copy());
@@ -155,34 +154,34 @@ public class TradeMarketComparisonPanel {
 
     public static void toggleSlotDebug() {
         slotDebugEnabled = !slotDebugEnabled;
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
 
         if (mc.player != null) {
             if (slotDebugEnabled) {
-                mc.player.sendMessage(Text.literal("§e[Debug] Slot debug §aENABLED"), false);
+                julianh06.wynnextras.compat.client.ClientMessages.display(Component.literal("§e[Debug] Slot debug §aENABLED"), false);
                 // Print all slots if in a container
-                if (mc.currentScreen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?> handledScreen) {
-                    var handler = handledScreen.getScreenHandler();
+                if (mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> handledScreen) {
+                    var handler = handledScreen.getMenu();
                     for (int i = 0; i < handler.slots.size(); i++) {
                         var slot = handler.slots.get(i);
-                        ItemStack stack = slot.getStack();
+                        ItemStack stack = slot.getItem();
                         if (stack != null && !stack.isEmpty()) {
-                            String name = stack.getName().getString();
-                            mc.player.sendMessage(Text.literal("§e[Slot " + i + "] §f" + name), false);
+                            String name = stack.getHoverName().getString();
+                            julianh06.wynnextras.compat.client.ClientMessages.display(Component.literal("§e[Slot " + i + "] §f" + name), false);
                         }
                     }
                 } else {
-                    mc.player.sendMessage(Text.literal("§7Not in a container - open one to see slots"), false);
+                    julianh06.wynnextras.compat.client.ClientMessages.display(Component.literal("§7Not in a container - open one to see slots"), false);
                 }
             } else {
-                mc.player.sendMessage(Text.literal("§e[Debug] Slot debug §cDISABLED"), false);
+                julianh06.wynnextras.compat.client.ClientMessages.display(Component.literal("§e[Debug] Slot debug §cDISABLED"), false);
             }
         }
     }
 
     private static void addPanel(ItemStack stack) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        int screenWidth = mc.getWindow().getScaledWidth();
+        Minecraft mc = Minecraft.getInstance();
+        int screenWidth = mc.getWindow().getGuiScaledWidth();
 
         int slotIndex = ComparisonPanel.findFreeSlot();
 
@@ -194,7 +193,7 @@ public class TradeMarketComparisonPanel {
         if (slotIndex < 0 || slotIndex >= MAX_PANELS) return;
 
         int panelNum = slotIndex + 1;
-        List<Text> tooltip = buildTooltip(stack, panelNum + ":");
+        List<Component> tooltip = buildTooltip(stack, panelNum + ":");
 
         int panelWidth = ComparisonPanel.calculateWidth(tooltip);
         int x, y = 25;
@@ -212,14 +211,14 @@ public class TradeMarketComparisonPanel {
     }
 
 
-    private static List<Text> buildTooltip(ItemStack stack, String headerPrefix) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        List<Text> tooltip = new ArrayList<>();
-        List<Text> processedTooltip;
+    private static List<Component> buildTooltip(ItemStack stack, String headerPrefix) {
+        Minecraft mc = Minecraft.getInstance();
+        List<Component> tooltip = new ArrayList<>();
+        List<Component> processedTooltip;
 
         if (lastHoveredStack != null && lastHoveredTooltip != null && !lastHoveredTooltip.isEmpty()) {
-            String cachedName = lastHoveredStack.getName().getString();
-            String stackName = stack.getName().getString();
+            String cachedName = lastHoveredStack.getHoverName().getString();
+            String stackName = stack.getHoverName().getString();
             if (cachedName.equals(stackName)) {
                 processedTooltip = new ArrayList<>(lastHoveredTooltip);
             } else {
@@ -237,17 +236,17 @@ public class TradeMarketComparisonPanel {
         }
 
         tooltip.add(WynnExtras.addWynnExtrasPrefix("§6Item Comparison " + headerPrefix));
-        tooltip.add(Text.of(" "));
+        tooltip.add(Component.nullToEmpty(" "));
         tooltip.addAll(processedTooltip);
 
         return tooltip;
     }
 
-    private static boolean hasMythicScaleAnnotations(List<Text> tooltip, ItemStack stack) {
+    private static boolean hasMythicScaleAnnotations(List<Component> tooltip, ItemStack stack) {
         WeightDisplay.ItemData itemData = WeightDisplay.getSelectedItemData(WeightDisplay.extractCleanName(stack));
         if (itemData == null) return false;
 
-        for (Text line : tooltip) {
+        for (Component line : tooltip) {
             String text = line.getString().stripLeading();
             if (text.startsWith("↳ Weight:")) return true;
 
@@ -260,11 +259,11 @@ public class TradeMarketComparisonPanel {
         return false;
     }
 
-    private static List<Text> getFallbackTooltip(ItemStack stack, MinecraftClient mc) {
-        return new ArrayList<>(stack.getTooltip(
-                net.minecraft.item.Item.TooltipContext.DEFAULT,
+    private static List<Component> getFallbackTooltip(ItemStack stack, Minecraft mc) {
+        return new ArrayList<>(stack.getTooltipLines(
+                net.minecraft.world.item.Item.TooltipContext.EMPTY,
                 mc.player,
-                net.minecraft.item.tooltip.TooltipType.BASIC
+                net.minecraft.world.item.TooltipFlag.NORMAL
         ));
     }
 
@@ -276,13 +275,13 @@ public class TradeMarketComparisonPanel {
         return !panels.isEmpty();
     }
 
-    public static void render(DrawContext context) {
+    public static void render(GuiGraphicsExtractor context) {
         if (!isInTradeMarket()) return;
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.currentScreen == null) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.gui.screen() == null) return;
 
-        TextRenderer textRenderer = mc.textRenderer;
+        Font textRenderer = mc.font;
 
         if(!WynnExtrasConfig.INSTANCE.hideScaleBackgroundButton) renderToggleButton(context, textRenderer);
 
@@ -312,7 +311,7 @@ public class TradeMarketComparisonPanel {
     private static boolean isSameForComparison(ItemStack a, ItemStack b) {
         if(a.isEmpty() || b.isEmpty()) return false;
 
-        if(!a.isOf(b.getItem())) {
+        if(!a.is(b.getItem())) {
             return false;
         }
 
@@ -320,26 +319,26 @@ public class TradeMarketComparisonPanel {
 
         if(!a.getCustomName().getString().contains(b.getCustomName().getString())) return false;
 
-        return Objects.equals(a.get(DataComponentTypes.LORE),
-                b.get(DataComponentTypes.LORE));
+        return Objects.equals(a.get(DataComponents.LORE),
+                b.get(DataComponents.LORE));
     }
 
     private static float computeScale(int y, int height) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        int screenHeight = mc.getWindow() != null ? mc.getWindow().getScaledHeight() : 1080;
+        Minecraft mc = Minecraft.getInstance();
+        int screenHeight = mc.getWindow() != null ? mc.getWindow().getGuiScaledHeight() : 1080;
         int totalHeight = height + 7;
         int availableHeight = screenHeight - y - 5;
         return totalHeight > availableHeight ? (float) availableHeight / totalHeight : 1.0f;
     }
 
-    private static void renderTooltipAt(DrawContext context, TextRenderer textRenderer, List<Text> lines, int x, int y, int width, int height, int borderColor, float scale) {
+    private static void renderTooltipAt(GuiGraphicsExtractor context, Font textRenderer, List<Component> lines, int x, int y, int width, int height, int borderColor, float scale) {
         if (lines.isEmpty()) return;
 
         if (scale < 1.0f) {
-            context.getMatrices().pushMatrix();
-            context.getMatrices().translate(x, y);
-            context.getMatrices().scale(scale, scale);
-            context.getMatrices().translate(-x, -y);
+            context.pose().pushMatrix();
+            context.pose().translate(x, y);
+            context.pose().scale(scale, scale);
+            context.pose().translate(-x, -y);
         }
 
         int bgColor = 0xF0100010;
@@ -356,17 +355,17 @@ public class TradeMarketComparisonPanel {
         context.fill(x + width + 2, y - 2, x + width + 4, y + height + 2, borderColor);
 
         int textY = y;
-        for (Text line : lines) {
-            context.drawText(textRenderer, line, x, textY, 0xFFFFFFFF, true);
+        for (Component line : lines) {
+            context.text(textRenderer, line, x, textY, 0xFFFFFFFF, true);
             textY += 10;
         }
 
         if (scale < 1.0f) {
-            context.getMatrices().popMatrix();
+            context.pose().popMatrix();
         }
     }
 
-    private static void renderCloseButton(DrawContext context, TextRenderer textRenderer, int x, int y) {
+    private static void renderCloseButton(GuiGraphicsExtractor context, Font textRenderer, int x, int y) {
         // Red background
         context.fill(x, y, x + CLOSE_BUTTON_SIZE, y + CLOSE_BUTTON_SIZE, 0xFFAA0000);
         // Darker border
@@ -375,10 +374,10 @@ public class TradeMarketComparisonPanel {
         context.fill(x, y, x + 1, y + CLOSE_BUTTON_SIZE, 0xFF660000);
         context.fill(x + CLOSE_BUTTON_SIZE - 1, y, x + CLOSE_BUTTON_SIZE, y + CLOSE_BUTTON_SIZE, 0xFF660000);
 
-        context.drawText(textRenderer, Text.literal("§lX"), x + 2, y + 1, 0xFFFFFFFF, false);
+        context.text(textRenderer, Component.literal("§lX"), x + 2, y + 1, 0xFFFFFFFF, false);
     }
 
-    private static void renderStopButton(DrawContext context, TextRenderer textRenderer) {
+    private static void renderStopButton(GuiGraphicsExtractor context, Font textRenderer) {
         int buttonX = 0;
         int buttonY = 0;
 
@@ -391,15 +390,15 @@ public class TradeMarketComparisonPanel {
         context.fill(buttonX + STOP_BUTTON_WIDTH - 1, buttonY, buttonX + STOP_BUTTON_WIDTH, buttonY + STOP_BUTTON_HEIGHT, 0xFF660000);
 
         String text = "Stop Comparing";
-        int textWidth = textRenderer.getWidth(text);
+        int textWidth = textRenderer.width(text);
         int textX = buttonX + (STOP_BUTTON_WIDTH - textWidth) / 2;
         int textY = buttonY + (STOP_BUTTON_HEIGHT - 8) / 2;
-        context.drawText(textRenderer, Text.literal(text), textX, textY, 0xFFFFFFFF, true);
+        context.text(textRenderer, Component.literal(text), textX, textY, 0xFFFFFFFF, true);
     }
 
-    private static void renderToggleButton(DrawContext context, TextRenderer textRenderer) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        int screenWidth = mc.getWindow() != null ? mc.getWindow().getScaledWidth() : 400;
+    private static void renderToggleButton(GuiGraphicsExtractor context, Font textRenderer) {
+        Minecraft mc = Minecraft.getInstance();
+        int screenWidth = mc.getWindow() != null ? mc.getWindow().getGuiScaledWidth() : 400;
 
         int buttonX = screenWidth - TOGGLE_BUTTON_WIDTH;
         int buttonY = 0;
@@ -418,13 +417,13 @@ public class TradeMarketComparisonPanel {
         context.fill(buttonX + TOGGLE_BUTTON_WIDTH - 1, buttonY, buttonX + TOGGLE_BUTTON_WIDTH, buttonY + TOGGLE_BUTTON_HEIGHT, borderColor);
 
         String text = enabled ? "Disable Scale BG" : "Enable Scale BG";
-        int textWidth = textRenderer.getWidth(text);
+        int textWidth = textRenderer.width(text);
         int textX = buttonX + (TOGGLE_BUTTON_WIDTH - textWidth) / 2;
         int textY = buttonY + (TOGGLE_BUTTON_HEIGHT - 8) / 2;
-        context.drawText(textRenderer, Text.literal(text), textX, textY, 0xFFFFFFFF, true);
+        context.text(textRenderer, Component.literal(text), textX, textY, 0xFFFFFFFF, true);
     }
 
-    private static void renderInfoButton(DrawContext context, TextRenderer textRenderer) {
+    private static void renderInfoButton(GuiGraphicsExtractor context, Font textRenderer) {
         int buttonX = 0;
         int buttonY = 0;
 
@@ -440,19 +439,19 @@ public class TradeMarketComparisonPanel {
         context.fill(buttonX + INFO_BUTTON_WIDTH - 1, buttonY, buttonX + INFO_BUTTON_WIDTH, buttonY + INFO_BUTTON_HEIGHT, borderColor);
 
         String text = "Press F1 to compare items.";
-        int textWidth = textRenderer.getWidth(text);
+        int textWidth = textRenderer.width(text);
         int textX = buttonX + (INFO_BUTTON_WIDTH - textWidth) / 2;
         int textY = buttonY + 4;
-        context.drawText(textRenderer, Text.literal(text), textX, textY, 0xFFFFFFFF, true);
-        context.drawCenteredTextWithShadow(textRenderer, Text.literal("(Click to hide this text)"), (int) (INFO_BUTTON_WIDTH / 2f), textY + 10, 0xFFa0a0a0);
+        context.text(textRenderer, Component.literal(text), textX, textY, 0xFFFFFFFF, true);
+        context.centeredText(textRenderer, Component.literal("(Click to hide this text)"), (int) (INFO_BUTTON_WIDTH / 2f), textY + 10, 0xFFa0a0a0);
 
     }
 
     public static boolean handleClick(double mouseX, double mouseY, int button, int action) {
         if (!isInTradeMarket()) return false;
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        int screenWidth = mc.getWindow() != null ? mc.getWindow().getScaledWidth() : 400;
+        Minecraft mc = Minecraft.getInstance();
+        int screenWidth = mc.getWindow() != null ? mc.getWindow().getGuiScaledWidth() : 400;
 
         if (button != 0 || action != 1) {
             if (action == 0 && hasAnyComparison()) {
@@ -524,9 +523,9 @@ public class TradeMarketComparisonPanel {
     }
 
     public static void handleMouseMove(double mouseX, double mouseY) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        int screenWidth = mc.getWindow() != null ? mc.getWindow().getScaledWidth() : 1920;
-        int screenHeight = mc.getWindow() != null ? mc.getWindow().getScaledHeight() : 1080;
+        Minecraft mc = Minecraft.getInstance();
+        int screenWidth = mc.getWindow() != null ? mc.getWindow().getGuiScaledWidth() : 1920;
+        int screenHeight = mc.getWindow() != null ? mc.getWindow().getGuiScaledHeight() : 1080;
 
         for (ComparisonPanel panel : panels) {
             if (panel.dragging) {

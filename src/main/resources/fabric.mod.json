@@ -1,67 +1,67 @@
 {
-	"schemaVersion": 1,
-	"id": "wynnextras",
-	"version": "${version}",
-	"name": "WynnExtras",
-	"description": "Wynncraft QOL mod. Bank overlay, profile viewer, raid features, crafting features and much more!",
-	"authors": [
-		"JulianH06",
-		"Teslanator",
-		"Pat_crafter07"
-	],
-	"contributors": [
-		"Mikecraft1224",
-		"SidOfThe7Cs",
-		"LookingForSleep",
-		"drzxm",
-		"elwood24",
-		"LegendaryVirus",
-		"BaltrazYT",
-		"Rafii2198",
-		"theoplegends",
-		"Tabytac",
-		"Zatzou",
-		"ValentineX",
-		"krakitten",
-        " ",
-        "Special Credits:",
-        " Team Wynntils",
-        " IceBreaker"
-	],
-	"contact": {
-		"issues": "https://discord.gg/UbC6vZDaD5",
-		"sources": "github.com/JulianH06/WynnExtras"
-	},
-	"custom": {
-		"modmenu": {
-			"links": {
-				"modmenu.discord": "https://discord.gg/UbC6vZDaD5",
-				"modmenu.modrinth": "https://modrinth.com/mod/wynnextras"
-			}
-		}
-	},
-	"license": "CC0-1.0",
-	"icon": "assets/wynnextras/wynnextras.png",
-	"environment": "*",
-	"entrypoints": {
-		"client": [
-          "julianh06.wynnextras.core.WynnExtras"
-		],
-		"modmenu": [
-			"julianh06.wynnextras.config.WynnExtrasModMenuApiImpl"
-        ]
-	},
-	"mixins": [
-      "wynnextras.mixins.json",
-      "wynnextras.wynntils.mixins.json"
-	],
-	"depends": {
-		"fabricloader": ">=0.16.10",
-		"minecraft": "~1.21.11",
-		"java": ">=21",
-		"fabric-api": "*"
-	},
-	"suggests": {
-		"modmenu": "*"
-	}
+  "schemaVersion": 1,
+  "id": "wynnextras",
+  "version": "${version}",
+  "name": "WynnExtras",
+  "description": "Wynncraft QOL mod. Bank overlay, profile viewer, raid features, crafting features and much more!",
+  "authors": [
+    "JulianH06",
+    "Teslanator",
+    "Pat_crafter07"
+  ],
+  "contributors": [
+    "Mikecraft1224",
+    "SidOfThe7Cs",
+    "LookingForSleep",
+    "drzxm",
+    "elwood24",
+    "LegendaryVirus",
+    "BaltrazYT",
+    "Rafii2198",
+    "theoplegends",
+    "Tabytac",
+    "Zatzou",
+    "ValentineX",
+    "krakitten",
+    " ",
+    "Special Credits:",
+    " Team Wynntils",
+    " IceBreaker"
+  ],
+  "contact": {
+    "issues": "https://discord.gg/UbC6vZDaD5",
+    "sources": "github.com/JulianH06/WynnExtras"
+  },
+  "custom": {
+    "modmenu": {
+      "links": {
+        "modmenu.discord": "https://discord.gg/UbC6vZDaD5",
+        "modmenu.modrinth": "https://modrinth.com/mod/wynnextras"
+      }
+    }
+  },
+  "license": "CC0-1.0",
+  "icon": "assets/wynnextras/wynnextras.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "julianh06.wynnextras.core.WynnExtras"
+    ],
+    "modmenu": [
+      "julianh06.wynnextras.config.WynnExtrasModMenuApiImpl"
+    ]
+  },
+  "mixins": [
+    "wynnextras.mixins.json",
+    "wynnextras.wynntils.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": ">=0.160.7+26.3"
+  },
+  "suggests": {
+    "modmenu": "*"
+  }
 }

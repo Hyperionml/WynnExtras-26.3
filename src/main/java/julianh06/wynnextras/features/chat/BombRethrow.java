@@ -10,16 +10,16 @@ import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.core.command.Command;
 import julianh06.wynnextras.event.ChatEvent;
 import julianh06.wynnextras.event.TickEvent;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.List;
@@ -55,7 +55,7 @@ public class BombRethrow {
     );
 
     private static ArgumentBuilder<FabricClientCommandSource, ?> bombTypeArgument() {
-        return ClientCommandManager.argument("bombType", StringArgumentType.greedyString())
+        return ClientCommands.argument("bombType", StringArgumentType.greedyString())
                 .suggests((context, builder) -> {
                     for (BombMapping mapping : BOMB_MAPPINGS) {
                         builder.suggest(mapping.commandName());
@@ -71,9 +71,9 @@ public class BombRethrow {
         BombMapping mapping = getExpiredBombMapping(event.message.getString());
         if (mapping == null) return;
 
-        MinecraftClient.getInstance().send(() -> MinecraftUtils.sendMessageToClient(
-                WynnExtras.addWynnExtrasPrefix(Text.literal(""))
-                        .append(Text.literal("§e§nClick here to rethrow " + mapping.commandName()).setStyle(Style.EMPTY
+        Minecraft.getInstance().schedule(() -> MinecraftUtils.sendMessageToClient(
+                WynnExtras.addWynnExtrasPrefix(Component.literal(""))
+                        .append(Component.literal("§e§nClick here to rethrow " + mapping.commandName()).setStyle(Style.EMPTY
                                 .withClickEvent(new ClickEvent.RunCommand("/we rethrowbomb " + mapping.commandName()))))
         ));
     }
@@ -82,7 +82,7 @@ public class BombRethrow {
     void onTick(TickEvent event) {
         if (pendingRequest == null) return;
 
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client.player == null) {
             pendingRequest = null;
             return;
@@ -94,7 +94,7 @@ public class BombRethrow {
             return;
         }
 
-        if (!(client.currentScreen instanceof HandledScreen<?> screen)) {
+        if (!(client.gui.screen() instanceof AbstractContainerScreen<?> screen)) {
             return;
         }
 
@@ -102,16 +102,16 @@ public class BombRethrow {
         if (!title.equals("\uDAFF\uDFF8\uE033\uDAFF\uDF80\uF010")) return;
 
         pendingRequest.menuTicks++;
-        ScreenHandler menu = screen.getScreenHandler();
+        AbstractContainerMenu menu = screen.getMenu();
         int slot = findBombSlot(menu, pendingRequest.mapping.menuName());
         if (slot >= 0) {
-            ContainerUtils.clickOnSlot(slot, menu.syncId, 0, menu.getStacks());
+            ContainerUtils.clickOnSlot(slot, menu.containerId, 0, menu.getItems());
             pendingRequest = null;
             return;
         }
 
         if (pendingRequest.menuTicks >= MENU_SCAN_TICKS) {
-            client.player.closeHandledScreen();
+            client.player.closeContainer();
             fail("§cNo " + pendingRequest.mapping.menuName() + " found in your bomb menu.");
         }
     }
@@ -127,11 +127,11 @@ public class BombRethrow {
             return;
         }
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null || client.getNetworkHandler() == null) return;
+        Minecraft client = Minecraft.getInstance();
+        if (client.player == null || client.getConnection() == null) return;
 
         pendingRequest = new RethrowRequest(mapping);
-        client.getNetworkHandler().sendChatCommand("bomb");
+        client.getConnection().sendCommand("bomb");
     }
 
     private static BombMapping getExpiredBombMapping(String message) {
@@ -165,13 +165,13 @@ public class BombRethrow {
         return null;
     }
 
-    private static int findBombSlot(ScreenHandler menu, String menuName) {
+    private static int findBombSlot(AbstractContainerMenu menu, String menuName) {
         String expected = normalizeMenuItemName(menuName);
         for (int i = 0; i < menu.slots.size(); i++) {
-            ItemStack stack = menu.getSlot(i).getStack();
+            ItemStack stack = menu.getSlot(i).getItem();
             if (stack.isEmpty()) continue;
 
-            String itemName = normalizeMenuItemName(stack.getName().getString());
+            String itemName = normalizeMenuItemName(stack.getHoverName().getString());
             if (itemName.equals(expected)) return i;
         }
         return -1;
@@ -182,7 +182,7 @@ public class BombRethrow {
     }
 
     private static String normalizeMenuItemName(String value) {
-        String clean = Formatting.strip(value);
+        String clean = ChatFormatting.stripFormatting(value);
         if (clean == null) clean = value;
 
         clean = MENU_COUNT_PATTERN.matcher(clean.trim()).replaceFirst("");

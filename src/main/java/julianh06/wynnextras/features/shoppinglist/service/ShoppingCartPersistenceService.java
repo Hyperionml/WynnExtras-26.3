@@ -5,8 +5,7 @@ import com.google.gson.GsonBuilder;
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.features.shoppinglist.cart.ShoppingCart;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -22,11 +21,11 @@ public class ShoppingCartPersistenceService {
 
     public Optional<UUID> currentPlayerUuid() {
         try {
-            MinecraftClient client = MinecraftClient.getInstance();
+            Minecraft client = Minecraft.getInstance();
             if (client == null || client.player == null) {
                 return Optional.empty();
             }
-            return Optional.of(client.player.getUuid());
+            return Optional.of(client.player.getUUID());
         } catch (RuntimeException ex) {
             return Optional.empty();
         }

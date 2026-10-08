@@ -8,14 +8,14 @@ import julianh06.wynnextras.event.api.WEEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import julianh06.wynnextras.compat.client.HudRenderCallback;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.network.chat.Component;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -146,7 +146,7 @@ public class RaidSessionTracker {
     public static void reset() {
         sessions.clear();
         if (MinecraftUtils.player() != null) {
-            MinecraftUtils.sendMessageToClient(Text.literal("§e[Session] §fAll sessions cleared"));
+            MinecraftUtils.sendMessageToClient(Component.literal("§e[Session] §fAll sessions cleared"));
         }
     }
 
@@ -157,7 +157,7 @@ public class RaidSessionTracker {
         if (MinecraftUtils.player() != null) {
             String suffix = sessions.size() > 1 ? " (#" + sessions.size() + ")" : "";
             String state = s.armed ? "started" : "armed — starts on first raid entry";
-            MinecraftUtils.sendMessageToClient(Text.literal("§e[Session] §fNew session " + state + suffix));
+            MinecraftUtils.sendMessageToClient(Component.literal("§e[Session] §fNew session " + state + suffix));
         }
     }
 
@@ -165,7 +165,7 @@ public class RaidSessionTracker {
         if (index >= 0 && index < sessions.size()) {
             sessions.remove(index);
             if (MinecraftUtils.player() != null) {
-                MinecraftUtils.sendMessageToClient(Text.literal("§e[Session] §fRemoved session"));
+                MinecraftUtils.sendMessageToClient(Component.literal("§e[Session] §fRemoved session"));
             }
         }
     }
@@ -229,7 +229,7 @@ public class RaidSessionTracker {
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (overlay) return;
             if (!WynnExtrasConfig.INSTANCE.raidSessionEnabled) return;
-            String raw = Formatting.strip(message.getString());
+            String raw = ChatFormatting.stripFormatting(message.getString());
             if (raw == null) return;
             if (raw.contains("Raid Completed!") && !raw.contains(":")) {
                 lastRaidCompleted = true;
@@ -281,16 +281,16 @@ public class RaidSessionTracker {
         // Detect clicks/drags on HUD while inventory is open
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (!WynnExtrasConfig.INSTANCE.raidSessionEnabled) return;
-            if (client.player == null || !(client.currentScreen instanceof InventoryScreen)) {
+            if (client.player == null || !(client.gui.screen() instanceof InventoryScreen)) {
                 wasClicking = false;
                 dragging = false;
                 return;
             }
-            long window = client.getWindow().getHandle();
-            boolean clicking = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+            long window = client.getWindow().handle();
+            boolean clicking = InputCompat.mouseButtonState(window, InputCompat.MOUSE_BUTTON_LEFT) == InputCompat.PRESS;
             double[] mx = new double[1], my = new double[1];
-            GLFW.glfwGetCursorPos(window, mx, my);
-            double scale = client.getWindow().getScaleFactor();
+            InputCompat.cursorPosition(window, mx, my);
+            double scale = client.getWindow().getGuiScale();
             double mouseX = mx[0] / scale, mouseY = my[0] / scale;
 
             if (clicking && !wasClicking) {
@@ -315,9 +315,9 @@ public class RaidSessionTracker {
         HudRenderCallback.EVENT.register((ctx, tickDelta) -> {
             if (!WynnExtrasConfig.INSTANCE.raidSessionEnabled) return;
             if (WynnExtrasConfig.INSTANCE.raidSessionOnlyInInventory) return;
-            MinecraftClient mc = MinecraftClient.getInstance();
-            if (mc.player == null || mc.options.hudHidden) return;
-            if (mc.currentScreen != null) return;
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player == null || mc.gui.hud.isHidden()) return;
+            if (mc.gui.screen() != null) return;
             if (WynnExtrasConfig.INSTANCE.raidSessionOnlyInRaid && !wasInRaid
                     && !RaidState.isInRaid()) return;
             renderHud(ctx, mc, false);
@@ -326,7 +326,7 @@ public class RaidSessionTracker {
         // Render on top of own inventory only
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             if (!(screen instanceof InventoryScreen)) return;
-            ScreenEvents.afterRender(screen).register((s, ctx, mouseX, mouseY, tickDelta) -> {
+            ScreenEvents.afterExtract(screen).register((s, ctx, mouseX, mouseY, tickDelta) -> {
                 if (!WynnExtrasConfig.INSTANCE.raidSessionEnabled) return;
                 if (client.player == null) return;
                 if (WynnExtrasConfig.INSTANCE.raidSessionOnlyInRaid && !RaidState.isInRaid()) return;
@@ -339,22 +339,22 @@ public class RaidSessionTracker {
         return sessions.isEmpty() ? 1 : sessions.size() + 1;
     }
 
-    private static void renderHud(DrawContext ctx, MinecraftClient mc, boolean showButtons) {
+    private static void renderHud(GuiGraphicsExtractor ctx, Minecraft mc, boolean showButtons) {
         float ts = WynnExtrasConfig.INSTANCE.raidSessionHudScale;
         int baseX = WynnExtrasConfig.INSTANCE.raidSessionHudX;
         int baseY = WynnExtrasConfig.INSTANCE.raidSessionHudY;
 
-        ctx.getMatrices().pushMatrix();
-        ctx.getMatrices().translate(baseX, baseY);
-        ctx.getMatrices().scale(ts, ts);
+        ctx.pose().pushMatrix();
+        ctx.pose().translate(baseX, baseY);
+        ctx.pose().scale(ts, ts);
 
         if (sessions.isEmpty()) {
             if (showButtons) {
-                ctx.drawText(mc.textRenderer, "Session: --", 0, 0, 0xFF888888, true);
-                int addX = mc.textRenderer.getWidth("Session: --  ");
-                ctx.drawText(mc.textRenderer, "[ADD]", addX, 0, 0xFF66FF66, true);
+                ctx.text(mc.font, "Session: --", 0, 0, 0xFF888888, true);
+                int addX = mc.font.width("Session: --  ");
+                ctx.text(mc.font, "[ADD]", addX, 0, 0xFF66FF66, true);
             }
-            ctx.getMatrices().popMatrix();
+            ctx.pose().popMatrix();
             return;
         }
 
@@ -364,54 +364,54 @@ public class RaidSessionTracker {
             int lineColor = s.manuallyPaused ? 0xFFFFFF66 : 0xFFAAFFAA;
             int y = i * LINE_HEIGHT;
 
-            ctx.drawText(mc.textRenderer, line, 0, y, lineColor, true);
+            ctx.text(mc.font, line, 0, y, lineColor, true);
             if (showButtons) {
-                int btnX = mc.textRenderer.getWidth(line + "  ");
-                ctx.drawText(mc.textRenderer, "[X]", btnX, y, 0xFFFF6666, true);
+                int btnX = mc.font.width(line + "  ");
+                ctx.text(mc.font, "[X]", btnX, y, 0xFFFF6666, true);
                 String pauseLabel = s.manuallyPaused ? "[>]" : "[||]";
-                int pauseX = btnX + mc.textRenderer.getWidth("[X] ");
-                ctx.drawText(mc.textRenderer, pauseLabel, pauseX, y, 0xFFFFFF66, true);
+                int pauseX = btnX + mc.font.width("[X] ");
+                ctx.text(mc.font, pauseLabel, pauseX, y, 0xFFFFFF66, true);
             }
         }
 
         if (showButtons) {
             int addY = sessions.size() * LINE_HEIGHT;
-            ctx.drawText(mc.textRenderer, "[ADD]", 0, addY, 0xFF66FF66, true);
+            ctx.text(mc.font, "[ADD]", 0, addY, 0xFF66FF66, true);
         }
 
-        ctx.getMatrices().popMatrix();
+        ctx.pose().popMatrix();
     }
 
     private static boolean isOnHud(double mouseX, double mouseY) {
         float ts = WynnExtrasConfig.INSTANCE.raidSessionHudScale;
         int baseX = WynnExtrasConfig.INSTANCE.raidSessionHudX;
         int baseY = WynnExtrasConfig.INSTANCE.raidSessionHudY;
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.textRenderer == null) return false;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.font == null) return false;
 
         int totalH = (int)(totalRows() * LINE_HEIGHT * ts);
         if (mouseY < baseY || mouseY > baseY + totalH) return false;
 
         int maxWidth = 0;
         if (sessions.isEmpty()) {
-            maxWidth = mc.textRenderer.getWidth("Session: --  [ADD]");
+            maxWidth = mc.font.width("Session: --  [ADD]");
         } else {
             for (int i = 0; i < sessions.size(); i++) {
                 Session s = sessions.get(i);
                 String line = s.buildStatsLine(i);
                 String pauseLabel = s.manuallyPaused ? "[>]" : "[||]";
-                int w = mc.textRenderer.getWidth(line + "  [X] " + pauseLabel);
+                int w = mc.font.width(line + "  [X] " + pauseLabel);
                 if (w > maxWidth) maxWidth = w;
             }
-            int addW = mc.textRenderer.getWidth("[ADD]");
+            int addW = mc.font.width("[ADD]");
             if (addW > maxWidth) maxWidth = addW;
         }
         return mouseX >= baseX && mouseX <= baseX + (int)(maxWidth * ts);
     }
 
     private static boolean isOnButtons(double mouseX, double mouseY) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.textRenderer == null) return false;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.font == null) return false;
         float ts = WynnExtrasConfig.INSTANCE.raidSessionHudScale;
         int baseX = WynnExtrasConfig.INSTANCE.raidSessionHudX;
         int baseY = WynnExtrasConfig.INSTANCE.raidSessionHudY;
@@ -419,8 +419,8 @@ public class RaidSessionTracker {
         if (sessions.isEmpty()) {
             int h = (int)(LINE_HEIGHT * ts);
             if (mouseY < baseY || mouseY > baseY + h) return false;
-            int addX = baseX + (int)(mc.textRenderer.getWidth("Session: --  ") * ts);
-            int addEnd = addX + (int)(mc.textRenderer.getWidth("[ADD]") * ts);
+            int addX = baseX + (int)(mc.font.width("Session: --  ") * ts);
+            int addEnd = addX + (int)(mc.font.width("[ADD]") * ts);
             return mouseX >= addX && mouseX <= addEnd;
         }
 
@@ -431,8 +431,8 @@ public class RaidSessionTracker {
                 Session s = sessions.get(i);
                 String line = s.buildStatsLine(i);
                 String pauseLabel = s.manuallyPaused ? "[>]" : "[||]";
-                int btnStart = baseX + (int)(mc.textRenderer.getWidth(line + "  ") * ts);
-                int btnEnd = btnStart + (int)(mc.textRenderer.getWidth("[X] " + pauseLabel) * ts);
+                int btnStart = baseX + (int)(mc.font.width(line + "  ") * ts);
+                int btnEnd = btnStart + (int)(mc.font.width("[X] " + pauseLabel) * ts);
                 return mouseX >= btnStart && mouseX <= btnEnd;
             }
         }
@@ -440,7 +440,7 @@ public class RaidSessionTracker {
         int addRowY = baseY + (int)(sessions.size() * LINE_HEIGHT * ts);
         int addRowH = (int)(LINE_HEIGHT * ts);
         if (mouseY >= addRowY && mouseY < addRowY + addRowH) {
-            int addEnd = baseX + (int)(mc.textRenderer.getWidth("[ADD]") * ts);
+            int addEnd = baseX + (int)(mc.font.width("[ADD]") * ts);
             return mouseX >= baseX && mouseX <= addEnd;
         }
 
@@ -448,8 +448,8 @@ public class RaidSessionTracker {
     }
 
     private static void handleClick(double mouseX, double mouseY) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.textRenderer == null) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.font == null) return;
 
         float ts = WynnExtrasConfig.INSTANCE.raidSessionHudScale;
         int baseX = WynnExtrasConfig.INSTANCE.raidSessionHudX;
@@ -458,8 +458,8 @@ public class RaidSessionTracker {
         if (sessions.isEmpty()) {
             int h = (int)(LINE_HEIGHT * ts);
             if (mouseY < baseY || mouseY > baseY + h) return;
-            int addX = baseX + (int)(mc.textRenderer.getWidth("Session: --  ") * ts);
-            int addW = (int)(mc.textRenderer.getWidth("[ADD]") * ts);
+            int addX = baseX + (int)(mc.font.width("Session: --  ") * ts);
+            int addW = (int)(mc.font.width("[ADD]") * ts);
             if (mouseX >= addX && mouseX <= addX + addW) {
                 startNewSession();
             }
@@ -475,21 +475,21 @@ public class RaidSessionTracker {
             String line = s.buildStatsLine(i);
             String pauseLabel = s.manuallyPaused ? "[>]" : "[||]";
 
-            int xBtnX = baseX + (int)(mc.textRenderer.getWidth(line + "  ") * ts);
-            int xBtnW = (int)(mc.textRenderer.getWidth("[X]") * ts);
+            int xBtnX = baseX + (int)(mc.font.width(line + "  ") * ts);
+            int xBtnW = (int)(mc.font.width("[X]") * ts);
             if (mouseX >= xBtnX && mouseX <= xBtnX + xBtnW) {
                 removeSession(i);
                 return;
             }
 
-            int pauseX = xBtnX + (int)(mc.textRenderer.getWidth("[X] ") * ts);
-            int pauseW = (int)(mc.textRenderer.getWidth(pauseLabel) * ts);
+            int pauseX = xBtnX + (int)(mc.font.width("[X] ") * ts);
+            int pauseW = (int)(mc.font.width(pauseLabel) * ts);
             if (mouseX >= pauseX && mouseX <= pauseX + pauseW) {
                 s.togglePause();
                 String state = s.manuallyPaused ? "Paused" : "Resumed";
                 if (MinecraftUtils.player() != null) {
                     String label = sessions.size() > 1 ? " (#" + (i + 1) + ")" : "";
-                    MinecraftUtils.sendMessageToClient(Text.literal("§e[Session] §f" + state + label));
+                    MinecraftUtils.sendMessageToClient(Component.literal("§e[Session] §f" + state + label));
                 }
                 return;
             }
@@ -499,7 +499,7 @@ public class RaidSessionTracker {
         int addRowY = baseY + (int)(sessions.size() * LINE_HEIGHT * ts);
         int addRowH = (int)(LINE_HEIGHT * ts);
         if (mouseY >= addRowY && mouseY < addRowY + addRowH) {
-            int addW = (int)(mc.textRenderer.getWidth("[ADD]") * ts);
+            int addW = (int)(mc.font.width("[ADD]") * ts);
             if (mouseX >= baseX && mouseX <= baseX + addW) {
                 startNewSession();
             }

@@ -4,13 +4,13 @@ import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.features.qol.AttackTimer;
 import julianh06.wynnextras.features.raid.RaidSessionTracker;
 import julianh06.wynnextras.features.raid.tna.TreeRoomMinimap;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.text.Text;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,7 +22,7 @@ public class HudEditScreen extends Screen {
 
     private static class HudElement {
         final String id;
-        final Text preview;
+        final Component preview;
         final int defaultColor;
         int x, y, w;
         int customH = -1; // -1 = use default H
@@ -37,14 +37,14 @@ public class HudEditScreen extends Screen {
         WynnExtrasConfig.Align alignment;
 
         HudElement(String id, String preview, int x, int y, float scale, WynnExtrasConfig.Align alignment) {
-            this(id, Text.literal(preview), x, y, scale, alignment, 0xFFFFFFFF);
+            this(id, Component.literal(preview), x, y, scale, alignment, 0xFFFFFFFF);
         }
 
         HudElement(String id, String preview, int x, int y, float scale, WynnExtrasConfig.Align alignment, int defaultColor) {
-            this(id, Text.literal(preview), x, y, scale, alignment, defaultColor);
+            this(id, Component.literal(preview), x, y, scale, alignment, defaultColor);
         }
 
-        HudElement(String id, Text preview, int x, int y, float scale, WynnExtrasConfig.Align alignment, int defaultColor) {
+        HudElement(String id, Component preview, int x, int y, float scale, WynnExtrasConfig.Align alignment, int defaultColor) {
             this.id = id;
             this.preview = preview;
             this.x = x;
@@ -89,7 +89,7 @@ public class HudEditScreen extends Screen {
     public HudEditScreen() { this(null); }
 
     public HudEditScreen(Screen parent) {
-        super(Text.literal("Edit HUD"));
+        super(Component.literal("Edit HUD"));
         WynnExtrasConfig c = WynnExtrasConfig.INSTANCE;
 
         this.parent = parent;
@@ -107,14 +107,14 @@ public class HudEditScreen extends Screen {
             previewEffects.put(WynnExtrasConfig.TOTEM_TIMER_EFFECT_ELDRITCH_TRANSFUSION, "\ue020 2");
             previewEffects.put(WynnExtrasConfig.TOTEM_TIMER_EFFECT_INVIGORATING_WAVE, "\ue013 3s");
             TotemTimer.TotemInfo previewTotem = new TotemTimer.TotemInfo("PlayerName", previewEffects, false);
-            Text totemText = TotemTimer.getHudText(previewTotem);
+            Component totemText = TotemTimer.getHudText(previewTotem);
             int totemColor = 0xFF44FF44;
             List<TotemTimer.TotemInfo> totems = TotemTimer.getTotems();
             if (!totems.isEmpty()) {
-                Text liveText = TotemTimer.getHudText(totems.get(0));
+                Component liveText = TotemTimer.getHudText(totems.get(0));
                 if (!liveText.getString().isEmpty()) totemText = liveText;
             }
-            if (totemText.getString().isEmpty()) totemText = Text.literal("Totem timer: no effects selected");
+            if (totemText.getString().isEmpty()) totemText = Component.literal("Totem timer: no effects selected");
             elements.add(new HudElement("totem", totemText,
                     c.totemTimerX, c.totemTimerY, c.totemTimerScale, c.totemTimerAlignment, totemColor));
         }
@@ -223,14 +223,14 @@ public class HudEditScreen extends Screen {
     }
 
     @Override
-    public boolean shouldPause() { return false; }
+    public boolean isPauseScreen() { return false; }
 
     @Override
     public void init() {
         super.init();
         for (HudElement e : elements) {
             if (!e.fixedSize) {
-                e.w = textRenderer.getWidth(e.preview) + 6;
+                e.w = font.width(e.preview) + 6;
                 if (!e.topLeft) {
                     e.x = e.x - e.sw() / 2;
                     e.y = e.y - e.sh() / 2;
@@ -267,7 +267,7 @@ public class HudEditScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         focusedMouseX = mouseX;
         focusedMouseY = mouseY;
         ctx.fill(0, 0, width, height, 0x55000000);
@@ -289,7 +289,7 @@ public class HudEditScreen extends Screen {
         String hint = elements.isEmpty()
                 ? "No HUD elements enabled  |  Esc to close"
                 : "Drag to move  |  Scroll to resize  |  Esc to save";
-        ctx.drawText(textRenderer, hint, 4, height - 12, 0xFFaaaaaa, true);
+        ctx.text(font, hint, 4, height - 12, 0xFFaaaaaa, true);
 
         // Draw unfocused elements first.
         for (HudElement e : elements) {
@@ -303,7 +303,7 @@ public class HudEditScreen extends Screen {
         }
     }
 
-    private void drawElement(DrawContext ctx, HudElement e, int mouseX, int mouseY) {
+    private void drawElement(GuiGraphicsExtractor ctx, HudElement e, int mouseX, int mouseY) {
         boolean hovered = e.hovered(mouseX, mouseY);
         boolean focused = (e == colorEditTarget);
         int border = focused ? 0xFFFFAA00 : (hovered || e.dragging) ? 0xFFFFFFFF : 0xFF888888;
@@ -327,13 +327,13 @@ public class HudEditScreen extends Screen {
             textColor = e.defaultColor;
         }
 
-        ctx.getMatrices().pushMatrix();
-        ctx.getMatrices().translate(e.x + e.sw() / 2f, e.y + e.sh() / 2f);
-        ctx.getMatrices().scale(e.scale, e.scale);
-        int tw = textRenderer.getWidth(e.preview);
-        int th = textRenderer.fontHeight;
-        ctx.drawText(textRenderer, e.preview, -tw / 2, -th / 2, textColor, true);
-        ctx.getMatrices().popMatrix();
+        ctx.pose().pushMatrix();
+        ctx.pose().translate(e.x + e.sw() / 2f, e.y + e.sh() / 2f);
+        ctx.pose().scale(e.scale, e.scale);
+        int tw = font.width(e.preview);
+        int th = font.lineHeight;
+        ctx.text(font, e.preview, -tw / 2, -th / 2, textColor, true);
+        ctx.pose().popMatrix();
     }
 
     private int[] colorPickerBounds() {
@@ -424,7 +424,7 @@ public class HudEditScreen extends Screen {
         WynnExtrasConfig.INSTANCE.hudColorOverrides.put(id, color & 0xFFFFFF);
     }
 
-    private void renderColorPicker(DrawContext ctx) {
+    private void renderColorPicker(GuiGraphicsExtractor ctx) {
         int[] b = colorPickerBounds();
         int px = b[0], py = b[1], popupW = b[2], popupH = b[3];
 
@@ -437,7 +437,7 @@ public class HudEditScreen extends Screen {
         ctx.fill(px, py, px + 1, py + popupH, 0xFFFFAA00);
         ctx.fill(px + popupW - 1, py, px + popupW, py + popupH, 0xFFFFAA00);
 
-        ctx.drawCenteredTextWithShadow(textRenderer, "Color: " + colorEditTarget.id, px + popupW / 2, py + 6, 0xFFFFAA00);
+        ctx.centeredText(font, "Color: " + colorEditTarget.id, px + popupW / 2, py + 6, 0xFFFFAA00);
 
         // Saturation/Value square — draw from a cached grid of block colors.
         int[] sv = svBoxBounds();
@@ -479,7 +479,7 @@ public class HudEditScreen extends Screen {
         ctx.fill(previewX - 1, sv[1] + 30, previewX + previewW + 1, sv[1] + 31, 0xFFAAAAAA);
         ctx.fill(previewX - 1, sv[1], previewX, sv[1] + 30, 0xFFAAAAAA);
         ctx.fill(previewX + previewW, sv[1], previewX + previewW + 1, sv[1] + 30, 0xFFAAAAAA);
-        ctx.drawTextWithShadow(textRenderer, String.format("#%06X", currentRgb & 0xFFFFFF), previewX, sv[1] + 36, 0xFFFFFFFF);
+        ctx.text(font, String.format("#%06X", currentRgb & 0xFFFFFF), previewX, sv[1] + 36, 0xFFFFFFFF);
 
         // Presets
         for (int i = 0; i < PRESET_COLORS.length; i++) {
@@ -495,13 +495,13 @@ public class HudEditScreen extends Screen {
         for (int i = 0; i < 3; i++) {
             int[] bb = buttonBounds(i);
             ctx.fill(bb[0], bb[1], bb[0] + bb[2], bb[1] + bb[3], btnColors[i]);
-            ctx.drawCenteredTextWithShadow(textRenderer, labels[i], bb[0] + bb[2] / 2, bb[1] + 5, 0xFFFFFFFF);
+            ctx.centeredText(font, labels[i], bb[0] + bb[2] / 2, bb[1] + 5, 0xFFFFFFFF);
         }
 
         // Close X in top-right corner of popup
         int[] cb = closeButtonBounds();
         ctx.fill(cb[0], cb[1], cb[0] + cb[2], cb[1] + cb[3], 0xFF552222);
-        ctx.drawCenteredTextWithShadow(textRenderer, "X", cb[0] + cb[2] / 2, cb[1] + 2, 0xFFFFFFFF);
+        ctx.centeredText(font, "X", cb[0] + cb[2] / 2, cb[1] + 2, 0xFFFFFFFF);
     }
 
     private void ensureSvCache(int width, int height) {
@@ -533,7 +533,7 @@ public class HudEditScreen extends Screen {
         }
     }
 
-    private static void drawColorCursor(DrawContext ctx, int cx, int cy) {
+    private static void drawColorCursor(GuiGraphicsExtractor ctx, int cx, int cy) {
         // Double-ring cursor: black outer border, white inner ring for contrast on any background.
         // 9x9 outer square (black), 7x7 middle ring (white), 5x5 inner cutout.
         ctx.fill(cx - 4, cy - 4, cx + 5, cy - 3, 0xFF000000);
@@ -581,12 +581,12 @@ public class HudEditScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean doubleClick) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubleClick) {
         double mx = click.x(), my = click.y();
 
         // Color picker handling
         if (colorEditTarget != null) {
-            if (click.button() != 0) return true;
+            if (julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()) != 0) return true;
 
             // Close X
             int[] cb = closeButtonBounds();
@@ -647,7 +647,7 @@ public class HudEditScreen extends Screen {
             return true; // block other clicks while popup is open
         }
 
-        if (click.button() == 0) {
+        if (julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()) == 0) {
             for (HudElement e : elements) {
                 if (e.hovered(mx, my)) {
                     e.dragging = true;
@@ -656,7 +656,7 @@ public class HudEditScreen extends Screen {
                     return true;
                 }
             }
-        } else if (HUD_COLOR_EDITING_ENABLED && click.button() == 1) {
+        } else if (HUD_COLOR_EDITING_ENABLED && julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()) == 1) {
             // Right-click: open color picker for hovered element
             for (HudElement e : elements) {
                 if (e.hovered(mx, my)) {
@@ -674,7 +674,7 @@ public class HudEditScreen extends Screen {
 
 
     @Override
-    public boolean mouseDragged(Click click, double dx, double dy) {
+    public boolean mouseDragged(MouseButtonEvent click, double dx, double dy) {
         double mx = click.x(), my = click.y();
         if (colorEditTarget != null && colorDragMode > 0) {
             if (colorDragMode == 1) {
@@ -736,7 +736,7 @@ public class HudEditScreen extends Screen {
     }
 
     @Override
-    public boolean mouseReleased(Click click) {
+    public boolean mouseReleased(MouseButtonEvent click) {
         colorDragMode = 0;
         for (HudElement e : elements) {
             e.dragging = false;
@@ -747,17 +747,17 @@ public class HudEditScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
-        int keyCode = input.key();
-        int modifiers = input.modifiers();
+    public boolean keyPressed(KeyEvent input) {
+        int keyCode = julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key());
+        int modifiers = julianh06.wynnextras.compat.client.InputCompat.legacyModifiers(input.modifiers());
 
         // Color picker: Esc cancels
         if (colorEditTarget != null) {
-            if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            if (keyCode == InputCompat.KEY_ESCAPE) {
                 colorEditTarget = null;
                 return true;
             }
-            if (keyCode == GLFW.GLFW_KEY_ENTER) {
+            if (keyCode == InputCompat.KEY_ENTER) {
                 int c = hsvToRgb(colorH, colorS, colorV);
                 setHudColor(colorEditTarget.id, c);
                 WynnExtrasConfig.save();
@@ -768,10 +768,10 @@ public class HudEditScreen extends Screen {
         }
 
         boolean shift = (modifiers & 1) != 0;
-        if (shift && (keyCode == GLFW.GLFW_KEY_LEFT || keyCode == GLFW.GLFW_KEY_RIGHT || keyCode == GLFW.GLFW_KEY_A || keyCode == GLFW.GLFW_KEY_D)) { // Left arrow = 263, Right arrow = 262
+        if (shift && (keyCode == InputCompat.KEY_LEFT || keyCode == InputCompat.KEY_RIGHT || keyCode == InputCompat.KEY_A || keyCode == InputCompat.KEY_D)) { // Left arrow = 263, Right arrow = 262
             for (HudElement e : elements) {
                 if (e.hovered(focusedMouseX, focusedMouseY)) {
-                    if (keyCode == GLFW.GLFW_KEY_LEFT || keyCode == GLFW.GLFW_KEY_A) { // left
+                    if (keyCode == InputCompat.KEY_LEFT || keyCode == InputCompat.KEY_A) { // left
                         e.alignment = e.alignment == WynnExtrasConfig.Align.CENTER ? WynnExtrasConfig.Align.LEFT : e.alignment == WynnExtrasConfig.Align.RIGHT ? WynnExtrasConfig.Align.CENTER : WynnExtrasConfig.Align.LEFT;
                     } else { // right
                         e.alignment = e.alignment == WynnExtrasConfig.Align.CENTER ? WynnExtrasConfig.Align.RIGHT : e.alignment == WynnExtrasConfig.Align.LEFT ? WynnExtrasConfig.Align.CENTER : WynnExtrasConfig.Align.RIGHT;
@@ -784,7 +784,7 @@ public class HudEditScreen extends Screen {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         WynnExtrasConfig c = WynnExtrasConfig.INSTANCE;
         for (HudElement e : elements) {
             switch (e.id) {
@@ -841,6 +841,6 @@ public class HudEditScreen extends Screen {
         }
         WynnExtrasConfig.save();
         TreeRoomMinimap.syncFromConfig();
-        MinecraftClient.getInstance().setScreen(parent);
+        Minecraft.getInstance().gui.setScreen(parent);
     }
 }

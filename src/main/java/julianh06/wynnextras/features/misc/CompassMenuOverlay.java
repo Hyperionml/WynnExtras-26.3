@@ -13,22 +13,21 @@ import julianh06.wynnextras.wynncraft.menu.MenuType;
 import julianh06.wynnextras.wynncraft.menu.WynncraftMenuService;
 import julianh06.wynnextras.wynncraft.state.SkillPoint;
 import julianh06.wynnextras.wynncraft.state.SkillPointState;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.gui.screens.inventory.tooltip.TooltipRenderUtil;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.TooltipFlag;
 import julianh06.wynnextras.wynncraft.item.ItemCategory;
 import julianh06.wynnextras.wynncraft.item.WynnItemData;
 import julianh06.wynnextras.wynncraft.item.WynnItemParser;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.tooltip.TooltipBackgroundRenderer;
-import net.minecraft.client.gui.tooltip.TooltipComponent;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.item.Item;
-import net.minecraft.item.tooltip.TooltipType;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Text;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -39,7 +38,7 @@ import java.util.Optional;
 public class CompassMenuOverlay extends WEMenuExtension {
     AutoAssignButton autoAssignButton;
     List<ItemWidget> itemWidgets = new ArrayList<>();
-    static ItemStack hoveredItem = Items.AIR.getDefaultStack();
+    static ItemStack hoveredItem = ItemStack.EMPTY;
 
     static boolean selectingWeapon = false;
     static ItemStack selectedWeapon = null;
@@ -67,8 +66,8 @@ public class CompassMenuOverlay extends WEMenuExtension {
     }
 
     @Override
-    protected void drawBackground(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        hoveredItem = Items.AIR.getDefaultStack();
+    protected void drawBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+        hoveredItem = ItemStack.EMPTY;
     }
 
     @Override
@@ -77,12 +76,12 @@ public class CompassMenuOverlay extends WEMenuExtension {
         if (handled) return true;
 
         if (!selectingWeapon) return false;
-        if (!(MinecraftUtils.screen() instanceof HandledScreen<?> screen)) return false;
+        if (!(MinecraftUtils.screen() instanceof AbstractContainerScreen<?> screen)) return false;
 
         Slot focused = HandledScreenAccess.focusedSlot(screen);
-        if (focused == null || !focused.hasStack()) return false;
+        if (focused == null || !focused.hasItem()) return false;
 
-        ItemStack clicked = focused.getStack();
+        ItemStack clicked = focused.getItem();
         WynnItemData item = WynnItemParser.parse(clicked).orElse(null);
         if (item == null || item.category() != ItemCategory.GEAR || !item.gearType().isWeapon()) {
             setStatus(StatusType.ERROR, "That is not a valid weapon.", "Select a weapon item or skip selection.");
@@ -96,9 +95,9 @@ public class CompassMenuOverlay extends WEMenuExtension {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         if (!WynncraftMenuService.isCurrent(MenuType.CHARACTER_INFO)) return;
-        if(!(MinecraftUtils.screen() instanceof HandledScreen<?> screen)) return;
+        if(!(MinecraftUtils.screen() instanceof AbstractContainerScreen<?> screen)) return;
 
         float xStart = hsX(screen);
         float yStart = hsY(screen) + hsHeight(screen);
@@ -123,53 +122,53 @@ public class CompassMenuOverlay extends WEMenuExtension {
 
         backgroundWidth -= 32;
         for(int i = 0; i < 4; i++) {
-            ItemStack item = MinecraftUtils.player().getEquippedStack(EquipmentSlot.FROM_INDEX.apply(4 - i));
+            ItemStack item = MinecraftUtils.player().getItemBySlot(EquipmentSlot.BY_ID.apply(4 - i));
             itemWidgets.get(i).setBounds((int) (itemXStart + i * backgroundWidth / 3f), (int) itemYStart, itemWidth, itemHeight);
             itemWidgets.get(i).setItem(item);
         }
     }
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
     }
 
-    public void renderHoveredTooltip(DrawContext ctx, int mouseX, int mouseY) {
+    public void renderHoveredTooltip(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
         if(hoveredItem.isEmpty()) return;
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        List<Text> tooltip = hoveredItem.getTooltip(Item.TooltipContext.DEFAULT, mc.player, TooltipType.BASIC);
-        drawTooltip(mc.textRenderer, TooltipUtils.getClientTooltipComponent(tooltip), mouseX + 14, mouseY, ctx);
+        Minecraft mc = Minecraft.getInstance();
+        List<Component> tooltip = hoveredItem.getTooltipLines(Item.TooltipContext.EMPTY, mc.player, TooltipFlag.NORMAL);
+        drawTooltip(mc.font, TooltipUtils.getClientTooltipComponent(tooltip), mouseX + 14, mouseY, ctx);
     }
 
-    private static void drawTooltip(net.minecraft.client.font.TextRenderer textRenderer, List<TooltipComponent> components, int x, int y, DrawContext context) {
+    private static void drawTooltip(net.minecraft.client.gui.Font textRenderer, List<ClientTooltipComponent> components, int x, int y, GuiGraphicsExtractor context) {
         if (components.isEmpty()) return;
 
         int width = 0;
         int height = components.size() == 1 ? -2 : 0;
-        TooltipComponent component;
-        for (Iterator<TooltipComponent> iterator = components.iterator(); iterator.hasNext(); height += component.getHeight(textRenderer)) {
+        ClientTooltipComponent component;
+        for (Iterator<ClientTooltipComponent> iterator = components.iterator(); iterator.hasNext(); height += component.getHeight(textRenderer)) {
             component = iterator.next();
             width = Math.max(width, component.getWidth(textRenderer));
         }
 
-        int screenWidth = MinecraftClient.getInstance().getWindow().getScaledWidth();
-        int screenHeight = MinecraftClient.getInstance().getWindow().getScaledHeight();
+        int screenWidth = Minecraft.getInstance().getWindow().getGuiScaledWidth();
+        int screenHeight = Minecraft.getInstance().getWindow().getGuiScaledHeight();
         if (x + width > screenWidth) x = Math.max(4, screenWidth - width - 4);
         if (y + height > screenHeight) y = Math.max(4, screenHeight - height - 4);
 
-        TooltipBackgroundRenderer.render(context, x, y, width, height, null);
+        TooltipRenderUtil.extractTooltipBackground(context, x, y, width, height, null);
 
         int textY = y;
         for (int i = 0; i < components.size(); i++) {
             component = components.get(i);
-            component.drawText(context, textRenderer, x, textY);
+            component.extractText(context, textRenderer, x, textY);
             textY += component.getHeight(textRenderer) + (i == 0 ? 2 : 0);
         }
 
         int itemY = y;
         for (int i = 0; i < components.size(); i++) {
             component = components.get(i);
-            component.drawItems(textRenderer, x, itemY, width, height, context);
+            component.extractImage(textRenderer, x, itemY, width, height, context);
             itemY += component.getHeight(textRenderer) + (i == 0 ? 2 : 0);
         }
     }
@@ -178,10 +177,10 @@ public class CompassMenuOverlay extends WEMenuExtension {
         ItemStack item;
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             if(item == null) return;
 
-            ctx.drawItem(item, (int) (x / ui.getScaleFactor()), (int) (y / ui.getScaleFactor()));
+            ctx.item(item, (int) (x / ui.getScaleFactor()), (int) (y / ui.getScaleFactor()));
 
             if(hovered) {
                 hoveredItem = item;
@@ -197,7 +196,7 @@ public class CompassMenuOverlay extends WEMenuExtension {
 
     private static class AutoAssignButton extends Widget {
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             if (!WynncraftMenuService.isCurrent(MenuType.CHARACTER_INFO)) return;
             ui.drawButton(x, y, width, height, hovered);
             if (selectingWeapon) {
@@ -243,14 +242,14 @@ public class CompassMenuOverlay extends WEMenuExtension {
 
         //Armor
         for (int i = 0; i < 4; i++) {
-            ItemStack stack = MinecraftUtils.player().getEquippedStack(EquipmentSlot.FROM_INDEX.apply(4 - i));
+            ItemStack stack = MinecraftUtils.player().getItemBySlot(EquipmentSlot.BY_ID.apply(4 - i));
             SolvableItem si = toSolvableItem(stack);
             if (si != null) nonWeaponItems.add(si);
         }
 
         //Accessories
         for (int i = 9; i < 13; i++) {
-            ItemStack stack = MinecraftUtils.player().getInventory().getStack(i);
+            ItemStack stack = MinecraftUtils.player().getInventory().getItem(i);
             SolvableItem si = toSolvableItem(stack);
             if (si != null) nonWeaponItems.add(si);
         }

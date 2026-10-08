@@ -1,14 +1,13 @@
 package julianh06.wynnextras.utils.UI;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.util.Window;
-
+import com.mojang.blaze3d.platform.Window;
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public abstract class WEHandledScreen {
-    protected DrawContext drawContext;
+    protected GuiGraphicsExtractor drawContext;
     protected double scaleFactor;
     protected double matrixScale = 1.0;
     protected int xStart;
@@ -27,7 +26,7 @@ public abstract class WEHandledScreen {
     private static long lastScrollTime = 0;
     private static final long scrollCooldown = 0; // in ms
 
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         this.drawContext = ctx;
         computeScale();
 
@@ -39,8 +38,8 @@ public abstract class WEHandledScreen {
         int mx = (int)(mouseX / matrixScale);
         int my = (int)(mouseY / matrixScale);
 
-        ctx.getMatrices().pushMatrix();
-        ctx.getMatrices().scale((float) matrixScale, (float) matrixScale);
+        ctx.pose().pushMatrix();
+        ctx.pose().scale((float) matrixScale, (float) matrixScale);
 
         drawBackground(ctx, mx, my, delta);
         drawContent(ctx, mx, my, delta);
@@ -51,7 +50,7 @@ public abstract class WEHandledScreen {
 
         drawForeground(ctx, mx, my, delta);
 
-        ctx.getMatrices().popMatrix();
+        ctx.pose().popMatrix();
     }
 
 
@@ -137,8 +136,8 @@ public abstract class WEHandledScreen {
     }
 
     public void computeScale() {
-        Window w = MinecraftClient.getInstance().getWindow();
-        double actualScale = Math.max(1.0, w.getScaleFactor());
+        Window w = Minecraft.getInstance().getWindow();
+        double actualScale = Math.max(1.0, w.getGuiScale());
         double target = getTargetScaleFactor();
         if (target > 1.0 && actualScale > target) {
             this.matrixScale = target / actualScale;
@@ -147,8 +146,8 @@ public abstract class WEHandledScreen {
             this.matrixScale = 1.0;
             this.scaleFactor = actualScale;
         }
-        this.screenWidth = (int) Math.round(w.getScaledWidth() / matrixScale);
-        this.screenHeight = (int) Math.round(w.getScaledHeight() / matrixScale);
+        this.screenWidth = (int) Math.round(w.getGuiScaledWidth() / matrixScale);
+        this.screenHeight = (int) Math.round(w.getGuiScaledHeight() / matrixScale);
 
         int minSW = getMinScreenWidth();
         int minSH = getMinScreenHeight();
@@ -158,8 +157,8 @@ public abstract class WEHandledScreen {
         if (extraScale < 1.0) {
             matrixScale *= extraScale;
             scaleFactor *= extraScale;
-            screenWidth = (int) Math.round(w.getScaledWidth() / matrixScale);
-            screenHeight = (int) Math.round(w.getScaledHeight() / matrixScale);
+            screenWidth = (int) Math.round(w.getGuiScaledWidth() / matrixScale);
+            screenHeight = (int) Math.round(w.getGuiScaledHeight() / matrixScale);
         }
     }
 
@@ -169,7 +168,7 @@ public abstract class WEHandledScreen {
 
 
 
-    protected abstract void drawBackground(DrawContext ctx, int mouseX, int mouseY, float delta);
-    protected abstract void drawContent(DrawContext ctx, int mouseX, int mouseY, float delta);
-    protected abstract void drawForeground(DrawContext ctx, int mouseX, int mouseY, float delta);
+    protected abstract void drawBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta);
+    protected abstract void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta);
+    protected abstract void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta);
 }

@@ -1,6 +1,8 @@
 package julianh06.wynnextras.features.crafting.calc;
 
 import julianh06.wynnextras.wynncraft.state.ProfessionState;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
 import julianh06.wynnextras.utils.enums.WEProfessionType;
 import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.core.WynnExtras;
@@ -9,9 +11,6 @@ import julianh06.wynnextras.features.misc.ProfessionOverlay;
 import julianh06.wynnextras.utils.UI.TextInputWidget;
 import julianh06.wynnextras.utils.UI.WEScreen;
 import julianh06.wynnextras.wynncraft.state.BombState;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -106,7 +105,7 @@ public class ProfessionCalculatorScreen extends WEScreen {
     private record TableRow(int ingTier, int matTier1, int matTier2, double xpPerCraft, int craftsNeeded, double totalCost) {}
 
     public ProfessionCalculatorScreen() {
-        super(Text.literal("Profession XP Calculator"));
+        super(Component.literal("Profession XP Calculator"));
     }
 
     @Override
@@ -488,7 +487,7 @@ public class ProfessionCalculatorScreen extends WEScreen {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if (ui == null) return;
 
         int logicalW = getLogicalWidth();
@@ -810,7 +809,7 @@ public class ProfessionCalculatorScreen extends WEScreen {
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 }

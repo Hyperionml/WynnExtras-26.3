@@ -1,21 +1,21 @@
 package julianh06.wynnextras.mixin;
 
 import julianh06.wynnextras.features.badges.BadgeService;
-import net.minecraft.client.render.command.OrderedRenderCommandQueueImpl;
-import net.minecraft.text.Text;
+import net.minecraft.client.renderer.SubmitNodeStorage;
+import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
-@Mixin(OrderedRenderCommandQueueImpl.class)
+@Mixin(SubmitNodeStorage.class)
 public class OrderedRenderCommandQueueImplMixin {
     @ModifyArg(
-            method = "submitLabel(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/util/math/Vec3d;ILnet/minecraft/text/Text;ZIDLnet/minecraft/client/render/state/CameraRenderState;)V",
+            method = "submitNameTag(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/phys/Vec3;ILnet/minecraft/network/chat/Component;ZILnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/command/BatchingRenderCommandQueue;submitLabel(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/util/math/Vec3d;ILnet/minecraft/text/Text;ZIDLnet/minecraft/client/render/state/CameraRenderState;)V"),
+                    target = "Lnet/minecraft/client/renderer/SubmitNodeCollection;submitNameTag(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/phys/Vec3;ILnet/minecraft/network/chat/Component;ZILnet/minecraft/client/renderer/state/level/CameraRenderState;)V"),
             index = 3)
-    private Text appendWynnExtrasBadge(Text label) {
+    private Component appendWynnExtrasBadge(Component label) {
         return BadgeService.appendBadge(null, label);
     }
 }

@@ -8,15 +8,14 @@ import julianh06.wynnextras.features.aspects.LocalAspectStorage;
 import julianh06.wynnextras.features.inventory.BankOverlay;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.client.sound.SoundInstance;
-import net.minecraft.client.sound.SoundInstanceListener;
-import net.minecraft.client.sound.WeightedSoundSet;
-import net.minecraft.item.ItemStack;
-
+import julianh06.wynnextras.compat.client.HudRenderCallback;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.resources.sounds.SoundInstance;
+import net.minecraft.client.sounds.SoundEventListener;
+import net.minecraft.client.sounds.WeighedSoundEvents;
+import net.minecraft.world.item.ItemStack;
 import java.util.Map;
 
 public class BloodSorrowTimer {
@@ -78,11 +77,11 @@ public class BloodSorrowTimer {
             return WynnExtrasConfig.INSTANCE.resoInHand;
         }
 
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return false;
-        ItemStack held = mc.player.getMainHandStack();
+        ItemStack held = mc.player.getMainHandItem();
         if (held == null || held.isEmpty()) return false;
-        String name = held.getName().getString().replaceAll("§.", "").trim();
+        String name = held.getHoverName().getString().replaceAll("§.", "").trim();
         return name.contains("Resonance");
     }
 
@@ -126,10 +125,10 @@ public class BloodSorrowTimer {
 
     public static void register() {
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
-            client.getSoundManager().registerListener(new SoundInstanceListener() {
+            client.getSoundManager().addListener(new SoundEventListener() {
                 @Override
-                public void onSoundPlayed(SoundInstance sound, WeightedSoundSet soundSet, float range) {
-                    onSound(sound.getId().getPath());
+                public void onPlaySound(SoundInstance sound, WeighedSoundEvents soundSet, float range) {
+                    onSound(sound.getIdentifier().getPath());
                 }
             });
         });
@@ -154,9 +153,9 @@ public class BloodSorrowTimer {
         HudRenderCallback.EVENT.register(BloodSorrowTimer::renderHud);
     }
 
-    private static void renderHud(DrawContext ctx, RenderTickCounter tickCounter) {
-        if(MinecraftClient.getInstance().player != null && MinecraftClient.getInstance().player.getInventory() != null) {
-            int currentSlot = MinecraftClient.getInstance().player.getInventory().getSelectedSlot();
+    private static void renderHud(GuiGraphicsExtractor ctx, DeltaTracker tickCounter) {
+        if(Minecraft.getInstance().player != null && Minecraft.getInstance().player.getInventory() != null) {
+            int currentSlot = Minecraft.getInstance().player.getInventory().getSelectedSlot();
             if (lastSelectedSlot != -1 && currentSlot != lastSelectedSlot) {
                 lastStartMs = 0;
                 timerEndMs = 0;
@@ -174,10 +173,10 @@ public class BloodSorrowTimer {
         if (!WynnExtrasConfig.INSTANCE.bloodSorrowTimerEnabled) return;
         long now = System.currentTimeMillis();
         if (now >= timerEndMs) return;
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        if (mc.options.hudHidden) return;
-        ItemStack held = mc.player.getMainHandStack();
+        if (mc.gui.hud.isHidden()) return;
+        ItemStack held = mc.player.getMainHandItem();
         GearType heldGearType = WynnItemParser.parse(held).map(item -> item.gearType()).orElse(GearType.UNKNOWN);
         if (held == null || held.isEmpty() || heldGearType != GearType.UNKNOWN && heldGearType != GearType.RELIK) {
             lastStartMs = 0;
@@ -190,15 +189,15 @@ public class BloodSorrowTimer {
         String text = String.format("Blood Sorrow: %.1fs", remaining);
 
         float bs = WynnExtrasConfig.INSTANCE.bloodSorrowTimerScale;
-        int x = WynnExtrasConfig.INSTANCE.bloodSorrowTimerX == -1 ? mc.getWindow().getScaledWidth() / 2 : WynnExtrasConfig.INSTANCE.bloodSorrowTimerX;
+        int x = WynnExtrasConfig.INSTANCE.bloodSorrowTimerX == -1 ? mc.getWindow().getGuiScaledWidth() / 2 : WynnExtrasConfig.INSTANCE.bloodSorrowTimerX;
         int y = WynnExtrasConfig.INSTANCE.bloodSorrowTimerY;
 
-        int tw = mc.textRenderer.getWidth(text);
-        int th = mc.textRenderer.fontHeight;
+        int tw = mc.font.width(text);
+        int th = mc.font.lineHeight;
 
         WynnExtrasConfig.Align align = WynnExtrasConfig.INSTANCE.bloodSorrowAlignment;
 
-        int previewTw = mc.textRenderer.getWidth("Blood Sorrow: 1.7s");
+        int previewTw = mc.font.width("Blood Sorrow: 1.7s");
 
         int textOffsetX;
         if (align == WynnExtrasConfig.Align.LEFT) {
@@ -209,10 +208,10 @@ public class BloodSorrowTimer {
             textOffsetX = -tw / 2;
         }
 
-        ctx.getMatrices().pushMatrix();
-        ctx.getMatrices().translate(x, y);
-        ctx.getMatrices().scale(bs, bs);
-        ctx.drawText(mc.textRenderer, text, textOffsetX, -th / 2, color, true);
-        ctx.getMatrices().popMatrix();
+        ctx.pose().pushMatrix();
+        ctx.pose().translate(x, y);
+        ctx.pose().scale(bs, bs);
+        ctx.text(mc.font, text, textOffsetX, -th / 2, color, true);
+        ctx.pose().popMatrix();
     }
 }

@@ -1,6 +1,6 @@
 package julianh06.wynnextras.utils.overlays;
 
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public abstract class EasyElement {
     protected int x;
@@ -55,7 +55,7 @@ public abstract class EasyElement {
         return height;
     }
 
-    public abstract void draw(DrawContext context);
+    public abstract void draw(GuiGraphicsExtractor context);
 
     public abstract void click();
 

@@ -6,13 +6,12 @@ import julianh06.wynnextras.core.command.Command;
 import julianh06.wynnextras.core.command.SubCommand;
 import julianh06.wynnextras.features.badges.BadgeService;
 import julianh06.wynnextras.utils.UI.WEScreen;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.Style;
 import julianh06.wynnextras.utils.MinecraftUtils;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
 import java.util.List;
 
 @WEModule
@@ -43,12 +42,12 @@ public class AchievementManager {
             "resets all WynnExtras achievements",
             context -> {
                 resetConfirmationExpiresAt = System.currentTimeMillis() + RESET_CONFIRMATION_TIMEOUT_MS;
-                Text confirmButton = Text.literal("[Click to confirm]").setStyle(Style.EMPTY
-                        .withColor(Formatting.RED)
-                        .withUnderline(true)
+                Component confirmButton = Component.literal("[Click to confirm]").setStyle(Style.EMPTY
+                        .withColor(ChatFormatting.RED)
+                        .withUnderlined(true)
                         .withClickEvent(new ClickEvent.RunCommand("/we achievements reset confirm"))
-                        .withHoverEvent(new HoverEvent.ShowText(Text.literal("Reset all WynnExtras achievements"))));
-                MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.literal("§cAre you sure you want to reset all achievements?\n§7Achievements based on API data will be unlocked again automatically. ")
+                        .withHoverEvent(new HoverEvent.ShowText(Component.literal("Reset all WynnExtras achievements"))));
+                MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.literal("§cAre you sure you want to reset all achievements?\n§7Achievements based on API data will be unlocked again automatically. ")
                         .append(confirmButton)));
                 return 1;
             },
@@ -83,7 +82,7 @@ public class AchievementManager {
             "reloads WynnExtras badge data from the server",
             context -> {
                 BadgeService.reloadBadgeInfoFromServer();
-                MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.of("Reloading badge data from the server.")));
+                MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty("Reloading badge data from the server.")));
                 return 1;
             }
     );
@@ -93,7 +92,7 @@ public class AchievementManager {
             "checks whether new WynnExtras achievements are completed",
             context -> {
                 AchievementTracking.reloadAchievementsFromApi();
-                MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.of("Checking achievements from the API.")));
+                MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty("Checking achievements from the API.")));
                 return 1;
             }
     );

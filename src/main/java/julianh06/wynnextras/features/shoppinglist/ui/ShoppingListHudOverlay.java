@@ -1,17 +1,16 @@
 package julianh06.wynnextras.features.shoppinglist.ui;
 
 import julianh06.wynnextras.features.shoppinglist.service.ShoppingListTradeMarketPurchaseService;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import julianh06.wynnextras.compat.client.HudRenderCallback;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
-import net.minecraft.client.render.RenderTickCounter;
-
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import java.util.WeakHashMap;
 
 public final class ShoppingListHudOverlay {
@@ -26,18 +25,18 @@ public final class ShoppingListHudOverlay {
             ShoppingListScreenContext screenContext = screenContext(screen);
             if (screenContext == null) return;
 
-            ScreenEvents.afterRender(screen).register((s, context, mouseX, mouseY, tickDelta) ->
+            ScreenEvents.afterExtract(screen).register((s, context, mouseX, mouseY, tickDelta) ->
                     renderOnScreen(s, context, mouseX, mouseY, tickDelta));
             ScreenMouseEvents.allowMouseClick(screen).register((s, click) ->
-                    !mouseClicked(s, click.x(), click.y(), click.button()));
+                    !mouseClicked(s, click.x(), click.y(), julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button())));
             ScreenMouseEvents.allowMouseRelease(screen).register((s, click) ->
-                    !mouseReleased(s, click.x(), click.y(), click.button()));
+                    !mouseReleased(s, click.x(), click.y(), julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button())));
             ScreenMouseEvents.allowMouseDrag(screen).register((s, click, deltaX, deltaY) ->
-                    !mouseDragged(s, click.x(), click.y(), click.button(), deltaX, deltaY));
+                    !mouseDragged(s, click.x(), click.y(), julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()), deltaX, deltaY));
             ScreenMouseEvents.allowMouseScroll(screen).register((s, mouseX, mouseY, horizontalAmount, verticalAmount) ->
                     !mouseScrolled(s, mouseX, mouseY, verticalAmount));
             ScreenKeyboardEvents.allowKeyPress(screen).register((s, input) ->
-                    !keyPressed(s, input.key(), input.scancode(), input.modifiers()));
+                    !keyPressed(s, julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key()), input.keycode(), julianh06.wynnextras.compat.client.InputCompat.legacyModifiers(input.modifiers())));
             ScreenEvents.remove(screen).register(removedScreen -> {
                 SCREEN_STATES.remove(removedScreen);
                 if (removedScreen instanceof ChatScreen) {
@@ -47,9 +46,9 @@ public final class ShoppingListHudOverlay {
         });
     }
 
-    private static void render(DrawContext context, RenderTickCounter tickCounter) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null || client.world == null || client.currentScreen != null || client.options.hudHidden) {
+    private static void render(GuiGraphicsExtractor context, DeltaTracker tickCounter) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.player == null || client.level == null || client.gui.screen() != null || client.gui.hud.isHidden()) {
             return;
         }
         if (!ShoppingListMenuExtension.shouldRender(ShoppingListScreenContext.HUD)) {
@@ -58,10 +57,10 @@ public final class ShoppingListHudOverlay {
 
         EXTENSION.setScreenContext(ShoppingListScreenContext.HUD);
         EXTENSION.setPlacementContext(ShoppingListPlacementContext.OTHER);
-        EXTENSION.render(context, -1, -1, tickCounter.getTickProgress(false));
+        EXTENSION.render(context, -1, -1, tickCounter.getGameTimeDeltaPartialTick(false));
     }
 
-    private static void renderOnScreen(Screen screen, DrawContext context, int mouseX, int mouseY, float tickDelta) {
+    private static void renderOnScreen(Screen screen, GuiGraphicsExtractor context, int mouseX, int mouseY, float tickDelta) {
         ShoppingListScreenContext screenContext = screenContext(screen);
         if (screenContext == null) return;
 

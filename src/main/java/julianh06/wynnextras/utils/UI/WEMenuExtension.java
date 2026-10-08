@@ -1,11 +1,10 @@
 package julianh06.wynnextras.utils.UI;
 
 import julianh06.wynnextras.utils.HandledScreenAccess;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.util.Window;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import com.mojang.blaze3d.platform.Window;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,7 +14,7 @@ import java.util.List;
  * Use WEHandledScreen for full overlays that replace the vanilla GUI.
  */
 public abstract class WEMenuExtension {
-    protected DrawContext drawContext;
+    protected GuiGraphicsExtractor drawContext;
     protected double scaleFactor;
     protected int xStart;
     protected int yStart;
@@ -26,7 +25,7 @@ public abstract class WEMenuExtension {
     protected final List<Widget> rootWidgets = new ArrayList<>();
     protected Widget focusedWidget = null;
 
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         this.drawContext = ctx;
         computeScale();
 
@@ -46,29 +45,29 @@ public abstract class WEMenuExtension {
     }
 
     public void computeScale() {
-        Window w = MinecraftClient.getInstance().getWindow();
+        Window w = Minecraft.getInstance().getWindow();
         // scaleFactor = 1.0 so that logical units == GUI units.
         // GUI unit values from the HandledScreen (getX, getBackgroundWidth, etc.) can
         // be used directly in setBounds without conversion, and automatically scale
         // proportionally with the physical pixel size as GUI scale changes.
         this.scaleFactor  = 1.0;
-        this.screenWidth  = w.getScaledWidth();
-        this.screenHeight = w.getScaledHeight();
+        this.screenWidth  = w.getGuiScaledWidth();
+        this.screenHeight = w.getGuiScaledHeight();
     }
 
-    protected float hsX(HandledScreen<?> screen) {
+    protected float hsX(AbstractContainerScreen<?> screen) {
         return HandledScreenAccess.x(screen) * (float) scaleFactor;
     }
 
-    protected float hsY(HandledScreen<?> screen) {
+    protected float hsY(AbstractContainerScreen<?> screen) {
         return HandledScreenAccess.y(screen) * (float) scaleFactor;
     }
 
-    protected float hsWidth(HandledScreen<?> screen) {
+    protected float hsWidth(AbstractContainerScreen<?> screen) {
         return HandledScreenAccess.backgroundWidth(screen) * (float) scaleFactor;
     }
 
-    protected float hsHeight(HandledScreen<?> screen) {
+    protected float hsHeight(AbstractContainerScreen<?> screen) {
         return HandledScreenAccess.backgroundHeight(screen) * (float) scaleFactor;
     }
 
@@ -124,7 +123,7 @@ public abstract class WEMenuExtension {
         focusedWidget = null;
     }
 
-    protected abstract void drawBackground(DrawContext ctx, int mouseX, int mouseY, float delta);
-    protected abstract void drawContent(DrawContext ctx, int mouseX, int mouseY, float delta);
-    protected abstract void drawForeground(DrawContext ctx, int mouseX, int mouseY, float delta);
+    protected abstract void drawBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta);
+    protected abstract void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta);
+    protected abstract void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta);
 }

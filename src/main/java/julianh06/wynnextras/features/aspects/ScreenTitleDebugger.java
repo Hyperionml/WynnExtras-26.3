@@ -4,8 +4,8 @@ import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.annotations.WEModule;
 import julianh06.wynnextras.core.WynnExtras;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,10 +32,10 @@ public class ScreenTitleDebugger {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (!debugEnabled) return;
 
-            MinecraftClient mc = MinecraftClient.getInstance();
-            if (mc.player == null || mc.world == null) return;
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player == null || mc.level == null) return;
 
-            Screen screen = mc.currentScreen;
+            Screen screen = mc.gui.screen();
             if (screen == null) {
                 if (lastLoggedTitle != null) {
                     lastLoggedTitle = null;

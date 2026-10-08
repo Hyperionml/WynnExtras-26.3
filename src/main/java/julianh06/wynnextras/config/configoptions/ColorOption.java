@@ -2,8 +2,7 @@ package julianh06.wynnextras.config.configoptions;
 
 import julianh06.wynnextras.utils.UI.ColorPickerWidget;
 import julianh06.wynnextras.utils.UI.UIUtils;
-import net.minecraft.client.gui.DrawContext;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -43,7 +42,7 @@ public class ColorOption extends ConfigOption {
     }
 
     @Override
-    public void render(DrawContext ctx, int x, int y, int w, int h, int mx, int my, boolean hovered, int categoryColor) {
+    public void render(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int mx, int my, boolean hovered, int categoryColor) {
         if (ui == null) ui = new UIUtils(ctx, 1, 0, 0);
         else ui.updateContext(ctx, 1, 0, 0);
 

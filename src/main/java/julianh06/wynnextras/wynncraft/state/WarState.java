@@ -3,8 +3,8 @@ package julianh06.wynnextras.wynncraft.state;
 import julianh06.wynnextras.annotations.WEModule;
 import julianh06.wynnextras.event.TickEvent;
 import julianh06.wynnextras.utils.BossBarUtils;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.hud.ClientBossBar;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.LerpingBossEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.Optional;
@@ -22,11 +22,11 @@ public final class WarState {
     @SubscribeEvent
     public void onTick(TickEvent event) {
         if (event.ticks % 2 != 0) return;
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client.player == null) return;
         boolean found = false;
         String foundTerritory = null;
-        for (ClientBossBar bar : BossBarUtils.getBossBars(client.inGameHud.getBossBarHud())) {
+        for (LerpingBossEvent bar : BossBarUtils.getBossBars(client.gui.hud.getBossOverlay())) {
             String text = bar.getName().getString().replaceAll("§[0-9a-fk-or]", "").trim();
             if (!text.contains("Tower")) continue;
             found = true;

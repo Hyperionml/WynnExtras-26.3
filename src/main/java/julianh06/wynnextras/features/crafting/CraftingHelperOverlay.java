@@ -37,18 +37,17 @@ import julianh06.wynnextras.utils.UI.UIUtils;
 import julianh06.wynnextras.utils.UI.WEMenuExtension;
 import julianh06.wynnextras.utils.UI.Widget;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import org.lwjgl.glfw.GLFW;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import julianh06.wynnextras.compat.client.InputCompat;
+import com.mojang.blaze3d.platform.InputConstants;
 import java.net.URI;
 import java.util.*;
 
@@ -68,7 +67,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
     SelectionWidget selectionWidget2;
     SelectionWidget selectionWidget3;
 
-    static final MinecraftClient mc = MinecraftClient.getInstance();
+    static final Minecraft mc = Minecraft.getInstance();
 
     private static final Queue<Integer> WB_CLICK_QUEUE = new ArrayDeque<>();
     private static long wbLastClick = 0;
@@ -133,15 +132,15 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         profXpBombWidget = null;
         actualOffset = 0;
 
-        loadClipboardBtn = new ActionButtonWidget(List.of(Text.of("Copy a WynnBuilder link and"), Text.of("click here to paste it!")));
-        loadClipboardBtn.setOnClick(w -> loadFromWynnBuilder(MinecraftClient.getInstance().keyboard.getClipboard()));
+        loadClipboardBtn = new ActionButtonWidget(List.of(Component.nullToEmpty("Copy a WynnBuilder link and"), Component.nullToEmpty("click here to paste it!")));
+        loadClipboardBtn.setOnClick(w -> loadFromWynnBuilder(Minecraft.getInstance().keyboardHandler.getClipboard()));
         rootWidgets.add(loadClipboardBtn);
 
-        reuseLastBtn = new ActionButtonWidget(List.of(Text.of("Paste the same recipe you"), Text.of("used for your last craft")));
+        reuseLastBtn = new ActionButtonWidget(List.of(Component.nullToEmpty("Paste the same recipe you"), Component.nullToEmpty("used for your last craft")));
         reuseLastBtn.setOnClick(w -> reuseLast());
         rootWidgets.add(reuseLastBtn);
 
-        autoStartBtn = new ActionButtonWidget(List.of(Text.of("Automatically start crafting when"), Text.of("using one of the buttons above")));
+        autoStartBtn = new ActionButtonWidget(List.of(Component.nullToEmpty("Automatically start crafting when"), Component.nullToEmpty("using one of the buttons above")));
         autoStartBtn.setOnClick(w -> {
             WynnExtrasConfig.INSTANCE.craftingAutoStart = !WynnExtrasConfig.INSTANCE.craftingAutoStart;
             WynnExtrasConfig.save();
@@ -174,13 +173,13 @@ public class CraftingHelperOverlay extends WEMenuExtension {
     }
 
     @Override
-    protected void drawBackground(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         if (!WynncraftMenuService.isCurrent(MenuType.CRAFTING_STATION)) return;
-        if (!(MinecraftUtils.screen() instanceof HandledScreen<?> screen)) return;
+        if (!(MinecraftUtils.screen() instanceof AbstractContainerScreen<?> screen)) return;
 
         if (state == null) state = RecipeState.NONE;
 
@@ -234,13 +233,13 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         profSpeedBombWidget.refresh();
         profXpBombWidget.refresh();
 
-        var textRenderer = MinecraftClient.getInstance().textRenderer;
+        var textRenderer = Minecraft.getInstance().font;
         int menuWidth = HandledScreenAccess.backgroundWidth(screen);
-        int speedWidth = textRenderer.getWidth(profSpeedBombWidget.text);
-        int xpWidth = textRenderer.getWidth(profXpBombWidget.text);
+        int speedWidth = textRenderer.width(profSpeedBombWidget.text);
+        int xpWidth = textRenderer.width(profXpBombWidget.text);
         int maxBombWidth = Math.max(speedWidth, Math.max(xpWidth,
-                !profXpBombWidget.isActive && !profSpeedBombWidget.isActive ? textRenderer.getWidth("There are no active profession bombs.") :
-                textRenderer.getWidth("There are no active prof bombs on your world. Click below to switch worlds.")));
+                !profXpBombWidget.isActive && !profSpeedBombWidget.isActive ? textRenderer.width("There are no active profession bombs.") :
+                textRenderer.width("There are no active prof bombs on your world. Click below to switch worlds.")));
         boolean bombYOverlap = blockTop < screenY - 33;
         boolean bombXOverlap = xStart < screen.width / 2 + maxBombWidth / 2;
         int bombCenterX = (bombYOverlap && bombXOverlap) ? xStart - maxBombWidth / 2 - 4 : screen.width / 2;
@@ -379,7 +378,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
             int lineY = statusRY;
             for (String word : words) {
                 String candidate = line.isEmpty() ? word : line + " " + word;
-                if (textRenderer.getWidth(candidate) > statusWrapWidth && !line.isEmpty()) {
+                if (textRenderer.width(candidate) > statusWrapWidth && !line.isEmpty()) {
                     ui.drawText(line.toString(), wbBtnX, lineY, statusColor, HorizontalAlignment.LEFT, VerticalAlignment.TOP, 1f);
                     line = new StringBuilder(word);
                     lineY += 10;
@@ -399,7 +398,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         try {
             boolean hasOutput = false;
             for (int slot : RESULT_SLOTS) {
-                ItemStack stack = MinecraftUtils.containerMenu().getSlot(slot).getStack();
+                ItemStack stack = MinecraftUtils.containerMenu().getSlot(slot).getItem();
                 if (stack != null && !stack.isEmpty()) {
                     String name = stack.getCustomName() != null ? stack.getCustomName().getString() : "";
                     if (!name.isEmpty() && !name.contains("Crafted Item Slot")) {
@@ -419,11 +418,11 @@ public class CraftingHelperOverlay extends WEMenuExtension {
 
         if (!statusMessage.isEmpty()) {
             int statusY = screenY + backgroundHeight + 10;
-            if (textRenderer.getWidth(statusMessage) > menuWidth) {
+            if (textRenderer.width(statusMessage) > menuWidth) {
                 String[] words = statusMessage.split(" ");
                 StringBuilder sb1 = new StringBuilder();
                 int wi = 0;
-                while (wi < words.length && textRenderer.getWidth((sb1.isEmpty() ? "" : sb1 + " ") + words[wi]) <= menuWidth) {
+                while (wi < words.length && textRenderer.width((sb1.isEmpty() ? "" : sb1 + " ") + words[wi]) <= menuWidth) {
                     if (!sb1.isEmpty()) sb1.append(" ");
                     sb1.append(words[wi++]);
                 }
@@ -459,7 +458,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
             ui.drawRect(xStart + widgetWidth - 3, blockTop, 3, actualBlockH, CustomColor.fromHexString("FFFFFF").withAlpha(0.3f));
     }
 
-    private static int getMaxWidgetWidth(HandledScreen<?> screen, int xStart) {
+    private static int getMaxWidgetWidth(AbstractContainerScreen<?> screen, int xStart) {
         return Math.max(MIN_WIDGET_WIDTH, screen.width - xStart - 20);
     }
 
@@ -511,17 +510,17 @@ public class CraftingHelperOverlay extends WEMenuExtension {
     }
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
     }
 
-    private static void drawCenteredWrappedUpward(UIUtils ui, TextRenderer tr,
+    private static void drawCenteredWrappedUpward(UIUtils ui, Font tr,
                                                    String text, float cx, float bottomY, int maxWidth, CustomColor color) {
         List<String> lines = new ArrayList<>();
         String[] words = text.split(" ");
         StringBuilder line = new StringBuilder();
         for (String word : words) {
             String candidate = line.isEmpty() ? word : line + " " + word;
-            if (tr.getWidth(candidate) > maxWidth && !line.isEmpty()) {
+            if (tr.width(candidate) > maxWidth && !line.isEmpty()) {
                 lines.add(line.toString());
                 line = new StringBuilder(word);
             } else {
@@ -582,9 +581,9 @@ public class CraftingHelperOverlay extends WEMenuExtension {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         int selectionIndex = switch (keyCode) {
-            case GLFW.GLFW_KEY_1, GLFW.GLFW_KEY_KP_1 -> 0;
-            case GLFW.GLFW_KEY_2, GLFW.GLFW_KEY_KP_2 -> 1;
-            case GLFW.GLFW_KEY_3, GLFW.GLFW_KEY_KP_3 -> 2;
+            case InputCompat.KEY_1, InputCompat.KEY_KP_1 -> 0;
+            case InputCompat.KEY_2, InputCompat.KEY_KP_2 -> 1;
+            case InputCompat.KEY_3, InputCompat.KEY_KP_3 -> 2;
             default -> -1;
         };
         if (selectionIndex >= 0 && selectRecipeType(selectionIndex)) return true;
@@ -599,12 +598,12 @@ public class CraftingHelperOverlay extends WEMenuExtension {
     }
 
     private static boolean matchesKey(int keyCode, int configuredKey) {
-        return configuredKey != GLFW.GLFW_KEY_UNKNOWN && keyCode == configuredKey;
+        return configuredKey != InputCompat.KEY_UNKNOWN && keyCode == configuredKey;
     }
 
     private static String labelWithKeybind(String label, int configuredKey) {
-        if (configuredKey == GLFW.GLFW_KEY_UNKNOWN) return label;
-        String keyName = InputUtil.Type.KEYSYM.createFromCode(configuredKey).getLocalizedText().getString();
+        if (configuredKey == InputCompat.KEY_UNKNOWN) return label;
+        String keyName = InputConstants.Type.KEYBOARD.getOrCreate(julianh06.wynnextras.compat.client.InputCompat.nativeKey(configuredKey)).getDisplayName().getString();
         return label + " [" + keyName + "]";
     }
 
@@ -766,11 +765,11 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         // Reset all crafting slots first (not counted in progress)
         try {
             for (int slot : new int[]{0, 9, 2, 3, 11, 12, 20, 21}) {
-                ItemStack stack = MinecraftUtils.containerMenu().getSlot(slot).getStack();
+                ItemStack stack = MinecraftUtils.containerMenu().getSlot(slot).getItem();
                 if (stack != null && !stack.isEmpty()) {
                     String name = stack.getCustomName() != null ? stack.getCustomName().getString() : "";
                     if (!name.contains("Material Slot") && !name.contains("Ingredient Slot") && !name.isEmpty()) {
-                        ContainerUtils.clickOnSlot(slot, MinecraftUtils.containerMenu().syncId, 0, MinecraftUtils.containerMenu().getStacks());
+                        ContainerUtils.clickOnSlot(slot, MinecraftUtils.containerMenu().containerId, 0, MinecraftUtils.containerMenu().getItems());
                     }
                 }
             }
@@ -806,7 +805,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
 
             // Check if slot 13 still shows "Incomplete Recipe"
             try {
-                ItemStack craftSlot = MinecraftUtils.containerMenu().getSlot(13).getStack();
+                ItemStack craftSlot = MinecraftUtils.containerMenu().getSlot(13).getItem();
                 String craftName = craftSlot.getCustomName() != null ? craftSlot.getCustomName().getString() : "";
                 if (craftName.contains("Incomplete")) {
                     wbStatusMessage = "Missing materials or ingredients!";
@@ -818,7 +817,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
 
             // Auto Start: shift-click the craft button (slot 13) after filling
             if (WynnExtrasConfig.INSTANCE.craftingAutoStart) {
-                ContainerUtils.shiftClickOnSlot(13, MinecraftUtils.containerMenu().syncId, 0, MinecraftUtils.containerMenu().getStacks());
+                ContainerUtils.shiftClickOnSlot(13, MinecraftUtils.containerMenu().containerId, 0, MinecraftUtils.containerMenu().getItems());
                 wbStatusMessage = "Crafting!";
             }
             return;
@@ -830,7 +829,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         Integer next = WB_CLICK_QUEUE.poll();
         if (next == null) return;
 
-        ContainerUtils.clickOnSlot(next, MinecraftUtils.containerMenu().syncId, 0, MinecraftUtils.containerMenu().getStacks());
+        ContainerUtils.clickOnSlot(next, MinecraftUtils.containerMenu().containerId, 0, MinecraftUtils.containerMenu().getItems());
         wbLastClick = now;
         wbClicksDone++;
     }
@@ -881,10 +880,10 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         int count = 0;
         for (Slot slot : MinecraftUtils.containerMenu().slots) {
             try {
-                if (!(slot.inventory instanceof PlayerInventory)) continue;
-                if (slot.getStack().getCustomName() == null) continue;
-                if (slot.getStack().getCustomName().getString().contains(itemName)) {
-                    count += slot.getStack().getCount();
+                if (!(slot.container instanceof Inventory)) continue;
+                if (slot.getItem().getCustomName() == null) continue;
+                if (slot.getItem().getCustomName().getString().contains(itemName)) {
+                    count += slot.getItem().getCount();
                 }
             } catch (Exception ignored) {}
         }
@@ -896,25 +895,25 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         for (Slot slot : MinecraftUtils.containerMenu().slots) {
             try {
                 if (remaining <= 0) return;
-                if (!(slot.inventory instanceof PlayerInventory)) continue;
-                if (slot.getStack().getCustomName() == null) continue;
-                if (!slot.getStack().getCustomName().getString().contains(requirement.name())) continue;
+                if (!(slot.container instanceof Inventory)) continue;
+                if (slot.getItem().getCustomName() == null) continue;
+                if (!slot.getItem().getCustomName().getString().contains(requirement.name())) continue;
 
                 if (requirement.type().equals("materials")) {
                     for (int i = 0; i < remaining; i++) {
-                        WB_CLICK_QUEUE.add(slot.id);
+                        WB_CLICK_QUEUE.add(slot.index);
                     }
                     return;
                 }
 
-                int alreadyQueued = queuedBySlot.getOrDefault(slot.id, 0);
-                int available = slot.getStack().getCount() - alreadyQueued;
+                int alreadyQueued = queuedBySlot.getOrDefault(slot.index, 0);
+                int available = slot.getItem().getCount() - alreadyQueued;
                 if (available <= 0) continue;
                 int clicks = Math.min(remaining, available);
                 for (int i = 0; i < clicks; i++) {
-                    WB_CLICK_QUEUE.add(slot.id);
+                    WB_CLICK_QUEUE.add(slot.index);
                 }
-                queuedBySlot.put(slot.id, alreadyQueued + clicks);
+                queuedBySlot.put(slot.index, alreadyQueued + clicks);
                 remaining -= clicks;
             } catch (Exception ignored) {}
         }
@@ -952,7 +951,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         boolean hasAny = false;
         for (int slot : INGREDIENT_SLOTS) {
             try {
-                ItemStack stack = MinecraftUtils.containerMenu().getSlot(slot).getStack();
+                ItemStack stack = MinecraftUtils.containerMenu().getSlot(slot).getItem();
                 String name = stack.getCustomName() != null ? stack.getCustomName().getString() : "";
                 if (!name.isEmpty() && !name.contains("Ingredient Slot")) {
                     ingNames.add(name);
@@ -980,7 +979,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         boolean hasAny = false;
         for (int slot : new int[]{0, 9}) {
             try {
-                ItemStack stack = MinecraftUtils.containerMenu().getSlot(slot).getStack();
+                ItemStack stack = MinecraftUtils.containerMenu().getSlot(slot).getItem();
                 String name = stack.getCustomName() != null ? stack.getCustomName().getString() : "";
                 if (!name.isEmpty() && !name.contains("Material Slot")) {
                     matNames.add(name);
@@ -1010,7 +1009,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         boolean hasAny = false;
         for (int slot : new int[]{0, 9}) {
             try {
-                ItemStack stack = MinecraftUtils.containerMenu().getSlot(slot).getStack();
+                ItemStack stack = MinecraftUtils.containerMenu().getSlot(slot).getItem();
                 String name = stack.getCustomName() != null ? stack.getCustomName().getString() : "";
                 if (!name.isEmpty() && !name.contains("Material Slot")) {
                     matNames.add(name);
@@ -1084,7 +1083,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
 
         // Reset all crafting slots immediately
         for (int slot : new int[]{0, 9, 2, 3, 11, 12, 20, 21}) {
-            ContainerUtils.clickOnSlot(slot, MinecraftUtils.containerMenu().syncId, 0, MinecraftUtils.containerMenu().getStacks());
+            ContainerUtils.clickOnSlot(slot, MinecraftUtils.containerMenu().containerId, 0, MinecraftUtils.containerMenu().getItems());
         }
 
         Map<Integer, Integer> queuedBySlot = new HashMap<>();
@@ -1184,7 +1183,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
     private static String formatMaterialText(String name, int amount, int maxWidth, float textScale) {
         String suffix = " x" + amount;
         String fullText = name + suffix;
-        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
+        Font textRenderer = Minecraft.getInstance().font;
         if (getScaledTextWidth(textRenderer, fullText, textScale) <= maxWidth) return fullText;
         if (getScaledTextWidth(textRenderer, suffix, textScale) > maxWidth) return truncateToWidth(fullText, maxWidth, textScale);
 
@@ -1196,7 +1195,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
 
     private static String truncateToWidth(String text, int maxWidth, float textScale) {
         if (text == null || maxWidth <= 0) return "";
-        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
+        Font textRenderer = Minecraft.getInstance().font;
         if (getScaledTextWidth(textRenderer, text, textScale) <= maxWidth) return text;
 
         String suffix = "..";
@@ -1211,8 +1210,8 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         return suffix;
     }
 
-    private static int getScaledTextWidth(TextRenderer textRenderer, String text, float textScale) {
-        return (int) Math.ceil(textRenderer.getWidth(text) * textScale);
+    private static int getScaledTextWidth(Font textRenderer, String text, float textScale) {
+        return (int) Math.ceil(textRenderer.width(text) * textScale);
     }
 
     private static void drawMaterialIcon(UIUtils ui, IMaterial material, float x, float y, float size) {
@@ -1240,8 +1239,8 @@ public class CraftingHelperOverlay extends WEMenuExtension {
             this.maxOffset = maxOffset;
             recipeData = null;
 
-            if (MinecraftClient.getInstance().currentScreen == null) return;
-            ScreenMouseEvents.afterMouseScroll(MinecraftClient.getInstance().currentScreen).register((
+            if (Minecraft.getInstance().gui.screen() == null) return;
+            ScreenMouseEvents.afterMouseScroll(Minecraft.getInstance().gui.screen()).register((
                     screen,
                     mX,
                     mY,
@@ -1267,7 +1266,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ctx.enableScissor(scissorX1, scissorY1, scissorX2, scissorY2);
 
             WEProfessionType type = WynncraftMenuService.currentCraftingProfession().orElse(null);
@@ -1333,7 +1332,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         }
 
         @Override
-        protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ctx.disableScissor();
         }
 
@@ -1355,8 +1354,8 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         }
 
         private static void resetMaterialSlots() {
-            ContainerUtils.clickOnSlot(0, MinecraftUtils.containerMenu().syncId, 0, MinecraftUtils.containerMenu().getStacks());
-            ContainerUtils.clickOnSlot(9, MinecraftUtils.containerMenu().syncId, 0, MinecraftUtils.containerMenu().getStacks());
+            ContainerUtils.clickOnSlot(0, MinecraftUtils.containerMenu().containerId, 0, MinecraftUtils.containerMenu().getItems());
+            ContainerUtils.clickOnSlot(9, MinecraftUtils.containerMenu().containerId, 0, MinecraftUtils.containerMenu().getItems());
             CLICK_QUEUE.clear();
         }
 
@@ -1375,7 +1374,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 //ui.drawRect(x, y, width, height, hovered ? CustomColor.fromHexString("FF0000") : CustomColor.fromHexString("FFFFFF"));
                 ui.drawButton(x, y, width, height, hovered && helperWidget.hovered);
                 drawRecipe(x, y, width, height, level, recipeData, ui);
@@ -1434,12 +1433,12 @@ public class CraftingHelperOverlay extends WEMenuExtension {
                 boolean canClick = false;
                 for (Slot slot : slots) {
                     try {
-                        if (!(slot.inventory instanceof PlayerInventory)) continue;
-                        if(slot.getStack().getCustomName() == null) continue;
-                        if (slot.getStack().getCustomName().getString().contains(material.getFirst().getName())) {
+                        if (!(slot.container instanceof Inventory)) continue;
+                        if(slot.getItem().getCustomName() == null) continue;
+                        if (slot.getItem().getCustomName().getString().contains(material.getFirst().getName())) {
                             canClick = true;
                             for (int i = 0; i < materialAmount; i++) {
-                                CLICK_QUEUE.add(slot.id);
+                                CLICK_QUEUE.add(slot.index);
                             }
                             break;
                         }
@@ -1458,8 +1457,8 @@ public class CraftingHelperOverlay extends WEMenuExtension {
                 if(MinecraftUtils.containerMenu().getSlot(0) == null) return;
                 if(MinecraftUtils.containerMenu().getSlot(9) == null) return;
 
-                ItemStack stackSlot0 = MinecraftUtils.containerMenu().getSlot(0).getStack();
-                ItemStack stackSlot9 = MinecraftUtils.containerMenu().getSlot(9).getStack();
+                ItemStack stackSlot0 = MinecraftUtils.containerMenu().getSlot(0).getItem();
+                ItemStack stackSlot9 = MinecraftUtils.containerMenu().getSlot(9).getItem();
 
                 if (stackSlot0.getCustomName() == null) return;
                 if (stackSlot9.getCustomName() == null) return;
@@ -1476,9 +1475,9 @@ public class CraftingHelperOverlay extends WEMenuExtension {
 
                     ContainerUtils.clickOnSlot(
                             next,
-                            MinecraftUtils.containerMenu().syncId,
+                            MinecraftUtils.containerMenu().containerId,
                             0,
-                            MinecraftUtils.containerMenu().getStacks()
+                            MinecraftUtils.containerMenu().getItems()
                     );
 
                     lastClick = System.currentTimeMillis();
@@ -1507,7 +1506,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             if (state == null) return;
             ui.drawButton(x, y - 2, width + 2, height + 3, hovered);
             if (index == state.ordinal() - 1)
@@ -1547,7 +1546,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             currentMouseY = mouseY;
             ui.drawSliderBackground(x, y, width, height);
 
@@ -1593,7 +1592,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 ui.drawButton(x, y, width, height, hovered || isHeld);
             }
 
@@ -1617,15 +1616,15 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         boolean isDisabled = false;
         boolean isFilling = false;
         int fillDone = 0, fillTotal = 0;
-        final List<Text> tooltipText;
+        final List<Component> tooltipText;
 
-        ActionButtonWidget(List<Text> tooltipText) {
+        ActionButtonWidget(List<Component> tooltipText) {
             super(0, 0, 0, 0);
             this.tooltipText = tooltipText;
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawButton(x, y, width, height, hovered && !isDisabled && !isFilling);
             if (isFilling) {
                 int progress = fillTotal > 0 ? fillDone * width / fillTotal : 0;
@@ -1637,7 +1636,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
             }
 
             if (hovered && tooltipText != null && !tooltipText.isEmpty()) {
-                ctx.drawTooltip(mc.textRenderer, tooltipText, mouseX, mouseY);
+                ctx.setComponentTooltipForNextFrame(mc.font, tooltipText, mouseX, mouseY);
             }
         }
 
@@ -1669,7 +1668,7 @@ public class CraftingHelperOverlay extends WEMenuExtension {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             if (isActive) ui.drawCenteredText(text, x + width / 2f, y + height / 2f, 1f);
         }
 
@@ -1732,11 +1731,11 @@ public class CraftingHelperOverlay extends WEMenuExtension {
             if (bomb.server().equals(BombState.currentWorld())) return true;
 
             MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
-            MinecraftClient client = MinecraftClient.getInstance();
+            Minecraft client = Minecraft.getInstance();
 
             if (client.player != null) {
                 MinecraftUtils.setScreen(null);
-                client.player.networkHandler.sendChatCommand("switch " + bomb.server());
+                client.player.connection.sendCommand("switch " + bomb.server());
             }
 
             return true;

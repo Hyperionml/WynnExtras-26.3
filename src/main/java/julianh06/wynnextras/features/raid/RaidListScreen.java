@@ -12,12 +12,12 @@ import julianh06.wynnextras.event.CharInputEvent;
 import julianh06.wynnextras.event.KeyInputEvent;
 import julianh06.wynnextras.utils.Pair;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.time.Instant;
@@ -47,34 +47,34 @@ public class RaidListScreen extends Screen {
 
     RaidListFilter Filter = new RaidListFilter(-1, -1, -1, -1);
 
-    Identifier InputFieldTexture = Identifier.of("wynnextras", "textures/gui/bankoverlay/button.png");
-    Identifier ButtonBackgroundLeftTexture = Identifier.of("wynnextras", "textures/gui/raid/buttonbackgroundleft.png");
-    Identifier ButtonBackgroundMidTexture = Identifier.of("wynnextras", "textures/gui/raid/buttonbackgroundmid.png");
-    Identifier ButtonBackgroundRightTexture = Identifier.of("wynnextras", "textures/gui/raid/buttonbackgroundright.png");
-    Identifier NOTGTexture = Identifier.of("wynnextras", "textures/gui/raid/raidicons/nestofthegrootslangs-small.png");
-    Identifier NOLTexture = Identifier.of("wynnextras", "textures/gui/raid/raidicons/orphionsnexusoflight-small.png");
-    Identifier TCCTexture = Identifier.of("wynnextras", "textures/gui/raid/raidicons/thecanyoncolossus-small.png");
-    Identifier TNATexture = Identifier.of("wynnextras", "textures/gui/raid/raidicons/thenamelessanomaly-small.png");
-    Identifier TWPTexture = Identifier.of("wynnextras", "textures/gui/raid/raidicons/thewartornpalace-small.png");
-    Identifier NOTGTextureBW = Identifier.of("wynnextras", "textures/gui/raid/raidicons/nestofthegrootslangs-small-bw.png");
-    Identifier NOLTextureBW = Identifier.of("wynnextras", "textures/gui/raid/raidicons/orphionsnexusoflight-small-bw.png");
-    Identifier TCCTextureBW = Identifier.of("wynnextras", "textures/gui/raid/raidicons/thecanyoncolossus-small-bw.png");
-    Identifier TNATextureBW = Identifier.of("wynnextras", "textures/gui/raid/raidicons/thenamelessanomaly-small-bw.png");
-    Identifier TWPTextureBW = Identifier.of("wynnextras", "textures/gui/raid/raidicons/thewartornpalace-small-bw.png");
-    Identifier ScrollTextureTopLeft = Identifier.of("wynnextras", "textures/gui/raid/scrolltop/scrollleft.png");
-    Identifier ScrollTextureTopMid = Identifier.of("wynnextras", "textures/gui/raid/scrolltop/scrollmid.png");
-    Identifier ScrollTextureTopRight = Identifier.of("wynnextras", "textures/gui/raid/scrolltop/scrollright.png");
-    Identifier ScrollTextureBottomLeft = Identifier.of("wynnextras", "textures/gui/raid/scrollbot/scrollleft.png");
-    Identifier ScrollTextureBottomMid = Identifier.of("wynnextras", "textures/gui/raid/scrollbot/scrollmid.png");
-    Identifier ScrollTextureBottomRight = Identifier.of("wynnextras", "textures/gui/raid/scrollbot/scrollright.png");
-    Identifier ScrollTextureMiddleLeft = Identifier.of("wynnextras", "textures/gui/raid/scrollmid/scrollmidleft.png");
-    Identifier ScrollTextureMiddleMid = Identifier.of("wynnextras", "textures/gui/raid/scrollmid/scrollmidmid.png");
-    Identifier ScrollTextureMiddleRight = Identifier.of("wynnextras", "textures/gui/raid/scrollmid/scrollmidright.png");
-    Identifier PBTexture = Identifier.of("wynnextras", "textures/gui/raid/raidicons/trophy-small.png");
-    Identifier PBTextureBW = Identifier.of("wynnextras", "textures/gui/raid/raidicons/trophy-small-bw.png");
+    Identifier InputFieldTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/bankoverlay/button.png");
+    Identifier ButtonBackgroundLeftTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/buttonbackgroundleft.png");
+    Identifier ButtonBackgroundMidTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/buttonbackgroundmid.png");
+    Identifier ButtonBackgroundRightTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/buttonbackgroundright.png");
+    Identifier NOTGTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/raidicons/nestofthegrootslangs-small.png");
+    Identifier NOLTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/raidicons/orphionsnexusoflight-small.png");
+    Identifier TCCTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/raidicons/thecanyoncolossus-small.png");
+    Identifier TNATexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/raidicons/thenamelessanomaly-small.png");
+    Identifier TWPTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/raidicons/thewartornpalace-small.png");
+    Identifier NOTGTextureBW = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/raidicons/nestofthegrootslangs-small-bw.png");
+    Identifier NOLTextureBW = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/raidicons/orphionsnexusoflight-small-bw.png");
+    Identifier TCCTextureBW = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/raidicons/thecanyoncolossus-small-bw.png");
+    Identifier TNATextureBW = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/raidicons/thenamelessanomaly-small-bw.png");
+    Identifier TWPTextureBW = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/raidicons/thewartornpalace-small-bw.png");
+    Identifier ScrollTextureTopLeft = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/scrolltop/scrollleft.png");
+    Identifier ScrollTextureTopMid = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/scrolltop/scrollmid.png");
+    Identifier ScrollTextureTopRight = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/scrolltop/scrollright.png");
+    Identifier ScrollTextureBottomLeft = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/scrollbot/scrollleft.png");
+    Identifier ScrollTextureBottomMid = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/scrollbot/scrollmid.png");
+    Identifier ScrollTextureBottomRight = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/scrollbot/scrollright.png");
+    Identifier ScrollTextureMiddleLeft = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/scrollmid/scrollmidleft.png");
+    Identifier ScrollTextureMiddleMid = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/scrollmid/scrollmidmid.png");
+    Identifier ScrollTextureMiddleRight = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/scrollmid/scrollmidright.png");
+    Identifier PBTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/raidicons/trophy-small.png");
+    Identifier PBTextureBW = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/raid/raidicons/trophy-small-bw.png");
 
     public RaidListScreen() {
-        super(Text.of("Raid List"));
+        super(Component.nullToEmpty("Raid List"));
         scrollOffset = 0;
         PBFilterButton.isActive = false;
     }
@@ -83,7 +83,7 @@ public class RaidListScreen extends Screen {
     protected void init() {
         listElements.clear();
         //currentCollapsed = -1;
-        int screenWidth = MinecraftClient.getInstance().getWindow().getScaledWidth();
+        int screenWidth = Minecraft.getInstance().getWindow().getGuiScaledWidth();
         int width = (int) (screenWidth * 0.5);
         int xStart = screenWidth / 2 - width / 2;
         for (int i = 0; i < RaidListData.INSTANCE.raids.size(); i++) {
@@ -105,9 +105,9 @@ public class RaidListScreen extends Screen {
             lastScrollTime = now;
 
             if (verticalAmount > 0) {
-                scrollOffset -= 30 / (int) MinecraftClient.getInstance().getWindow().getScaleFactor(); //Scroll up
+                scrollOffset -= 30 / (int) Minecraft.getInstance().getWindow().getGuiScale(); //Scroll up
             } else {
-                scrollOffset += 30 / (int) MinecraftClient.getInstance().getWindow().getScaleFactor(); //Scroll down
+                scrollOffset += 30 / (int) Minecraft.getInstance().getWindow().getGuiScale(); //Scroll down
             }
             if (scrollOffset < 0) {
                 scrollOffset = 0;
@@ -117,14 +117,14 @@ public class RaidListScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         //context.enableScissor(100, 100, this.height - 100, this.width / 2);
-        int screenWidth = MinecraftClient.getInstance().getWindow().getScaledWidth();
-        int screenHeight = MinecraftClient.getInstance().getWindow().getScaledHeight();
+        int screenWidth = Minecraft.getInstance().getWindow().getGuiScaledWidth();
+        int screenHeight = Minecraft.getInstance().getWindow().getGuiScaledHeight();
         int width = (int) Math.max(screenWidth * 0.5, 400);
         int xStart = screenWidth / 2 - width / 2;
 
-        RenderUtils.drawRect(context, CustomColor.fromInt(-804253680), 0,0, MinecraftClient.getInstance().currentScreen.width, MinecraftClient.getInstance().currentScreen.height);
+        RenderUtils.drawRect(context, CustomColor.fromInt(-804253680), 0,0, Minecraft.getInstance().gui.screen().width, Minecraft.getInstance().gui.screen().height);
 
         List<RaidData> filteredList = filterList(RaidListData.INSTANCE.raids.reversed());
         List<RaidData> sortedList = sort(filteredList);
@@ -191,9 +191,9 @@ public class RaidListScreen extends Screen {
                             String roomString = room.name() + ": " + formatDuration(roomDuration);
 //                                16 for nol because parasite
                             if(raid.raidInfo.raidKind() == WERaidKind.NOL) {
-                                FontRenderer.getInstance().renderText(context, StyledText.fromString(roomString), xStart + width - textRenderer.getWidth(roomString) - 20, yPos + 24 + j * 16, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 1.0f);
+                                FontRenderer.getInstance().renderText(context, StyledText.fromString(roomString), xStart + width - font.width(roomString) - 20, yPos + 24 + j * 16, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 1.0f);
                             } else {
-                                FontRenderer.getInstance().renderText(context, StyledText.fromString(roomString), xStart + width - textRenderer.getWidth(roomString) - 20, yPos + 26 + j * 20, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 1.0f);
+                                FontRenderer.getInstance().renderText(context, StyledText.fromString(roomString), xStart + width - font.width(roomString) - 20, yPos + 26 + j * 20, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 1.0f);
                             }
                         }
                     }
@@ -204,8 +204,8 @@ public class RaidListScreen extends Screen {
                 RenderUtils.drawTexturedRect(context, ScrollTextureBottomRight, CustomColor.NONE, xStart - 12 + width, yPos + 20 + currentCollapsedProgress.get(i), 12, 20, 12, 20);
                 if (raidTexture != null) RenderUtils.drawTexturedRect(context, raidTexture, CustomColor.NONE, xStart + width / 2 - 15, yPos - 5, 30, 30, 30, 30);
                 FontRenderer.getInstance().renderText(context, StyledText.fromString(raid.raidInfo.raidKind().displayName()), xStart + 10, (int) (yPos + 6), CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 1.0f);
-                FontRenderer.getInstance().renderText(context, StyledText.fromString(convertTime(raid.raidEndTime)), xStart + width - textRenderer.getWidth(convertTime(raid.raidEndTime)) - 8, (int) (yPos + 6), CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 1.0f);
-                FontRenderer.getInstance().renderText(context, StyledText.fromString(formatDuration(raid.duration)), xStart + width - textRenderer.getWidth(formatDuration(raid.duration)) - 8, (int) (yPos + 26 + currentCollapsedProgress.get(i)), CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 1.0f);
+                FontRenderer.getInstance().renderText(context, StyledText.fromString(convertTime(raid.raidEndTime)), xStart + width - font.width(convertTime(raid.raidEndTime)) - 8, (int) (yPos + 6), CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 1.0f);
+                FontRenderer.getInstance().renderText(context, StyledText.fromString(formatDuration(raid.duration)), xStart + width - font.width(formatDuration(raid.duration)) - 8, (int) (yPos + 26 + currentCollapsedProgress.get(i)), CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 1.0f);
                 if(raid.completed) {
                     FontRenderer.getInstance().renderText(context, StyledText.fromString("Completed"), xStart + 10, (int) (yPos + 26 + currentCollapsedProgress.get(i)), CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 1.0f);
                 } else {
@@ -260,9 +260,9 @@ public class RaidListScreen extends Screen {
         String total = "§fTotal: " + sortedList.size();
         String failed =  "§cFailed: " + runs.getSecond();
         String combined = completed + " " + total + " " + failed;
-        int totalStringStart = Math.round(xStart + width / 2f - textRenderer.getWidth(total) / 2f) - 4;
+        int totalStringStart = Math.round(xStart + width / 2f - font.width(total) / 2f) - 4;
 
-        FontRenderer.getInstance().renderText(context, StyledText.fromString(combined), totalStringStart - textRenderer.getWidth(completed), 57, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 1.0f);
+        FontRenderer.getInstance().renderText(context, StyledText.fromString(combined), totalStringStart - font.width(completed), 57, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 1.0f);
 
 
         for (int j = 0; j < listElements.size(); j++) {
@@ -292,10 +292,10 @@ public class RaidListScreen extends Screen {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         currentCollapsed.clear();
         currentCollapsedProgress.clear();
-        super.close();
+        super.onClose();
     }
 
     public Identifier getTexture(WERaidKind raidKind) {
@@ -317,7 +317,7 @@ public class RaidListScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean doubleClick) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubleClick) {
         double mouseX = click.x();
         double mouseY = click.y();
 

@@ -1,22 +1,27 @@
 package julianh06.wynnextras.utils.render;
 
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.DepthTestFunction;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.DepthStencilState;
+import com.mojang.renderpearl.api.pipeline.CompareOp;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.event.RenderWorldEvent;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.utils.Pair;
 import julianh06.wynnextras.utils.WEVec;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.render.*;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.Entity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.renderer.*;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 
@@ -24,40 +29,40 @@ import java.awt.*;
 import java.util.Set;
 
 public class WorldRenderUtils {
-    public static final RenderPipeline FILLED_BOX = RenderPipelines.register(RenderPipeline.builder(RenderPipelines.POSITION_COLOR_SNIPPET)
-            .withLocation(Identifier.of(WynnExtras.MOD_ID, "pipeline/debug_filled_box"))
-            .withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
-            .withDepthBias(-1.0f, -1.0f)
+    public static final RenderPipeline FILLED_BOX = RenderPipelines.register(RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
+            .withLocation(Identifier.fromNamespaceAndPath(WynnExtras.MOD_ID, "pipeline/debug_filled_box"))
+            .withDepthStencilState(new DepthStencilState(CompareOp.GREATER_THAN_OR_EQUAL,true))
+
             .build()
     );
 
-    public static final RenderLayer FILLED_BOX_LAYER = RenderLayer.of(
+    public static final RenderType FILLED_BOX_LAYER = RenderType.create(
             WynnExtras.MOD_ID + ":filled_box",
-            RenderSetup.builder(FILLED_BOX).translucent().build()
+            RenderSetup.builder(FILLED_BOX).sortOnUpload().createRenderSetup()
     );
 
     private static final Matrix4f TEXT_MATRIX = new Matrix4f();
 
     public static WEVec getViewerPos() {
-        return exactLocation(MinecraftClient.getInstance().gameRenderer.getCamera());
+        return exactLocation(Minecraft.getInstance().gameRenderer.mainCamera());
     }
 
     public static WEVec exactLocation(Entity entity, float partialTicks) {
-        if (!entity.isAlive()) return new WEVec(entity.getBlockPos().toBottomCenterPos());
-        WEVec prev = new WEVec(entity.lastX, entity.lastY, entity.lastZ);
+        if (!entity.isAlive()) return new WEVec(net.minecraft.world.phys.Vec3.atBottomCenterOf(entity.blockPosition()));
+        WEVec prev = new WEVec(entity.xo, entity.yo, entity.zo);
 
-        return prev.add(new WEVec(entity.getBlockPos().toBottomCenterPos()).subtract(prev).multiply(partialTicks));
+        return prev.add(new WEVec(net.minecraft.world.phys.Vec3.atBottomCenterOf(entity.blockPosition())).subtract(prev).multiply(partialTicks));
     }
 
     public static WEVec exactLocation(Camera camera) {
-        return new WEVec(camera.getCameraPos());
+        return new WEVec(camera.position());
     }
 
     public static WEVec exactPlayerEyeLocation(RenderWorldEvent event) {
-        return new WEVec(event.camera.getCameraPos());
+        return new WEVec(event.camera.position());
     }
 
-    public static Set<Pair<WEVec, WEVec>> calculateEdges(Box box) {
+    public static Set<Pair<WEVec, WEVec>> calculateEdges(AABB box) {
         WEVec bottomLeftFront = new WEVec(box.minX, box.minY, box.minZ);
         WEVec bottomLeftBack = new WEVec(box.minX, box.minY, box.maxZ);
         WEVec topLeftFront = new WEVec(box.minX, box.maxY, box.minZ);
@@ -86,66 +91,65 @@ public class WorldRenderUtils {
     }
 
     // Draws
-    public static void drawFilledBoundingBox(RenderWorldEvent event, Box box, Color color, float alphaMultiplier) {
-        MatrixStack matrices = event.matrices;
-        Vec3d camera = event.camera.getCameraPos();
+    public static void drawFilledBoundingBox(RenderWorldEvent event, AABB box, Color color, float alphaMultiplier) {
+        PoseStack matrices = event.matrices;
+        Vec3 camera = event.camera.position();
 
-        matrices.push();
+        matrices.pushPose();
         matrices.translate(-camera.x, -camera.y, -camera.z);
 
-        renderFilledBox(
-                event.matrices.peek().getPositionMatrix(),
-                event.vertexConsumerProvider.getBuffer(FILLED_BOX_LAYER),
+        event.orderedRenderCommandQueue.submitCustomGeometry(matrices, FILLED_BOX_LAYER, (pose, buffer) -> renderFilledBox(
+                pose.pose(), buffer,
                 (float) box.minX, (float) box.minY, (float) box.minZ,
                 (float) box.maxX, (float) box.maxY, (float) box.maxZ,
                 color.getRed() / 255f * 0.9f,
                 color.getGreen() / 255f * 0.9f,
                 color.getBlue() / 255f * 0.9f,
                 color.getAlpha() / 255f * alphaMultiplier
-        );
+        ));
 
-        matrices.pop();
+        matrices.popPose();
     }
 
     private static void renderFilledBox(Matrix4fc positionMatrix, VertexConsumer buffer, float minX, float minY, float minZ, float maxX, float maxY, float maxZ, float red, float green, float blue, float alpha) {
         // Front Face
-        buffer.vertex(positionMatrix, minX, minY, maxZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, maxX, minY, maxZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, maxX, maxY, maxZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, minX, maxY, maxZ).color(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, minX, minY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, maxX, minY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, maxX, maxY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, minX, maxY, maxZ).setColor(red, green, blue, alpha);
 
         // Back face
-        buffer.vertex(positionMatrix, maxX, minY, minZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, minX, minY, minZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, minX, maxY, minZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, maxX, maxY, minZ).color(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, maxX, minY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, minX, minY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, minX, maxY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, maxX, maxY, minZ).setColor(red, green, blue, alpha);
 
         // Left face
-        buffer.vertex(positionMatrix, minX, minY, minZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, minX, minY, maxZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, minX, maxY, maxZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, minX, maxY, minZ).color(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, minX, minY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, minX, minY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, minX, maxY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, minX, maxY, minZ).setColor(red, green, blue, alpha);
 
         // Right face
-        buffer.vertex(positionMatrix, maxX, minY, maxZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, maxX, minY, minZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, maxX, maxY, minZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, maxX, maxY, maxZ).color(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, maxX, minY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, maxX, minY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, maxX, maxY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, maxX, maxY, maxZ).setColor(red, green, blue, alpha);
 
         // Top face
-        buffer.vertex(positionMatrix, minX, maxY, maxZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, maxX, maxY, maxZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, maxX, maxY, minZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, minX, maxY, minZ).color(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, minX, maxY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, maxX, maxY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, maxX, maxY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, minX, maxY, minZ).setColor(red, green, blue, alpha);
 
         // Bottom face
-        buffer.vertex(positionMatrix, minX, minY, minZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, maxX, minY, minZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, maxX, minY, maxZ).color(red, green, blue, alpha);
-        buffer.vertex(positionMatrix, minX, minY, maxZ).color(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, minX, minY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, maxX, minY, minZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, maxX, minY, maxZ).setColor(red, green, blue, alpha);
+        buffer.addVertex(positionMatrix, minX, minY, maxZ).setColor(red, green, blue, alpha);
     }
 
-    public static void drawEdges(RenderWorldEvent event, Box box, Color color, int lineWidth, boolean depth) {
+    public static void drawEdges(RenderWorldEvent event, AABB box, Color color, int lineWidth, boolean depth) {
         LineDrawer.draw3D(event, lineWidth, depth, lineDrawer -> lineDrawer.drawEdges(box, color));
     }
 
@@ -158,7 +162,7 @@ public class WorldRenderUtils {
     }
 
     public static void drawLineToEye(RenderWorldEvent event, WEVec location, Color color, int lineWidth, boolean depth) {
-        WEVec rotationVec = new WEVec(MinecraftUtils.localPlayer().getRotationVec(event.partialTicks));
+        WEVec rotationVec = new WEVec(MinecraftUtils.localPlayer().getViewVector(event.partialTicks));
         draw3DLine(event, exactPlayerEyeLocation(event).add(rotationVec.multiply(2)), location, color, lineWidth, depth);
     }
 
@@ -178,36 +182,28 @@ public class WorldRenderUtils {
     public static void drawText(
             RenderWorldEvent event,
             WEVec location,
-            Text text,
+            Component text,
             float scale,
             boolean depth
     ) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        TextRenderer textRenderer = client.textRenderer;
-        Camera camera = client.gameRenderer.getCamera();
+        Minecraft client = Minecraft.getInstance();
+        Font textRenderer = client.font;
+        Camera camera = client.gameRenderer.mainCamera();
 
         Matrix4f matrix = TEXT_MATRIX.identity();
-        Vec3d viewerPos = camera.getCameraPos();
+        Vec3 viewerPos = camera.position();
         float adjustedScale = scale * 0.05f;
 
         matrix.translate(
                 (float) (location.x() - viewerPos.x),
                 (float) (location.y() - viewerPos.y),
                 (float) (location.z() - viewerPos.z)
-        ).rotate(camera.getRotation()).scale(adjustedScale, -adjustedScale, adjustedScale);
+        ).rotate(camera.rotation()).scale(adjustedScale, -adjustedScale, adjustedScale);
 
-        textRenderer.draw(
-                text,
-                -textRenderer.getWidth(text) / 2f,
-                0,
-                -1,
-                false,
-                matrix,
-                event.vertexConsumerProvider,
-                depth ? TextRenderer.TextLayerType.NORMAL : TextRenderer.TextLayerType.SEE_THROUGH,
-                0,
-                15728880
-        );
+        PoseStack textPose=new PoseStack();
+        textPose.mulPose(matrix);
+        event.orderedRenderCommandQueue.submitText(textPose,-textRenderer.width(text)/2f,0,text.getVisualOrderText(),false,
+                depth?Font.DisplayMode.NORMAL:Font.DisplayMode.SEE_THROUGH,15728880,-1,0,0);
     }
 
 

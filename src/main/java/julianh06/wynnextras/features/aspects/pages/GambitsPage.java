@@ -2,17 +2,16 @@ package julianh06.wynnextras.features.aspects.pages;
 
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.core.ResetTimeConfig;
 import julianh06.wynnextras.features.aspects.*;
 import julianh06.wynnextras.utils.WynncraftApiHandler;
 import julianh06.wynnextras.utils.UI.Widget;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.Identifier;
-
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -20,41 +19,41 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class GambitsPage extends PageWidget{
-    Identifier ltop = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/ltop.png");
-    Identifier rtop = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/rtop.png");
-    Identifier ttop = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/ttop.png");
-    Identifier btop = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/btop.png");
-    Identifier tltop = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/tltop.png");
-    Identifier trtop = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/trtop.png");
-    Identifier bltop = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/bltop.png");
-    Identifier brtop = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/brtop.png");
+    Identifier ltop = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/ltop.png");
+    Identifier rtop = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/rtop.png");
+    Identifier ttop = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/ttop.png");
+    Identifier btop = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/btop.png");
+    Identifier tltop = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/tltop.png");
+    Identifier trtop = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/trtop.png");
+    Identifier bltop = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/bltop.png");
+    Identifier brtop = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/brtop.png");
 
-    Identifier l = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/l.png");
-    Identifier r = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/r.png");
-    Identifier t = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/t.png");
-    Identifier b = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/b.png");
-    Identifier tl = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/tl.png");
-    Identifier tr = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/tr.png");
-    Identifier bl = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/bl.png");
-    Identifier br = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/light/br.png");
+    Identifier l = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/l.png");
+    Identifier r = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/r.png");
+    Identifier t = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/t.png");
+    Identifier b = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/b.png");
+    Identifier tl = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/tl.png");
+    Identifier tr = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/tr.png");
+    Identifier bl = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/bl.png");
+    Identifier br = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/light/br.png");
 
-    Identifier ltopd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/ltop.png");
-    Identifier rtopd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/rtop.png");
-    Identifier ttopd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/ttop.png");
-    Identifier btopd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/btop.png");
-    Identifier tltopd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/tltop.png");
-    Identifier trtopd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/trtop.png");
-    Identifier bltopd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/bltop.png");
-    Identifier brtopd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/brtop.png");
+    Identifier ltopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/ltop.png");
+    Identifier rtopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/rtop.png");
+    Identifier ttopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/ttop.png");
+    Identifier btopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/btop.png");
+    Identifier tltopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/tltop.png");
+    Identifier trtopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/trtop.png");
+    Identifier bltopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/bltop.png");
+    Identifier brtopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/brtop.png");
 
-    Identifier ld = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/l.png");
-    Identifier rd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/r.png");
-    Identifier td = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/t.png");
-    Identifier bd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/b.png");
-    Identifier tld = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/tl.png");
-    Identifier trd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/tr.png");
-    Identifier bld = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/bl.png");
-    Identifier brd = Identifier.of("wynnextras", "textures/gui/lootpoolscreen/dark/br.png");
+    Identifier ld = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/l.png");
+    Identifier rd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/r.png");
+    Identifier td = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/t.png");
+    Identifier bd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/b.png");
+    Identifier tld = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/tl.png");
+    Identifier trd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/tr.png");
+    Identifier bld = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/bl.png");
+    Identifier brd = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/lootpoolscreen/dark/br.png");
 
     private static boolean fetchedCrowdsourcedGambits = false;
     private static List<GambitData.GambitEntry> crowdsourcedGambits = null;
@@ -74,7 +73,7 @@ public class GambitsPage extends PageWidget{
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         float centerX = (x + width / 2f) * ui.getScaleFactorF();
 
         ui.drawCenteredText("§6§lToday's Gambits", centerX, 60);
@@ -145,7 +144,7 @@ public class GambitsPage extends PageWidget{
                 ui.drawCenteredText("§7Loading crowdsourced data...", centerX, startY + 150);
             } else {
                 ui.drawCenteredText("§7No crowdsourced gambit data available yet", centerX, startY + 150);
-                int textWidth = (int) (MinecraftClient.getInstance().textRenderer.getWidth("§e§nClick to open Party Finder to scan") * ui.getScaleFactorF());
+                int textWidth = (int) (Minecraft.getInstance().font.width("§e§nClick to open Party Finder to scan") * ui.getScaleFactorF());
                 openPartyFinderWidget.setBounds((int) (centerX - textWidth / 2f), startY + 200, textWidth, 30);
                 openPartyFinderWidget.draw(ctx, mouseX, mouseY, tickDelta, ui);
                 //ui.drawCenteredText( "§e§nClick to open Party Finder to scan", centerX, startY + 200);
@@ -263,7 +262,7 @@ public class GambitsPage extends PageWidget{
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawText((hovered ? "§e§n" : "§e") + "Click to open Party Finder to scan", x, y);
         }
 
@@ -292,7 +291,7 @@ public class GambitsPage extends PageWidget{
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawButton(x, y, width, height, hovered);
             ui.drawCenteredText("Reload gambits", x + width / 2f, y + height / 2f);
         }

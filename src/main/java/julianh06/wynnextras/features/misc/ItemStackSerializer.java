@@ -5,9 +5,8 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JsonOps;
-import net.minecraft.item.ItemStack;
-
 import java.lang.reflect.Type;
+import net.minecraft.world.item.ItemStack;
 
 public class ItemStackSerializer implements JsonSerializer<ItemStack> {
     @Override

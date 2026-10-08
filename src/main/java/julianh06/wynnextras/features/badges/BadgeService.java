@@ -24,13 +24,13 @@ import julianh06.wynnextras.utils.ApiRequestHelper;
 import julianh06.wynnextras.utils.BackendErrorLogger;
 import julianh06.wynnextras.utils.MojangAuth;
 import julianh06.wynnextras.utils.WynncraftApiHandler;
-import net.minecraft.client.render.entity.state.EntityRenderState;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.net.URI;
@@ -93,7 +93,7 @@ public class BadgeService {
         return normalizedUuid != null && profilesByUuid.containsKey(normalizedUuid);
     }
 
-    public static Text appendBadge(EntityRenderState state, Text label) {
+    public static Component appendBadge(EntityRenderState state, Component label) {
         if (!WynnExtrasConfig.INSTANCE.showWynnExtrasBadges || label == null || state == null) return label;
         if (hasKnownBadgeSuffix(label.getString())) return label;
 
@@ -103,14 +103,14 @@ public class BadgeService {
         return appendBadge(label, profile);
     }
 
-    public static Text appendBadge(UUID uuid, String username, Text label) {
+    public static Component appendBadge(UUID uuid, String username, Component label) {
         if (!WynnExtrasConfig.INSTANCE.showWynnExtrasBadges || label == null) return label;
 
         BadgeProfile profile = getBadgeProfile(uuid, username);
         return profile == null ? label : appendBadge(label, profile);
     }
 
-    public static List<Text> getBadgeTooltip(UUID uuid, String username) {
+    public static List<Component> getBadgeTooltip(UUID uuid, String username) {
         if (!WynnExtrasConfig.INSTANCE.showWynnExtrasBadges) return List.of();
 
         BadgeProfile profile = getBadgeProfile(uuid, username);
@@ -120,28 +120,28 @@ public class BadgeService {
         BadgeCatalog.BadgeColor color = BadgeCatalog.color(profile.selectedColorId);
         Achievements achievements = achievementsForTooltip(uuid);
         AchievementLoadStatus loadStatus = achievementLoadStatus(uuid);
-        List<Text> tooltip = new ArrayList<>();
-        tooltip.add(Text.literal("WynnExtras Badge").formatted(Formatting.GOLD));
-        tooltip.add(Text.literal("Icon: ").append(BadgeCatalog.badgeText(icon.id(), color.id())).append(" " + icon.displayName()));
+        List<Component> tooltip = new ArrayList<>();
+        tooltip.add(Component.literal("WynnExtras Badge").withStyle(ChatFormatting.GOLD));
+        tooltip.add(Component.literal("Icon: ").append(BadgeCatalog.badgeText(icon.id(), color.id())).append(" " + icon.displayName()));
         tooltip.addAll(badgeRequirementTooltip(icon.achievement(), icon.minTier(), achievements, loadStatus));
-        tooltip.add(Text.empty());
-        tooltip.add(Text.literal("Color: ").append(BadgeCatalog.colorPreviewText(icon.id(), color.id())).append(" " + color.displayName()));
+        tooltip.add(Component.empty());
+        tooltip.add(Component.literal("Color: ").append(BadgeCatalog.colorPreviewText(icon.id(), color.id())).append(" " + color.displayName()));
         tooltip.addAll(badgeRequirementTooltip(color.achievement(), color.minTier(), achievements, loadStatus));
         return tooltip;
     }
 
-    private static Text appendBadge(Text label, BadgeProfile profile) {
+    private static Component appendBadge(Component label, BadgeProfile profile) {
         if (hasKnownBadgeSuffix(label.getString())) return label;
 
-        MutableText result = label.copy();
-        result.append(Text.literal(" "));
+        MutableComponent result = label.copy();
+        result.append(Component.literal(" "));
         result.append(BadgeCatalog.badgeText(profile.selectedIconId, profile.selectedColorId));
         return result;
     }
 
     private static BadgeProfile getBadgeProfile(UUID uuid, String username) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (uuid != null && mc.player != null && uuid.equals(mc.player.getUuid())) {
+        Minecraft mc = Minecraft.getInstance();
+        if (uuid != null && mc.player != null && uuid.equals(mc.player.getUUID())) {
             return BadgeProfileData.getLocalProfile();
         }
 
@@ -154,23 +154,23 @@ public class BadgeService {
         return profilesByUsername.get(username.toLowerCase());
     }
 
-    private static List<Text> badgeRequirementTooltip(AchievementId achievementId, Integer minTier, Achievements achievements, AchievementLoadStatus loadStatus) {
+    private static List<Component> badgeRequirementTooltip(AchievementId achievementId, Integer minTier, Achievements achievements, AchievementLoadStatus loadStatus) {
         if (achievementId == null) {
-            return List.of(Text.of("§aUnlocked by default"));
+            return List.of(Component.nullToEmpty("§aUnlocked by default"));
         }
 
         Achievement achievement = (achievements == null ? achievementDefinitions : achievements).getById(achievementId.id());
         if (achievement == null) {
-            return List.of(Text.of(BadgeCatalog.requirement(achievementId, minTier)));
+            return List.of(Component.nullToEmpty(BadgeCatalog.requirement(achievementId, minTier)));
         }
 
-        List<Text> tooltip = new ArrayList<>();
-        tooltip.add(Text.of("§6" + achievement.getTitle() + (minTier == null ? "" : " (Tier " + minTier + ")")));
-        tooltip.add(Text.of("§7" + achievement.getDescription()));
+        List<Component> tooltip = new ArrayList<>();
+        tooltip.add(Component.nullToEmpty("§6" + achievement.getTitle() + (minTier == null ? "" : " (Tier " + minTier + ")")));
+        tooltip.add(Component.nullToEmpty("§7" + achievement.getDescription()));
         if (achievement instanceof TieredAchievement tiered) {
-            tooltip.add(Text.of("§8Tiers: " + tierMilestones(tiered)));
+            tooltip.add(Component.nullToEmpty("§8Tiers: " + tierMilestones(tiered)));
         }
-        tooltip.add(Text.of("§8Progress: " + (achievements == null ? progressLoadText(loadStatus) : progressText(achievement))));
+        tooltip.add(Component.nullToEmpty("§8Progress: " + (achievements == null ? progressLoadText(loadStatus) : progressText(achievement))));
         return tooltip;
     }
 
@@ -201,8 +201,8 @@ public class BadgeService {
     }
 
     private static Achievements achievementsForTooltip(UUID uuid) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (uuid != null && mc.player != null && uuid.equals(mc.player.getUuid())) {
+        Minecraft mc = Minecraft.getInstance();
+        if (uuid != null && mc.player != null && uuid.equals(mc.player.getUUID())) {
             return AchievementTracking.achievements;
         }
 
@@ -215,8 +215,8 @@ public class BadgeService {
     }
 
     private static AchievementLoadStatus achievementLoadStatus(UUID uuid) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (uuid != null && mc.player != null && uuid.equals(mc.player.getUuid())) return AchievementLoadStatus.LOADING;
+        Minecraft mc = Minecraft.getInstance();
+        if (uuid != null && mc.player != null && uuid.equals(mc.player.getUUID())) return AchievementLoadStatus.LOADING;
 
         String normalizedUuid = uuid == null ? null : BadgeProfile.normalizeUuid(uuid.toString());
         if (normalizedUuid == null) return AchievementLoadStatus.FAILED;
@@ -553,14 +553,14 @@ public class BadgeService {
         return obj.get(key).getAsString();
     }
 
-    private static BadgeProfile profileFor(EntityRenderState state, Text label) {
+    private static BadgeProfile profileFor(EntityRenderState state, Component label) {
         Entity entity = ((EntityRenderStateAccess) state).wynnExtras$getEntity();
-        if (entity instanceof PlayerEntity player) {
-            MinecraftClient mc = MinecraftClient.getInstance();
-            if (mc.player != null && player.getUuid().equals(mc.player.getUuid())) {
+        if (entity instanceof Player player) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player != null && player.getUUID().equals(mc.player.getUUID())) {
                 return BadgeProfileData.getLocalProfile();
             }
-            BadgeProfile profile = profilesByUuid.get(BadgeProfile.normalizeUuid(player.getUuidAsString()));
+            BadgeProfile profile = profilesByUuid.get(BadgeProfile.normalizeUuid(player.getStringUUID()));
             if (profile != null) return profile;
         }
 
@@ -569,7 +569,7 @@ public class BadgeService {
         return labelProfile;
     }
 
-    private static BadgeProfile profileFromLabel(Text label) {
+    private static BadgeProfile profileFromLabel(Component label) {
         String labelKey = label.getString();
         BadgeProfile cached = labelProfileCache.get(labelKey);
         if (cached != null) return cached == ABSENT ? null : cached;
@@ -585,7 +585,7 @@ public class BadgeService {
         String[] parts = value.split("\\s+");
         if (parts.length == 0) return null;
 
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         String localName = mc.player == null ? null : mc.player.getGameProfile().name();
         if (localName != null) {
             for (String part : parts) {

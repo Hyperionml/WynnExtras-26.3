@@ -1,70 +1,38 @@
 package julianh06.wynnextras.features.guildviewer;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.render.SpecialGuiElementRenderer;
-import net.minecraft.client.render.*;
-import net.minecraft.client.render.block.entity.BannerBlockEntityRenderer;
-import net.minecraft.client.render.command.OrderedRenderCommandQueueImpl;
-import net.minecraft.client.render.command.RenderDispatcher;
-import net.minecraft.client.render.model.ModelBaker;
-import net.minecraft.client.texture.SpriteHolder;
-import net.minecraft.client.util.math.MatrixStack;
+import com.mojang.blaze3d.platform.Lighting;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
+import net.minecraft.client.renderer.Sheets;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.blockentity.BannerRenderer;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.resources.model.sprite.SpriteGetter;
 import org.joml.Quaternionf;
 
-public class BannerGuiRenderer extends SpecialGuiElementRenderer<BannerGuiElementState> {
-    private final SpriteHolder sprite;
+public class BannerGuiRenderer extends PictureInPictureRenderer<BannerGuiElementState> {
+    private final SpriteGetter sprites;
 
-    public BannerGuiRenderer(VertexConsumerProvider.Immediate immediate, SpriteHolder sprite) {
-        super(immediate);
-        this.sprite = sprite;
+    public BannerGuiRenderer(SpriteGetter sprites) {
+        this.sprites = sprites;
     }
 
     @Override
-    protected void render(BannerGuiElementState state, MatrixStack matrixStack) {
-        MinecraftClient.getInstance().gameRenderer.getDiffuseLighting().setShaderLights(DiffuseLighting.Type.ENTITY_IN_UI);
-        matrixStack.translate(0.0F, 0.0F, 0.0F);
-        matrixStack.multiply(new Quaternionf().rotateY(-0.5f));
-        RenderDispatcher renderDispatcher = MinecraftClient.getInstance().gameRenderer.getEntityRenderDispatcher();
-        OrderedRenderCommandQueueImpl orderedRenderCommandQueueImpl = renderDispatcher.getQueue();
-
-        MinecraftClient client = MinecraftClient.getInstance();
-
-        long worldTime =
-                client.world != null
-                        ? client.world.getTime()
-                        : 0L;
-
-        float tickDelta =
-                client.getRenderTickCounter().getTickProgress(false);
-
-        float time = (worldTime % 100L) + tickDelta;
-
-        BannerBlockEntityRenderer.renderCanvas(
-                this.sprite,
-                matrixStack,
-                orderedRenderCommandQueueImpl,
-                15728880,
-                OverlayTexture.DEFAULT_UV,
-                state.flag(),
-                time / 100f,
-                ModelBaker.BANNER_BASE,
-                true,
-                state.baseColor(),
-                state.resultBannerPatterns(),
-                false,
-                null,
-                0
-        );
-        renderDispatcher.render();
+    protected void renderToTexture(BannerGuiElementState state, PoseStack pose, SubmitNodeCollector collector) {
+        Minecraft client = Minecraft.getInstance();
+        client.gameRenderer.lighting().setupFor(Lighting.Entry.ENTITY_IN_UI);
+        pose.rotate(new Quaternionf().rotateY(-0.5f));
+        float time = (client.level == null ? 0 : client.level.getGameTime() % 100L) / 100f;
+        collector.submitModel(state.flag(), time, pose, 15728880, OverlayTexture.NO_OVERLAY,
+                -1, Sheets.BANNER_BASE, sprites, 0);
+        BannerRenderer.submitPatterns(sprites, pose, collector, 15728880, OverlayTexture.NO_OVERLAY,
+                state.flag(), time, true, state.baseColor(), state.resultBannerPatterns());
     }
 
     @Override
-    public Class<BannerGuiElementState> getElementClass() {
-        return BannerGuiElementState.class;
-    }
+    public Class<BannerGuiElementState> getRenderStateClass() { return BannerGuiElementState.class; }
 
     @Override
-    protected String getName() {
-        return "Banner GUI Renderer";
-    }
+    protected String getTextureLabel() { return "Banner GUI Renderer"; }
 }

@@ -2,6 +2,8 @@ package julianh06.wynnextras.features.profileviewer.tabs;
 
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
 import julianh06.wynnextras.features.profileviewer.PV;
 import julianh06.wynnextras.features.profileviewer.PVScreen;
 import julianh06.wynnextras.features.profileviewer.SaveButtonWidget;
@@ -12,86 +14,83 @@ import julianh06.wynnextras.features.profileviewer.data.AbilityTreeData;
 import julianh06.wynnextras.features.profileviewer.data.SkillPoints;
 import julianh06.wynnextras.utils.Pair;
 import julianh06.wynnextras.utils.UI.AbilityTreeWidget;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.util.Identifier;
-
 import java.util.*;
 
 import static julianh06.wynnextras.features.profileviewer.PVScreen.*;
 
 public class TreeTabWidget extends PVScreen.TabWidget {
-    static Identifier backgroundTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/treetabbackground.png");
-    static Identifier backgroundTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/treetabbackground_dark.png");
+    static Identifier backgroundTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/treetabbackground.png");
+    static Identifier backgroundTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/treetabbackground_dark.png");
 
-    static Identifier borderTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/treetabbackgroundborders.png");
-    static Identifier borderTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/treetabbackgroundborders_dark.png");
-    public static final Identifier pageLineTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/pageline.png");
+    static Identifier borderTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/treetabbackgroundborders.png");
+    static Identifier borderTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/treetabbackgroundborders_dark.png");
+    public static final Identifier pageLineTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/pageline.png");
 
-    public static final Identifier strengthTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/skillpoints/strength.png");
-    public static final Identifier dexterityTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/skillpoints/dexterity.png");
-    public static final Identifier intelligenceTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/skillpoints/intelligence.png");
-    public static final Identifier defenceTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/skillpoints/defence.png");
-    public static final Identifier agilityTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/skillpoints/agility.png");
+    public static final Identifier strengthTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/skillpoints/strength.png");
+    public static final Identifier dexterityTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/skillpoints/dexterity.png");
+    public static final Identifier intelligenceTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/skillpoints/intelligence.png");
+    public static final Identifier defenceTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/skillpoints/defence.png");
+    public static final Identifier agilityTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/skillpoints/agility.png");
 
-    public static final Identifier warrior = Identifier.of("wynnextras", "textures/gui/profileviewer/node/warrior.png");
-    public static final Identifier warriorActive = Identifier.of("wynnextras", "textures/gui/profileviewer/node/warrior_active.png");
+    public static final Identifier warrior = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/warrior.png");
+    public static final Identifier warriorActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/warrior_active.png");
 
-    public static final Identifier shaman = Identifier.of("wynnextras", "textures/gui/profileviewer/node/shaman.png");
-    public static final Identifier shamanActive = Identifier.of("wynnextras", "textures/gui/profileviewer/node/shaman_active.png");
+    public static final Identifier shaman = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/shaman.png");
+    public static final Identifier shamanActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/shaman_active.png");
 
-    public static final Identifier archer = Identifier.of("wynnextras", "textures/gui/profileviewer/node/archer.png");
-    public static final Identifier archerActive = Identifier.of("wynnextras", "textures/gui/profileviewer/node/archer_active.png");
+    public static final Identifier archer = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/archer.png");
+    public static final Identifier archerActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/archer_active.png");
 
-    public static final Identifier mage = Identifier.of("wynnextras", "textures/gui/profileviewer/node/mage.png");
-    public static final Identifier mageActive = Identifier.of("wynnextras", "textures/gui/profileviewer/node/mage_active.png");
+    public static final Identifier mage = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/mage.png");
+    public static final Identifier mageActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/mage_active.png");
 
-    public static final Identifier assassin = Identifier.of("wynnextras", "textures/gui/profileviewer/node/assassin.png");
-    public static final Identifier assassinActive = Identifier.of("wynnextras", "textures/gui/profileviewer/node/assassin_active.png");
+    public static final Identifier assassin = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/assassin.png");
+    public static final Identifier assassinActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/assassin_active.png");
 
-    public static final Identifier white = Identifier.of("wynnextras", "textures/gui/profileviewer/node/white.png");
-    public static final Identifier whiteActive = Identifier.of("wynnextras", "textures/gui/profileviewer/node/white_active.png");
+    public static final Identifier white = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/white.png");
+    public static final Identifier whiteActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/white_active.png");
 
-    public static final Identifier yellow = Identifier.of("wynnextras", "textures/gui/profileviewer/node/yellow.png");
-    public static final Identifier yellowActive = Identifier.of("wynnextras", "textures/gui/profileviewer/node/yellow_active.png");
+    public static final Identifier yellow = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/yellow.png");
+    public static final Identifier yellowActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/yellow_active.png");
 
-    public static final Identifier blue = Identifier.of("wynnextras", "textures/gui/profileviewer/node/blue.png");
-    public static final Identifier blueActive = Identifier.of("wynnextras", "textures/gui/profileviewer/node/blue_active.png");
+    public static final Identifier blue = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/blue.png");
+    public static final Identifier blueActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/blue_active.png");
 
-    public static final Identifier purple = Identifier.of("wynnextras", "textures/gui/profileviewer/node/purple.png");
-    public static final Identifier purpleActive = Identifier.of("wynnextras", "textures/gui/profileviewer/node/purple_active.png");
+    public static final Identifier purple = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/purple.png");
+    public static final Identifier purpleActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/purple_active.png");
 
-    public static final Identifier red = Identifier.of("wynnextras", "textures/gui/profileviewer/node/red.png");
-    public static final Identifier redActive = Identifier.of("wynnextras", "textures/gui/profileviewer/node/red_active.png");
+    public static final Identifier red = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/red.png");
+    public static final Identifier redActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/node/red_active.png");
 
-    public static final Identifier vertical = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/vertical.png");
-    public static final Identifier verticalActive = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/vertical_active.png");
+    public static final Identifier vertical = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/vertical.png");
+    public static final Identifier verticalActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/vertical_active.png");
 
-    public static final Identifier horizontal = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/horizontal.png");
-    public static final Identifier horizontalActive = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/horizontal_active.png");
+    public static final Identifier horizontal = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/horizontal.png");
+    public static final Identifier horizontalActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/horizontal_active.png");
 
-    public static final Identifier down_left = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/down_left.png");
-    public static final Identifier down_leftActive = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/down_left_active.png");
+    public static final Identifier down_left = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/down_left.png");
+    public static final Identifier down_leftActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/down_left_active.png");
 
-    public static final Identifier right_down = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/right_down.png");
-    public static final Identifier right_downActive = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/right_down_active.png");
+    public static final Identifier right_down = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/right_down.png");
+    public static final Identifier right_downActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/right_down_active.png");
 
-    public static final Identifier right_down_left = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/right_down_left.png");
-    public static final Identifier right_down_leftActive = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/right_down_left_active.png");
+    public static final Identifier right_down_left = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/right_down_left.png");
+    public static final Identifier right_down_leftActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/right_down_left_active.png");
 
-    public static final Identifier up_right_down = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/up_right_down.png");
-    public static final Identifier up_right_downActive = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/up_right_down_active.png");
+    public static final Identifier up_right_down = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/up_right_down.png");
+    public static final Identifier up_right_downActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/up_right_down_active.png");
 
-    public static final Identifier up_down_left = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/up_down_left.png");
-    public static final Identifier up_down_leftActive = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/up_down_left_active.png");
+    public static final Identifier up_down_left = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/up_down_left.png");
+    public static final Identifier up_down_leftActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/up_down_left_active.png");
 
-    public static final Identifier up_right_down_left = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/up_right_down_left.png");
-    public static final Identifier up_right_down_leftActive = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/up_right_down_left_active.png");
+    public static final Identifier up_right_down_left = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/up_right_down_left.png");
+    public static final Identifier up_right_down_leftActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/up_right_down_left_active.png");
 
-    public static final Identifier up_right_left = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/up_right_left.png");
-    public static final Identifier up_right_leftActive = Identifier.of("wynnextras", "textures/gui/profileviewer/connector/up_right_left_active.png");
+    public static final Identifier up_right_left = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/up_right_left.png");
+    public static final Identifier up_right_leftActive = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/connector/up_right_left_active.png");
 
-    static Identifier questSearchbarTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/quests/questsearchbar.png");
-    static Identifier questSearchbarTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/quests/questsearchbar_dark.png");
+    static Identifier questSearchbarTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/quests/questsearchbar.png");
+    static Identifier questSearchbarTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/quests/questsearchbar_dark.png");
 
 
     int scrollOffset;
@@ -121,7 +120,7 @@ public class TreeTabWidget extends PVScreen.TabWidget {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         scrollOffset = PVScreen.scrollOffset;
         if(PV.currentPlayerData == null) return;
         loaded = false;
@@ -350,7 +349,7 @@ public class TreeTabWidget extends PVScreen.TabWidget {
     }
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if(PV.currentPlayerData == null) return;
         if(selectedCharacter == null) {
             return;

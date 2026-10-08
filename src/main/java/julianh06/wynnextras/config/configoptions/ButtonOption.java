@@ -1,10 +1,9 @@
 package julianh06.wynnextras.config.configoptions;
 
 import julianh06.wynnextras.utils.MinecraftUtils;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.sound.SoundEvents;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.sounds.SoundEvents;
 import java.util.function.Consumer;
 
 import static julianh06.wynnextras.config.ConfigTheme.*;
@@ -23,8 +22,8 @@ public class ButtonOption extends ConfigOption {
     public int controlWidth() { return 80; }
 
     @Override
-    public void render(DrawContext ctx, int x, int y, int w, int h, int mx, int my, boolean hovered, int categoryColor) {
-        var tr = MinecraftClient.getInstance().textRenderer;
+    public void render(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int mx, int my, boolean hovered, int categoryColor) {
+        var tr = Minecraft.getInstance().font;
         ctx.fill(x, y, x + w, y + h - 5, hovered ? PARCHMENT_HOVER : PARCHMENT);
         ctx.fill(x, y, x + w, y + 1, BORDER_LIGHT);
         ctx.fill(x, y + h - 6, x + w, y + h - 5, BORDER_DARK);
@@ -34,7 +33,7 @@ public class ButtonOption extends ConfigOption {
         boolean btnHover = mx >= bx && mx < bx + 65 && my >= by && my < by + 20;
         ctx.fill(bx, by, bx + 65, by + 20, BORDER_DARK);
         ctx.fill(bx + 1, by + 1, bx + 64, by + 19, btnHover ? PARCHMENT_HOVER : PARCHMENT);
-        ctx.drawCenteredTextWithShadow(tr, buttonText, bx + 32, by + 6, TEXT_LIGHT);
+        ctx.centeredText(tr, buttonText, bx + 32, by + 6, TEXT_LIGHT);
     }
 
     @Override

@@ -6,15 +6,15 @@ import julianh06.wynnextras.config.ScaleBackgroundShape;
 import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.utils.render.RenderUtils;
 import julianh06.wynnextras.utils.render.Texture;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.resources.ResourceManager;
 
 public final class ItemHighlightRenderer {
-    private static final Identifier HIGHLIGHT_ATLAS = Identifier.of("wynntils", "textures/ui_components/highlight.png");
+    private static final Identifier HIGHLIGHT_ATLAS = Identifier.fromNamespaceAndPath("wynntils", "textures/ui_components/highlight.png");
     private static final Identifier CIRCLE =
-            Identifier.of("wynnextras", "textures/gui/profileviewer/circle.png");
+            Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/circle.png");
     private static Texture configuredHighlightTexture;
     private static boolean useHighlightAtlas = false;
 
@@ -28,12 +28,12 @@ public final class ItemHighlightRenderer {
         }
 
         configuredHighlightTexture = WynntilsBankAdapter.getConfiguredHighlightTexture();
-        ResourceManager resources = MinecraftClient.getInstance().getResourceManager();
+        ResourceManager resources = Minecraft.getInstance().getResourceManager();
         useHighlightAtlas = resources.getResource(configuredHighlightTexture.identifier()).isEmpty()
                 && resources.getResource(HIGHLIGHT_ATLAS).isPresent();
     }
 
-    public static void drawWynntilsHighlightTexture(DrawContext context, CustomColor color,
+    public static void drawWynntilsHighlightTexture(GuiGraphicsExtractor context, CustomColor color,
                                                     float x, float y, float width, float height) {
         if (!WynntilsCompat.isLoaded() || configuredHighlightTexture == null) return;
 
@@ -45,12 +45,12 @@ public final class ItemHighlightRenderer {
         }
     }
 
-    public static void drawStandaloneHighlight(DrawContext context, CustomColor color,
+    public static void drawStandaloneHighlight(GuiGraphicsExtractor context, CustomColor color,
                                                float x, float y, float width, float height) {
         drawCircleTexture(context, color.withAlpha(0.35f), x, y, width, height);
     }
 
-    public static void drawScaleBackground(DrawContext context, ScaleBackgroundShape shape, CustomColor color,
+    public static void drawScaleBackground(GuiGraphicsExtractor context, ScaleBackgroundShape shape, CustomColor color,
                                            float x, float y, float width, float height) {
         int left = Math.round(x);
         int top = Math.round(y);
@@ -64,7 +64,7 @@ public final class ItemHighlightRenderer {
         }
     }
 
-    private static void drawCircleTexture(DrawContext context, CustomColor color,
+    private static void drawCircleTexture(GuiGraphicsExtractor context, CustomColor color,
                                           float x, float y, float width, float height) {
         RenderUtils.drawTexturedRect(context, CIRCLE, color, x, y, width, height, 64, 64);
     }

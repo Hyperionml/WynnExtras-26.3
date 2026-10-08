@@ -13,10 +13,9 @@ import julianh06.wynnextras.utils.LunarCompat;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import java.util.WeakHashMap;
 
 public final class LunarScreenOverlayFallback {
@@ -26,23 +25,23 @@ public final class LunarScreenOverlayFallback {
 
     public static void register() {
         ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
-            if (!(screen instanceof HandledScreen<?> handledScreen)) return;
+            if (!(screen instanceof AbstractContainerScreen<?> handledScreen)) return;
 
-            ScreenEvents.afterRender(screen).register((s, context, mouseX, mouseY, tickDelta) ->
+            ScreenEvents.afterExtract(screen).register((s, context, mouseX, mouseY, tickDelta) ->
                     render(screen, handledScreen, context, mouseX, mouseY, tickDelta));
             ScreenKeyboardEvents.allowKeyPress(screen).register((s, input) ->
-                    !keyPressed(screen, input.key(), input.scancode(), input.modifiers()));
+                    !keyPressed(screen, julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key()), input.keycode(), julianh06.wynnextras.compat.client.InputCompat.legacyModifiers(input.modifiers())));
             ScreenMouseEvents.allowMouseClick(screen).register((s, click) ->
-                    !mouseClicked(screen, click.x(), click.y(), click.button()));
+                    !mouseClicked(screen, click.x(), click.y(), julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button())));
             ScreenMouseEvents.allowMouseRelease(screen).register((s, click) ->
-                    !mouseReleased(screen, click.x(), click.y(), click.button()));
+                    !mouseReleased(screen, click.x(), click.y(), julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button())));
             ScreenMouseEvents.allowMouseDrag(screen).register((s, click, deltaX, deltaY) ->
-                    !mouseDragged(screen, click.x(), click.y(), click.button(), deltaX, deltaY));
+                    !mouseDragged(screen, click.x(), click.y(), julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()), deltaX, deltaY));
             ScreenEvents.remove(screen).register(s -> STATES.remove(screen));
         });
     }
 
-    private static void render(Screen screen, HandledScreen<?> handledScreen, DrawContext context, int mouseX, int mouseY, float delta) {
+    private static void render(Screen screen, AbstractContainerScreen<?> handledScreen, GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         if (!shouldRender(screen)) return;
         State state = state(screen);
 
@@ -63,7 +62,7 @@ public final class LunarScreenOverlayFallback {
         if (isBankContainer() || BankOverlay.currentOverlayType != BankOverlayType.NONE) {
             if (state.bankOverlay == null) state.bankOverlay = new BankOverlay2(null, handledScreen);
             state.bankOverlay.updateRenderContext(null, handledScreen, close -> {
-                handledScreen.close();
+                handledScreen.onClose();
                 return null;
             });
             state.bankOverlay.render(context, mouseX, mouseY, delta);

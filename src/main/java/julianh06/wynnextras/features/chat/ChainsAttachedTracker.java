@@ -6,10 +6,10 @@ import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.utils.BossBarUtils;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.hud.BossBarHud;
-import net.minecraft.client.gui.hud.ClientBossBar;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.BossHealthOverlay;
+import net.minecraft.client.gui.components.LerpingBossEvent;
+import net.minecraft.network.chat.Component;
 
 /**
  * Watches the boss-bar HUD for "X/6 Chains" texts and emits a PB-style chat
@@ -28,16 +28,16 @@ public class ChainsAttachedTracker {
         for (int i = 0; i < fired.length; i++) fired[i] = false;
     }
 
-    private static void tick(MinecraftClient client) {
+    private static void tick(Minecraft client) {
         if (!WynnExtrasConfig.INSTANCE.toggleRaidTimestamps) return;
-        if (client == null || client.player == null || client.inGameHud == null) return;
+        if (client == null || client.player == null || client.gui == null) return;
 
-        BossBarHud hud = client.inGameHud.getBossBarHud();
+        BossHealthOverlay hud = client.gui.hud.getBossOverlay();
         if (hud == null) return;
-        Iterable<ClientBossBar> bars = BossBarUtils.getBossBars(hud);
+        Iterable<LerpingBossEvent> bars = BossBarUtils.getBossBars(hud);
 
-        for (ClientBossBar bar : bars) {
-            Text n = bar.getName();
+        for (LerpingBossEvent bar : bars) {
+            Component n = bar.getName();
             if (n == null) continue;
             String s = n.getString();
             if (s == null) continue;
@@ -72,7 +72,7 @@ public class ChainsAttachedTracker {
         }
 
         final String finalMessage = message;
-        MinecraftClient.getInstance().execute(() ->
-                MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.of(finalMessage))));
+        Minecraft.getInstance().execute(() ->
+                MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty(finalMessage))));
     }
 }

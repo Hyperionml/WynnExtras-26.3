@@ -1,8 +1,7 @@
 package julianh06.wynnextras.utils;
 
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.gui.DrawContext;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
@@ -15,7 +14,7 @@ public final class SmoothGuiCompat {
 
     private SmoothGuiCompat() {}
 
-    public static boolean popIfApplied(DrawContext context) {
+    public static boolean popIfApplied(GuiGraphicsExtractor context) {
         if (!LOADED || context == null) return false;
         init();
         try {
@@ -28,7 +27,7 @@ public final class SmoothGuiCompat {
         }
     }
 
-    public static void pushIfNeeded(DrawContext context, boolean shouldPush) {
+    public static void pushIfNeeded(GuiGraphicsExtractor context, boolean shouldPush) {
         if (!shouldPush || context == null) return;
         init();
         try {
@@ -43,8 +42,8 @@ public final class SmoothGuiCompat {
         try {
             Class<?> smoothGui = Class.forName("com.ezzenix.smoothgui.SmoothGui");
             appliedField = smoothGui.getField("applied");
-            popMethod = smoothGui.getMethod("pop", DrawContext.class);
-            pushMethod = smoothGui.getMethod("push", DrawContext.class);
+            popMethod = smoothGui.getMethod("pop", GuiGraphicsExtractor.class);
+            pushMethod = smoothGui.getMethod("push", GuiGraphicsExtractor.class);
         } catch (ReflectiveOperationException ignored) {
             appliedField = null;
             popMethod = null;

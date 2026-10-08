@@ -12,17 +12,17 @@ import julianh06.wynnextras.features.guildviewer.data.GuildData;
 import julianh06.wynnextras.features.profileviewer.data.Guild;
 import julianh06.wynnextras.utils.WynncraftApiHandler;
 import julianh06.wynnextras.mixin.Accessor.BannerBlockEntityAccessor;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.entity.BannerBlockEntity;
-import net.minecraft.block.entity.BannerPattern;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.component.type.BannerPatternsComponent;
-import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.Holder;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BannerBlockEntity;
+import net.minecraft.world.level.block.entity.BannerPattern;
+import net.minecraft.world.level.block.entity.BannerPatternLayers;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
-import org.lwjgl.glfw.GLFW;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.util.List;
 
@@ -49,7 +49,7 @@ public class GV {
                         return 1;
                     },
                     null,
-                    List.of(ClientCommandManager.argument("guild", StringArgumentType.word()))
+                    List.of(ClientCommands.argument("guild", StringArgumentType.word()))
             );
 
             gvCmdNoArgs = new Command(
@@ -69,14 +69,14 @@ public class GV {
     @SubscribeEvent
     void onTick(TickEvent event) {
         if(inGV) {
-            MinecraftClient.getInstance().send(() -> MinecraftClient.getInstance().setScreen(new GVScreen(currentGuild)));
+            Minecraft.getInstance().schedule(() -> Minecraft.getInstance().gui.setScreen(new GVScreen(currentGuild)));
             inGV = false;
         }
     }
 
     @SubscribeEvent
     void onInput(KeyInputEvent event) {
-        if(event.getKey() != GLFW.GLFW_KEY_ENTER || event.getAction() != GLFW.GLFW_PRESS) return;
+        if(event.getKey() != InputCompat.KEY_ENTER || event.getAction() != InputCompat.PRESS) return;
         if(GVScreen.searchBar != null) {
             open(GVScreen.searchBar.getInput());
         }
@@ -122,21 +122,21 @@ public class GV {
 
             if (guildData.summaryOnly || guildData.banner == null) return;
 
-            BlockState state = Blocks.WHITE_BANNER.getDefaultState();
+            BlockState state = Blocks.BANNER.white().defaultBlockState();
 
             GVScreen.bannerBlockEntity = new BannerBlockEntity(
-                    MinecraftClient.getInstance().player.getBlockPos().add(-1,0,0),
+                    Minecraft.getInstance().player.blockPosition().offset(-1,0,0),
                     state,
                     GVScreen.dyeColorFromName(currentGuildData.banner.base)
             );
 
-            GVScreen.bannerBlockEntity.setWorld(MinecraftClient.getInstance().world);
+            GVScreen.bannerBlockEntity.setLevel(Minecraft.getInstance().level);
 
-            BannerPatternsComponent.Builder builder = new BannerPatternsComponent.Builder();
+            BannerPatternLayers.Builder builder = new BannerPatternLayers.Builder();
 
             if (GV.currentGuildData.banner.layers != null) {
                 for (GuildData.BannerLayer layer : GV.currentGuildData.banner.layers) {
-                    RegistryEntry<BannerPattern> entry =
+                    Holder<BannerPattern> entry =
                             GVScreen.resolvePatternEntry(layer.pattern.toUpperCase());
                     if (entry != null) {
                         builder.add(entry, GVScreen.dyeColorFromName(layer.colour));
@@ -152,8 +152,8 @@ public class GV {
             return null;
         });
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        client.send(() -> client.setScreen(null));
+        Minecraft client = Minecraft.getInstance();
+        client.schedule(() -> client.gui.setScreen(null));
         currentGuild = guild;
         inGV = true;
     }

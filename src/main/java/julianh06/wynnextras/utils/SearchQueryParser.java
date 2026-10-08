@@ -5,11 +5,10 @@ import julianh06.wynnextras.wynncraft.item.ItemCategory;
 import julianh06.wynnextras.wynncraft.item.MountColorParser;
 import julianh06.wynnextras.wynncraft.item.WynnItemData;
 import julianh06.wynnextras.wynncraft.item.WynnItemParser;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -219,12 +218,12 @@ public class SearchQueryParser {
         WynnItemData wynnItem = item != null ? item : WynnItemParser.parse(stack).orElse(null);
 
         String itemName = "";
-        if (stack.getComponents() != null && stack.getComponents().get(DataComponentTypes.CUSTOM_NAME) != null) {
-            itemName = stack.getComponents().get(DataComponentTypes.CUSTOM_NAME).getString();
+        if (stack.getComponents() != null && stack.getComponents().get(DataComponents.CUSTOM_NAME) != null) {
+            itemName = stack.getComponents().get(DataComponents.CUSTOM_NAME).getString();
         } else if (stack.getCustomName() != null) {
             itemName = stack.getCustomName().getString();
         } else {
-            itemName = stack.getName().getString();
+            itemName = stack.getHoverName().getString();
         }
         itemName = itemName.replaceAll("§[0-9a-fk-or]", "").toLowerCase();
 
@@ -346,10 +345,10 @@ public class SearchQueryParser {
         StringBuilder sb = new StringBuilder();
         if (stack.getComponents() == null) return "";
 
-        LoreComponent loreComponent = stack.getComponents().get(DataComponentTypes.LORE);
+        ItemLore loreComponent = stack.getComponents().get(DataComponents.LORE);
         if (loreComponent == null) return "";
 
-        for (Text line : loreComponent.lines()) {
+        for (Component line : loreComponent.lines()) {
             sb.append(line.getString()).append(" ");
         }
         return sb.toString();

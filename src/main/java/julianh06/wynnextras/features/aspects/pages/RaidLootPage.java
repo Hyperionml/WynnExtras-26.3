@@ -5,10 +5,9 @@ import julianh06.wynnextras.features.raid.RaidLootConfig;
 import julianh06.wynnextras.features.raid.RaidLootData;
 import julianh06.wynnextras.utils.UI.TextInputWidget;
 import julianh06.wynnextras.utils.UI.Widget;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,9 +21,9 @@ public class RaidLootPage extends PageWidget {
     private final BagsPerRunWidget bagsPerRunWidget;
     private final PowderStatsWidget powderStatsWidget;
 
-    private static List<Text> amplifiersPerRunTooltip;
-    private static List<Text> bagsPerRunTooltip;
-    private static List<Text> hoveredTooltip = new ArrayList<>();
+    private static List<Component> amplifiersPerRunTooltip;
+    private static List<Component> bagsPerRunTooltip;
+    private static List<Component> hoveredTooltip = new ArrayList<>();
 
     private static boolean showRates = false;
 
@@ -60,7 +59,7 @@ public class RaidLootPage extends PageWidget {
     }
 
     @Override
-    public void drawContent(DrawContext context, int mouseX, int mouseY, float tickDelta) {
+    public void drawContent(GuiGraphicsExtractor context, int mouseX, int mouseY, float tickDelta) {
         hoveredTooltip.clear();
 
         int logicalW = (int) (width * ui.getScaleFactorF());
@@ -86,11 +85,11 @@ public class RaidLootPage extends PageWidget {
         showTotalWidget.draw(context, mouseX, mouseY, tickDelta, ui);
 
         if(showRates) {
-            int amplifierWidth = MinecraftClient.getInstance().textRenderer.getWidth(amplifiersText) * 3;
+            int amplifierWidth = Minecraft.getInstance().font.width(amplifiersText) * 3;
             amplifiersPerRunWidget.setBounds(Math.round(centerX - amplifierWidth / 2f), amplifiersLineY - 20, amplifierWidth, 40);
             amplifiersPerRunWidget.draw(context, mouseX, mouseY, tickDelta, ui);
 
-            int bagWidth = MinecraftClient.getInstance().textRenderer.getWidth(bagsText) * 3;
+            int bagWidth = Minecraft.getInstance().font.width(bagsText) * 3;
             bagsPerRunWidget.setBounds(Math.round(centerX - bagWidth / 2f), bagsLineY - 20, bagWidth, 40);
             bagsPerRunWidget.draw(context, mouseX, mouseY, tickDelta, ui);
         }
@@ -99,28 +98,28 @@ public class RaidLootPage extends PageWidget {
         powderStatsWidget.draw(context, mouseX, mouseY, tickDelta, ui);
 
         amplifiersPerRunTooltip = List.of(
-                Text.of("§e§lAmplifiers/Run Breakdown:"),
-                Text.of("§6Tier IV: §f" + String.format("%.3f", (double) currentStats.amplifierTier4 / currentTotalRuns) + "/run"),
-                Text.of("§6Tier III: §f" + String.format("%.3f", (double) currentStats.amplifierTier3 / currentTotalRuns) + "/run"),
-                Text.of("§eTier II: §f" + String.format("%.3f", (double) currentStats.amplifierTier2 / currentTotalRuns) + "/run"),
-                Text.of("§fTier I: §f" + String.format("%.3f", (double) currentStats.amplifierTier1 / currentTotalRuns) + "/run")
+                Component.nullToEmpty("§e§lAmplifiers/Run Breakdown:"),
+                Component.nullToEmpty("§6Tier IV: §f" + String.format("%.3f", (double) currentStats.amplifierTier4 / currentTotalRuns) + "/run"),
+                Component.nullToEmpty("§6Tier III: §f" + String.format("%.3f", (double) currentStats.amplifierTier3 / currentTotalRuns) + "/run"),
+                Component.nullToEmpty("§eTier II: §f" + String.format("%.3f", (double) currentStats.amplifierTier2 / currentTotalRuns) + "/run"),
+                Component.nullToEmpty("§fTier I: §f" + String.format("%.3f", (double) currentStats.amplifierTier1 / currentTotalRuns) + "/run")
         );
 
         bagsPerRunTooltip = List.of(
-                Text.of("§b§lBags/Run Breakdown:"),
-                Text.of("§6Stuffed: §f" + String.format("%.3f", (double) currentStats.stuffedBags / currentTotalRuns) + "/run"),
-                Text.of("§ePacked: §f" + String.format("%.3f", (double) currentStats.packedBags / currentTotalRuns) + "/run"),
-                Text.of("§aVaried: §f" + String.format("%.3f", (double) currentStats.variedBags / currentTotalRuns) + "/run")
+                Component.nullToEmpty("§b§lBags/Run Breakdown:"),
+                Component.nullToEmpty("§6Stuffed: §f" + String.format("%.3f", (double) currentStats.stuffedBags / currentTotalRuns) + "/run"),
+                Component.nullToEmpty("§ePacked: §f" + String.format("%.3f", (double) currentStats.packedBags / currentTotalRuns) + "/run"),
+                Component.nullToEmpty("§aVaried: §f" + String.format("%.3f", (double) currentStats.variedBags / currentTotalRuns) + "/run")
         );
     }
 
     @Override
-    public void drawForeground(DrawContext context, int mouseX, int mouseY, float tickDelta) {
+    public void drawForeground(GuiGraphicsExtractor context, int mouseX, int mouseY, float tickDelta) {
         if(hoveredTooltip.isEmpty()) return;
         TextInputWidget.drawFittingTooltip(context, hoveredTooltip, mouseX, mouseY);
     }
 
-    private void renderLootStats(DrawContext context, int centerX, int logicalW) {
+    private void renderLootStats(GuiGraphicsExtractor context, int centerX, int logicalW) {
         RaidLootData lootData = RaidLootConfig.INSTANCE.data;
 
         // Calculate combined stats
@@ -231,7 +230,7 @@ public class RaidLootPage extends PageWidget {
         }
     }
 
-    private void renderRateStats(DrawContext context, int centerX, int startY, int lineHeight,
+    private void renderRateStats(GuiGraphicsExtractor context, int centerX, int startY, int lineHeight,
                                  RaidLootData.RaidSpecificLoot stats, int totalRuns, long stacks, long le) {
         ui.drawCenteredText("§6§lTotal Runs: §f" + totalRuns, centerX, startY);
         startY += lineHeight;
@@ -268,7 +267,7 @@ public class RaidLootPage extends PageWidget {
         ui.drawCenteredText("§5§lAspects/Run: §f" + String.format("%.2f", (double)stats.totalAspects / totalRuns) + " §7(§5" + String.format("%.2f", (double)stats.mythicAspects / totalRuns) + " §7mythic§7)", centerX, startY);
     }
 
-    private void renderTotalStats(DrawContext context, int centerX, int startY, int lineHeight,
+    private void renderTotalStats(GuiGraphicsExtractor context, int centerX, int startY, int lineHeight,
                                   RaidLootData.RaidSpecificLoot stats, int totalRuns, long stacks, long le, long eb) {
         ui.drawCenteredText("§6§lTotal Runs: §f" + totalRuns, centerX, startY);
         startY += lineHeight;
@@ -324,7 +323,7 @@ public class RaidLootPage extends PageWidget {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawButton(x, y, width, height, hovered);
 
             String textColor = "";
@@ -343,7 +342,7 @@ public class RaidLootPage extends PageWidget {
 
     private static class ShowTotalWidget extends Widget {
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawButton(x, y, width, height, hovered);
 
             ui.drawCenteredText(showRates ? "§a§lShowing: Average/Run" : "§e§lShowing: Totals", x + width / 2f, y + height / 2f);
@@ -358,26 +357,26 @@ public class RaidLootPage extends PageWidget {
 
     private static class AmplifiersPerRunWidget extends Widget {
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             if(hovered) hoveredTooltip = new ArrayList<>(amplifiersPerRunTooltip);
         }
     }
 
     private static class BagsPerRunWidget extends Widget {
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             if(hovered) hoveredTooltip = new ArrayList<>(bagsPerRunTooltip);
         }
     }
 
-    private static List<Text> createPowderTooltip(RaidLootData.RaidSpecificLoot stats, int totalRuns, boolean showRates) {
-        List<Text> tooltip = new ArrayList<>();
-        tooltip.add(Text.of("§6§lPowder Breakdown:"));
+    private static List<Component> createPowderTooltip(RaidLootData.RaidSpecificLoot stats, int totalRuns, boolean showRates) {
+        List<Component> tooltip = new ArrayList<>();
+        tooltip.add(Component.nullToEmpty("§6§lPowder Breakdown:"));
         for (int tier = 0; tier < POWDER_TIER_NAMES.length; tier++) {
             String amount = showRates
                     ? String.format("%.3f/run", (double) stats.getPowderTierTotal(tier) / totalRuns)
                     : String.valueOf(stats.getPowderTierTotal(tier));
-            tooltip.add(Text.of("§6Tier " + POWDER_TIER_NAMES[tier] + ": §f" + amount));
+            tooltip.add(Component.nullToEmpty("§6Tier " + POWDER_TIER_NAMES[tier] + ": §f" + amount));
         }
         return tooltip;
     }
@@ -386,19 +385,19 @@ public class RaidLootPage extends PageWidget {
         private String text = "";
         private int logicalCenterX;
         private int logicalY;
-        private List<Text> tooltip = List.of();
+        private List<Component> tooltip = List.of();
 
-        private void setContent(String text, int centerX, int y, List<Text> tooltip) {
+        private void setContent(String text, int centerX, int y, List<Component> tooltip) {
             this.text = text;
             this.logicalCenterX = centerX;
             this.logicalY = y;
             this.tooltip = tooltip;
-            int logicalWidth = MinecraftClient.getInstance().textRenderer.getWidth(text) * 3;
+            int logicalWidth = Minecraft.getInstance().font.width(text) * 3;
             setBounds(Math.round(centerX - logicalWidth / 2f), y - 14, logicalWidth, 28);
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             ui.drawCenteredText(text, logicalCenterX, logicalY);
             if(hovered) hoveredTooltip = new ArrayList<>(tooltip);
         }

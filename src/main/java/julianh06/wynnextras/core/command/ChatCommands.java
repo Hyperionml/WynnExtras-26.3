@@ -1,7 +1,7 @@
 package julianh06.wynnextras.core.command;
 
 import julianh06.wynnextras.features.chat.ChatManager;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
@@ -15,18 +15,18 @@ public class ChatCommands {
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> register(String base) {
-        return ClientCommandManager.literal(base)
-                .then(ClientCommandManager.literal("p")
+        return ClientCommands.literal(base)
+                .then(ClientCommands.literal("p")
                         .executes(c -> {
                             ChatManager.setCurrentChannel(ChatManager.ChatChannel.PARTY);
                             return 1;
                         }))
-                .then(ClientCommandManager.literal("g")
+                .then(ClientCommands.literal("g")
                         .executes(c -> {
                             ChatManager.setCurrentChannel(ChatManager.ChatChannel.GUILD);
                             return 1;
                         }))
-                .then(ClientCommandManager.literal("a")
+                .then(ClientCommands.literal("a")
                         .executes(c -> {
                             ChatManager.setCurrentChannel(ChatManager.ChatChannel.ALL);
                             return 1;

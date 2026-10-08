@@ -10,10 +10,9 @@ import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.core.command.Command;
 import julianh06.wynnextras.core.command.SubCommand;
 import julianh06.wynnextras.features.chat.RaidChatNotifier;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.text.Text;
-
+import net.minecraft.network.chat.Component;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -39,11 +38,11 @@ public class RaidPBCommands {
 
                 MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(filter == null ? "§eRaid PBs:" : "§eRaid PBs matching §f" + filter + "§e:"));
                 filteredPBs.stream()
-                        .forEach(entry -> MinecraftUtils.sendMessageToClient(Text.of("§7" + entry.getKey() + ": §f" + RaidChatNotifier.formatTime(entry.getValue()))));
+                        .forEach(entry -> MinecraftUtils.sendMessageToClient(Component.nullToEmpty("§7" + entry.getKey() + ": §f" + RaidChatNotifier.formatTime(entry.getValue()))));
                 return 1;
             },
             null,
-            List.of(ClientCommandManager.argument("filter", StringArgumentType.greedyString()))
+            List.of(ClientCommands.argument("filter", StringArgumentType.greedyString()))
     );
 
     private static final SubCommand resetAllCmd = new SubCommand(
@@ -63,7 +62,7 @@ public class RaidPBCommands {
             "",
             RaidPBCommands::resetPB,
             List.of(resetAllCmd),
-            List.of(ClientCommandManager.argument("pb", StringArgumentType.greedyString())
+            List.of(ClientCommands.argument("pb", StringArgumentType.greedyString())
                     .suggests(RaidPBCommands::suggestPBKeys))
     );
 

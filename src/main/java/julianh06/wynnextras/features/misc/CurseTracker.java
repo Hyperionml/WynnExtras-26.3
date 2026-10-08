@@ -2,17 +2,16 @@ package julianh06.wynnextras.features.misc;
 
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.math.Box;
-
+import julianh06.wynnextras.compat.client.HudRenderCallback;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.AABB;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -46,15 +45,15 @@ public class CurseTracker {
         return null;
     }
 
-    private static LivingEntity findClosestMob(Entity center, ClientWorld world, double maxRange) {
-        Box box = new Box(
+    private static LivingEntity findClosestMob(Entity center, ClientLevel world, double maxRange) {
+        AABB box = new AABB(
             center.getX() - maxRange, center.getY() - maxRange, center.getZ() - maxRange,
             center.getX() + maxRange, center.getY() + maxRange, center.getZ() + maxRange
         );
         LivingEntity best = null;
         double bestDistSq = Double.MAX_VALUE;
-        Entity self = MinecraftClient.getInstance().player;
-        for (LivingEntity le : world.getNonSpectatingEntities(LivingEntity.class, box)) {
+        Entity self = Minecraft.getInstance().player;
+        for (LivingEntity le : world.getEntitiesOfClass(LivingEntity.class, box)) {
             if (le == self) continue;
             double dx = le.getX() - center.getX();
             double dy = le.getY() - center.getY();
@@ -83,7 +82,7 @@ public class CurseTracker {
                 cursedEntityIds = Set.of();
                 return;
             }
-            if (client.world == null || client.player == null) {
+            if (client.level == null || client.player == null) {
                 labelValue = -1f;
                 cursedEntityIds = Set.of();
                 return;
@@ -93,15 +92,15 @@ public class CurseTracker {
             if (tickCounter % 10 != 0) return;
 
             double px = client.player.getX(), py = client.player.getY(), pz = client.player.getZ();
-            Box searchBox = new Box(px - 64, py - 32, pz - 64, px + 64, py + 32, pz + 64);
+            AABB searchBox = new AABB(px - 64, py - 32, pz - 64, px + 64, py + 32, pz + 64);
 
             float bestSeconds = -1f;
             Set<Integer> newCursed = new HashSet<>();
-            for (Entity e : client.world.getNonSpectatingEntities(Entity.class, searchBox)) {
-                if (!(e instanceof DisplayEntity.TextDisplayEntity tde)) continue;
+            for (Entity e : client.level.getEntitiesOfClass(Entity.class, searchBox)) {
+                if (!(e instanceof Display.TextDisplay tde)) continue;
                 String raw = tde.getText().getString();
                 if (raw == null || raw.indexOf(CURSE_SYMBOL) < 0) continue;
-                String text = Formatting.strip(raw);
+                String text = ChatFormatting.stripFormatting(raw);
                 if (text == null) continue;
 
                 Matcher m = CURSE_PATTERN.matcher(text);
@@ -114,7 +113,7 @@ public class CurseTracker {
                     } catch (NumberFormatException ignored) {}
                 }
                 if (matched) {
-                    LivingEntity closest = findClosestMob(tde, client.world, 3.0);
+                    LivingEntity closest = findClosestMob(tde, client.level, 3.0);
                     if (closest != null) newCursed.add(closest.getId());
                 }
             }
@@ -137,25 +136,25 @@ public class CurseTracker {
         HudRenderCallback.EVENT.register(CurseTracker::renderHud);
     }
 
-    private static void renderHud(DrawContext ctx, RenderTickCounter tickCounter) {
+    private static void renderHud(GuiGraphicsExtractor ctx, DeltaTracker tickCounter) {
         WynnExtrasConfig c = WynnExtrasConfig.INSTANCE;
         if (!c.curseTrackerEnabled) return;
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.player == null || mc.options.hudHidden) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.gui.hud.isHidden()) return;
 
         CurseState state = getState();
         if (state == null) return;
 
         float ts = c.curseTrackerScale;
-        int baseX = c.curseTrackerX == -1 ? mc.getWindow().getScaledWidth() / 2 : c.curseTrackerX;
+        int baseX = c.curseTrackerX == -1 ? mc.getWindow().getGuiScaledWidth() / 2 : c.curseTrackerX;
         int baseY = c.curseTrackerY;
 
         String line = state.displayText();
         int color = state.color();
 
-        int tw = mc.textRenderer.getWidth(line);
-        int th = mc.textRenderer.fontHeight;
-        int previewTw = mc.textRenderer.getWidth("Curse: 3.2s");
+        int tw = mc.font.width(line);
+        int th = mc.font.lineHeight;
+        int previewTw = mc.font.width("Curse: 3.2s");
 
         WynnExtrasConfig.Align align = c.curseTrackerAlignment;
         int textOffsetX;
@@ -167,10 +166,10 @@ public class CurseTracker {
             textOffsetX = -tw / 2;
         }
 
-        ctx.getMatrices().pushMatrix();
-        ctx.getMatrices().translate(baseX, baseY);
-        ctx.getMatrices().scale(ts, ts);
-        ctx.drawText(mc.textRenderer, line, textOffsetX, -th / 2, color, true);
-        ctx.getMatrices().popMatrix();
+        ctx.pose().pushMatrix();
+        ctx.pose().translate(baseX, baseY);
+        ctx.pose().scale(ts, ts);
+        ctx.text(mc.font, line, textOffsetX, -th / 2, color, true);
+        ctx.pose().popMatrix();
     }
 }

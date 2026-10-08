@@ -1,6 +1,9 @@
 package julianh06.wynnextras.mixin.BankOverlay;
 
 import julianh06.wynnextras.utils.text.StyledText;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.world.item.ItemStack;
 import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.utils.render.FontRenderer;
 import julianh06.wynnextras.utils.render.HorizontalAlignment;
@@ -8,9 +11,6 @@ import julianh06.wynnextras.utils.render.TextShadow;
 import julianh06.wynnextras.utils.render.VerticalAlignment;
 import julianh06.wynnextras.features.inventory.BankOverlay;
 import julianh06.wynnextras.features.inventory.BankOverlayType;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.item.ItemStack;
 import org.joml.Matrix3x2fStack;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -19,10 +19,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin (DrawContext.class)
+@Mixin (GuiGraphicsExtractor.class)
 public abstract class DrawContextMixin{
 
-    @Final @Shadow private Matrix3x2fStack matrices;
+    @Final @Shadow private Matrix3x2fStack pose;
 //
 //    @Redirect(
 //            method = "drawTooltip(Lnet/minecraft/client/font/TextRenderer;Ljava/util/List;IILnet/minecraft/client/gui/tooltip/TooltipPositioner;Lnet/minecraft/util/Identifier;)V",
@@ -52,17 +52,17 @@ public abstract class DrawContextMixin{
 //        }
 //    }
 
-    @Inject(method = "drawStackCount", at = @At("HEAD"), cancellable = true)
-    private void drawStackCount(TextRenderer textRenderer, ItemStack stack, int x, int y, String stackCountText, CallbackInfo ci) {
+    @Inject(method = "itemCount", at = @At("HEAD"), cancellable = true)
+    private void drawStackCount(Font textRenderer, ItemStack stack, int x, int y, String stackCountText, CallbackInfo ci) {
         if(BankOverlay.currentOverlayType != BankOverlayType.NONE) {
             if (stack.getCount() != 1 || stackCountText != null) {
                 String string = stackCountText == null ? String.valueOf(stack.getCount()) : stackCountText;
                 //matrices.push();
                 //matrices.translate(0.0F, 0.0F, 200.0F);
                 FontRenderer.getInstance().renderText(
-                        (DrawContext) (Object) this,
+                        (GuiGraphicsExtractor) (Object) this,
                         StyledText.fromString(string),
-                        (float) x + 19 - 2 - textRenderer.getWidth(string),
+                        (float) x + 19 - 2 - textRenderer.width(string),
                         (float) y + 6 + 3,
                         CustomColor.fromHexString("FFFFFF"),
                         HorizontalAlignment.LEFT,

@@ -14,16 +14,15 @@ import julianh06.wynnextras.features.raid.RaidLootTracker;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.utils.UI.WEScreen;
 import julianh06.wynnextras.utils.WynncraftApiHandler;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.util.Pair;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import julianh06.wynnextras.compat.client.Tuple;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +38,7 @@ public class maintracking {
             "scan",
             "Manually scan your aspects from the ability tree",
             (ctx) -> {
-                AspectScanning.openMenu(MinecraftClient.getInstance(), MinecraftClient.getInstance().player);
+                AspectScanning.openMenu(Minecraft.getInstance(), Minecraft.getInstance().player);
                 return 1;
             },
             null,
@@ -51,7 +50,7 @@ public class maintracking {
             "lootpool",
             "Open the loot pool page",
             (ctx) -> {
-                MinecraftUtils.mc().send(() -> {
+                MinecraftUtils.mc().schedule(() -> {
                     WEScreen.open(AspectScreen::new);
                     AspectScreen.currentPage = AspectScreen.Page.AspectLootpool;
                 });
@@ -66,7 +65,7 @@ public class maintracking {
             "gambit",
             "Open the gambits page",
             (ctx) -> {
-                MinecraftUtils.mc().send(() -> {
+                MinecraftUtils.mc().schedule(() -> {
                     WEScreen.open(AspectScreen::new);
                     AspectScreen.currentPage = AspectScreen.Page.Gambits;
                 });
@@ -81,7 +80,7 @@ public class maintracking {
             "raidloot",
             "Open the raid loot tracker page",
             (ctx) -> {
-                MinecraftUtils.mc().send(() -> {
+                MinecraftUtils.mc().schedule(() -> {
                     WEScreen.open(AspectScreen::new);
                     AspectScreen.currentPage = AspectScreen.Page.RaidLoot;
                 });
@@ -96,7 +95,7 @@ public class maintracking {
             "leaderboard",
             "View the aspect leaderboard",
             (ctx) -> {
-                MinecraftUtils.mc().send(() -> {
+                MinecraftUtils.mc().schedule(() -> {
                     WEScreen.open(AspectScreen::new);
                     AspectScreen.currentPage = AspectScreen.Page.Leaderboard;
                 });
@@ -112,7 +111,7 @@ public class maintracking {
             "Search for a player's aspects",
             (ctx) -> {
                 String playerName = StringArgumentType.getString(ctx, "player");
-                MinecraftUtils.mc().send(() -> {
+                MinecraftUtils.mc().schedule(() -> {
                     WEScreen.open(AspectScreen::new);
                     AspectScreen.currentPage = AspectScreen.Page.Aspects;
                     AspectsPage.performPlayerSearch(playerName);
@@ -120,7 +119,7 @@ public class maintracking {
                 return 1;
             },
             List.of(scanSubCmd, lootpoolSubCmd, gambitSubCmd, raidlootSubCmd, leaderboardSubCmd),
-            List.of(ClientCommandManager.argument("player", StringArgumentType.word()))
+            List.of(ClientCommands.argument("player", StringArgumentType.word()))
     );
 
     // Main command without arguments: /we aspects
@@ -129,7 +128,7 @@ public class maintracking {
             "Aspect tracking and management",
             (ctx) -> {
                 // Default: open aspects screen (My Aspects page)
-                MinecraftUtils.mc().send(() -> {
+                MinecraftUtils.mc().schedule(() -> {
                     WEScreen.open(AspectScreen::new);
                     AspectScreen.currentPage = AspectScreen.Page.Aspects;
                 });
@@ -144,7 +143,7 @@ public class maintracking {
             "gambits",
             "View today's gambits and countdown",
             (ctx) -> {
-                MinecraftUtils.mc().send(() -> {
+                MinecraftUtils.mc().schedule(() -> {
                     WEScreen.open(AspectScreen::new);
                     AspectScreen.currentPage = AspectScreen.Page.Gambits;
                 });
@@ -159,7 +158,7 @@ public class maintracking {
             "lootpool",
             "View raid loot pools",
             (ctx) -> {
-                MinecraftUtils.mc().send(() -> {
+                MinecraftUtils.mc().schedule(() -> {
                     WEScreen.open(AspectScreen::new);
                     AspectScreen.currentPage = AspectScreen.Page.AspectLootpool;
                 });
@@ -173,7 +172,7 @@ public class maintracking {
             "lootruns",
             "View lootrun loot pools",
             (ctx) -> {
-                MinecraftUtils.mc().send(() -> {
+                MinecraftUtils.mc().schedule(() -> {
                     WEScreen.open(AspectScreen::new);
                     AspectScreen.currentPage = AspectScreen.Page.Lootruns;
                 });
@@ -209,15 +208,15 @@ public class maintracking {
         ScreenTitleDebugger.register();
 
         ClientTickEvents.END_CLIENT_TICK.register((tick) -> {
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client.player == null || client.world == null) {
+            Minecraft client = Minecraft.getInstance();
+            if (client.player == null || client.level == null) {
                 return;
             }
-            Screen currScreen = client.currentScreen;
-            HandledScreen<?> screen = null;
+            Screen currScreen = client.gui.screen();
+            AbstractContainerScreen<?> screen = null;
             if (currScreen == null) {
                 if (wasInAspectMenu && passiveScanActive && !AspectScanning.allAspects.isEmpty()) {
-                    Map<String, Pair<String, String>> copy = new HashMap<>(AspectScanning.allAspects);
+                    Map<String, Tuple<String, String>> copy = new HashMap<>(AspectScanning.allAspects);
                     LocalAspectStorage.save(copy);
                     WynncraftApiHandler.processAspects(copy);
                     AspectScanning.resetAllAspects();
@@ -237,7 +236,7 @@ public class maintracking {
                 return;
             }
 
-            if (currScreen instanceof HandledScreen) screen = (HandledScreen<?>) currScreen;
+            if (currScreen instanceof AbstractContainerScreen) screen = (AbstractContainerScreen<?>) currScreen;
             else screen = null;
 
             String InventoryTitle = currScreen.getTitle().getString();
@@ -258,17 +257,17 @@ public class maintracking {
 
             // Character menu: wait 5 ticks then click slot 9 (Ability Tree) to open the tree menu
             if(inCharacterMenu && needToClickAbilityTree){
-                ScreenHandler menu = MinecraftUtils.containerMenu();
+                AbstractContainerMenu menu = MinecraftUtils.containerMenu();
                 if(menu == null) return;
 
                 characterMenuWaitTicks++;
                 if(characterMenuWaitTicks >= 5){
                     if(menu.slots.size() > 9) {
                         Slot slot = menu.getSlot(9);
-                        if(slot != null && slot.getStack() != null && slot.getStack().getName() != null) {
-                            String name = slot.getStack().getName().getString();
+                        if(slot != null && slot.getItem() != null && slot.getItem().getHoverName() != null) {
+                            String name = slot.getItem().getHoverName().getString();
                             if(name.contains("Ability Tree")) {
-                                ContainerUtils.clickOnSlot(9, menu.syncId, 0, menu.getStacks());
+                                ContainerUtils.clickOnSlot(9, menu.containerId, 0, menu.getItems());
                                 needToClickAbilityTree = false;
                                 characterMenuWaitTicks = 0;
                             }
@@ -280,7 +279,7 @@ public class maintracking {
 
             if(inTreeMenu && AspectScanreq){
                 needToClickAbilityTree = false; // Reset flag since we're now in the tree menu
-                TreeLoader.clickOnNameInInventory("Aspects", screen, MinecraftClient.getInstance());
+                TreeLoader.clickOnNameInInventory("Aspects", screen, Minecraft.getInstance());
                 AspectScanning.setSearchedPages(0);
                 GuiSettleTicks = 0; // Reset settle ticks for fresh start
                 return;

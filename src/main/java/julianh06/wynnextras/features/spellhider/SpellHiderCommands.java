@@ -9,7 +9,7 @@ import julianh06.wynnextras.core.command.Command;
 import julianh06.wynnextras.core.command.SubCommand;
 import julianh06.wynnextras.event.CommandRegistrationEvent;
 import julianh06.wynnextras.utils.ChatUtils;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.neoforged.bus.api.SubscribeEvent;
 import org.apache.commons.lang3.tuple.Triple;
@@ -47,7 +47,7 @@ public class SpellHiderCommands {
                     return 1;
                 },
                 null,
-                List.of(ClientCommandManager.argument("namespace", StringArgumentType.string())
+                List.of(ClientCommands.argument("namespace", StringArgumentType.string())
                         .suggests(SpellHiderCommands::nameSpaceSelector))
         );
 
@@ -60,7 +60,7 @@ public class SpellHiderCommands {
                     return 1;
                 },
                 null,
-                List.of(ClientCommandManager.argument("namespace", StringArgumentType.string())
+                List.of(ClientCommands.argument("namespace", StringArgumentType.string())
                         .suggests(SpellHiderCommands::nameSpaceSelector))
         );
 
@@ -83,7 +83,7 @@ public class SpellHiderCommands {
                 },
                 null,
                 List.of(
-                        ClientCommandManager.argument("state", StringArgumentType.string())
+                        ClientCommands.argument("state", StringArgumentType.string())
                                 .suggests((CommandContext<FabricClientCommandSource> context, SuggestionsBuilder builder) -> {
                                     Arrays.stream(ModelDataLogger.State.values()).forEach(state -> builder.suggest(state.name()));
                                     return builder.buildFuture();
@@ -110,7 +110,7 @@ public class SpellHiderCommands {
                 },
                 null,
                 List.of(
-                        ClientCommandManager.argument("state", StringArgumentType.string())
+                        ClientCommands.argument("state", StringArgumentType.string())
                                 .suggests((CommandContext<FabricClientCommandSource> context, SuggestionsBuilder builder) -> {
                                     Arrays.stream(ModelDataLogger.DisplayState.values()).forEach(state -> builder.suggest(state.name()));
                                     return builder.buildFuture();
@@ -151,9 +151,9 @@ public class SpellHiderCommands {
                 },
                 null,
                 List.of(
-                        ClientCommandManager.argument("oldName", StringArgumentType.string())
+                        ClientCommands.argument("oldName", StringArgumentType.string())
                                 .suggests(SpellHiderCommands::nameSpaceSelector),
-                        ClientCommandManager.argument("newName", StringArgumentType.string())
+                        ClientCommands.argument("newName", StringArgumentType.string())
                                 .suggests(SpellHiderCommands::nameSpaceSelector)
                 )
         );
@@ -186,7 +186,7 @@ public class SpellHiderCommands {
                 },
                 null,
                 List.of(
-                        ClientCommandManager.argument("namespace", StringArgumentType.string())
+                        ClientCommands.argument("namespace", StringArgumentType.string())
                                 .suggests(SpellHiderCommands::nameSpaceSelector)
                 )
         );
@@ -210,11 +210,11 @@ public class SpellHiderCommands {
                 },
                 null,
                 List.of(
-                        ClientCommandManager.argument("namespace", StringArgumentType.string())
+                        ClientCommands.argument("namespace", StringArgumentType.string())
                                 .suggests(SpellHiderCommands::nameSpaceSelector),
-                        ClientCommandManager.argument("modifier", StringArgumentType.string())
+                        ClientCommands.argument("modifier", StringArgumentType.string())
                                 .suggests(SpellHiderCommands::skillModifierSelector),
-                        ClientCommandManager.argument("value", StringArgumentType.string())
+                        ClientCommands.argument("value", StringArgumentType.string())
                                 .suggests((CommandContext<FabricClientCommandSource> context, SuggestionsBuilder builder) -> {
                                     SpellModifier modifier = SpellModifier.from(StringArgumentType.getString(context, "modifier"));
                                     if (modifier != null) {
@@ -249,13 +249,13 @@ public class SpellHiderCommands {
                 },
                 null,
                 List.of(
-                        ClientCommandManager.argument("profile", StringArgumentType.string())
+                        ClientCommands.argument("profile", StringArgumentType.string())
                                 .suggests(SpellHiderCommands::profileSelector),
-                        ClientCommandManager.argument("namespace", StringArgumentType.string())
+                        ClientCommands.argument("namespace", StringArgumentType.string())
                                 .suggests(SpellHiderCommands::nameSpaceSelector),
-                        ClientCommandManager.argument("modifier", StringArgumentType.string())
+                        ClientCommands.argument("modifier", StringArgumentType.string())
                                 .suggests(SpellHiderCommands::skillModifierSelector),
-                        ClientCommandManager.argument("value", StringArgumentType.string())
+                        ClientCommands.argument("value", StringArgumentType.string())
                                 .suggests((CommandContext<FabricClientCommandSource> context, SuggestionsBuilder builder) -> {
                                     SpellModifier modifier = SpellModifier.from(StringArgumentType.getString(context, "modifier"));
                                     if (modifier != null) {
@@ -276,7 +276,7 @@ public class SpellHiderCommands {
                 },
                 null,
                 List.of(
-                        ClientCommandManager.argument("name", StringArgumentType.string())
+                        ClientCommands.argument("name", StringArgumentType.string())
                 )
         );
 
@@ -291,7 +291,7 @@ public class SpellHiderCommands {
                 },
                 null,
                 List.of(
-                        ClientCommandManager.argument("name", StringArgumentType.string())
+                        ClientCommands.argument("name", StringArgumentType.string())
                 )
         );
 

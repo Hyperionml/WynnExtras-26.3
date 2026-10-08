@@ -12,20 +12,14 @@ import julianh06.wynnextras.features.crafting.calc.CraftXpCalculator;
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.features.profileviewer.data.CharacterData;
 import julianh06.wynnextras.features.profileviewer.data.Profession;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.render.RenderTickCounter;
-
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
+import julianh06.wynnextras.compat.client.HudRenderCallback;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.Component;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -257,7 +251,7 @@ public class ProfessionOverlay {
 
     public static void fetchLeaderboardForAllProfessions() {
         if (MinecraftUtils.player() == null) return;
-        String playerUuid = MinecraftUtils.player().getUuidAsString();
+        String playerUuid = MinecraftUtils.player().getStringUUID();
 
         for (WEProfessionType prof : WEProfessionType.values()) {
             int level = ProfessionState.level(prof);
@@ -363,25 +357,25 @@ public class ProfessionOverlay {
         HudRenderCallback.EVENT.register(ProfessionOverlay::renderHud);
     }
 
-    public static void renderOnScreen(DrawContext ctx) {
-        if (MinecraftClient.getInstance().options.hudHidden) return;
-        Screen screen = MinecraftClient.getInstance().currentScreen;
-        if (!(screen instanceof HandledScreen<?>) && !(screen instanceof ChatScreen)) return;
+    public static void renderOnScreen(GuiGraphicsExtractor ctx) {
+        if (Minecraft.getInstance().gui.hud.isHidden()) return;
+        Screen screen = Minecraft.getInstance().gui.screen();
+        if (!(screen instanceof AbstractContainerScreen<?>) && !(screen instanceof ChatScreen)) return;
         doRender(ctx);
     }
 
-    private static void renderHud(DrawContext ctx, RenderTickCounter tickCounter) {
-        if (MinecraftClient.getInstance().options.hudHidden) return;
+    private static void renderHud(GuiGraphicsExtractor ctx, DeltaTracker tickCounter) {
+        if (Minecraft.getInstance().gui.hud.isHidden()) return;
         // Skip HUD render when a screen is open (renderOnScreen handles that case)
-        if (MinecraftClient.getInstance().currentScreen != null) return;
+        if (Minecraft.getInstance().gui.screen() != null) return;
         doRender(ctx);
     }
 
-    private static void doRender(DrawContext ctx) {
+    private static void doRender(GuiGraphicsExtractor ctx) {
         WynnExtrasConfig c = WynnExtrasConfig.INSTANCE;
         if (!c.professionOverlayEnabled) return;
         if (!MinecraftUtils.isOnWynncraft()) return;
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         if (lastProfession == null) return;
 
@@ -549,20 +543,20 @@ public class ProfessionOverlay {
 
     }
 
-    private static void drawLine(DrawContext ctx, MinecraftClient mc, String text, int baseX, int baseY, int lineH, int lineIdx, float scale, int color) {
-        ctx.getMatrices().pushMatrix();
-        ctx.getMatrices().translate(baseX, baseY + lineIdx * lineH);
-        ctx.getMatrices().scale(scale, scale);
-        ctx.drawText(mc.textRenderer, text, 0, 0, color, true);
-        ctx.getMatrices().popMatrix();
+    private static void drawLine(GuiGraphicsExtractor ctx, Minecraft mc, String text, int baseX, int baseY, int lineH, int lineIdx, float scale, int color) {
+        ctx.pose().pushMatrix();
+        ctx.pose().translate(baseX, baseY + lineIdx * lineH);
+        ctx.pose().scale(scale, scale);
+        ctx.text(mc.font, text, 0, 0, color, true);
+        ctx.pose().popMatrix();
     }
 
-    private static void drawLineText(DrawContext ctx, MinecraftClient mc, Text text, int baseX, int baseY, int lineH, int lineIdx, float scale) {
-        ctx.getMatrices().pushMatrix();
-        ctx.getMatrices().translate(baseX, baseY + lineIdx * lineH);
-        ctx.getMatrices().scale(scale, scale);
-        ctx.drawText(mc.textRenderer, text.asOrderedText(), 0, 0, 0xFFFFFFFF, true);
-        ctx.getMatrices().popMatrix();
+    private static void drawLineText(GuiGraphicsExtractor ctx, Minecraft mc, Component text, int baseX, int baseY, int lineH, int lineIdx, float scale) {
+        ctx.pose().pushMatrix();
+        ctx.pose().translate(baseX, baseY + lineIdx * lineH);
+        ctx.pose().scale(scale, scale);
+        ctx.text(mc.font, text.getVisualOrderText(), 0, 0, 0xFFFFFFFF, true);
+        ctx.pose().popMatrix();
     }
 
     private static String formatTime(double hours) {

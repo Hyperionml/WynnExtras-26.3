@@ -41,6 +41,12 @@ public class CurrentVersionData {
     }
 
     public static void save() {
+        try {
+            Files.createDirectories(CONFIG_PATH.getParent());
+        } catch (IOException e) {
+            WynnExtras.LOGGER.error("Could not create configuration directory", e);
+            return;
+        }
         try (Writer writer = Files.newBufferedWriter(CONFIG_PATH)) {
             gson.toJson(INSTANCE, writer);
         } catch (IOException e) {
@@ -68,7 +74,7 @@ public class CurrentVersionData {
                 String date = obj.get("date_published").getAsString();
                 String gameVersion = obj.get("game_versions").getAsString();
 
-                if(!gameVersion.equals(SharedConstants.getGameVersion().name())) continue;
+                if(!gameVersion.equals(SharedConstants.getCurrentVersion().name())) continue;
 
                 if (date.compareTo(latestDate) > 0) {
                     latest = version;

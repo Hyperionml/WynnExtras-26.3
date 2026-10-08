@@ -1,8 +1,8 @@
 package julianh06.wynnextras.mixin;
 
 import julianh06.wynnextras.duck.EntityRenderStateAccess;
-import net.minecraft.client.render.entity.state.EntityRenderState;
-import net.minecraft.entity.Entity;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 

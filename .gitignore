@@ -1,6 +1,9 @@
 # gradle
 
 .gradle/
+.gradle-user-home/
+.migration-tools/
+migration-build.log
 build/
 out/
 classes/

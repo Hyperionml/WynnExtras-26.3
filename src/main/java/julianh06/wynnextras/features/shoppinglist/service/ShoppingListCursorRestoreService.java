@@ -1,9 +1,9 @@
 package julianh06.wynnextras.features.shoppinglist.service;
 
 import julianh06.wynnextras.features.shoppinglist.ui.ShoppingListScreenContext;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 public final class ShoppingListCursorRestoreService {
     private static final long RESTORE_TIMEOUT_MS = 10_000L;
@@ -13,7 +13,7 @@ public final class ShoppingListCursorRestoreService {
     private ShoppingListCursorRestoreService() {}
 
     public static void recordBeforeShoppingListTradeMarketSearch() {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client == null || client.getWindow() == null) {
             return;
         }
@@ -21,7 +21,7 @@ public final class ShoppingListCursorRestoreService {
         try {
             double[] x = new double[1];
             double[] y = new double[1];
-            GLFW.glfwGetCursorPos(client.getWindow().getHandle(), x, y);
+            InputCompat.cursorPosition(client.getWindow().handle(), x, y);
             pendingRestore = new PendingRestore(
                     x[0],
                     y[0],
@@ -40,12 +40,12 @@ public final class ShoppingListCursorRestoreService {
             return false;
         }
 
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         pendingRestore = pendingRestore.arm(System.currentTimeMillis(), screenKey(client));
         return true;
     }
 
-    public static TickResult tick(MinecraftClient client) {
+    public static TickResult tick(Minecraft client) {
         if (client == null || client.getWindow() == null || pendingRestore == null) {
             return TickResult.NONE;
         }
@@ -66,7 +66,7 @@ public final class ShoppingListCursorRestoreService {
                     stableResultsScreen);
             switch (decision) {
                 case RESTORE -> {
-                    GLFW.glfwSetCursorPos(client.getWindow().getHandle(), pendingRestore.x(), pendingRestore.y());
+                    InputCompat.setCursorPosition(client.getWindow().handle(), pendingRestore.x(), pendingRestore.y());
                     pendingRestore = null;
                     return TickResult.RESTORED;
                 }
@@ -114,8 +114,8 @@ public final class ShoppingListCursorRestoreService {
         pendingRestore = null;
     }
 
-    private static boolean isTradeMarketScreen(MinecraftClient client) {
-        if (!(client.currentScreen instanceof HandledScreen<?> screen)) {
+    private static boolean isTradeMarketScreen(Minecraft client) {
+        if (!(client.gui.screen() instanceof AbstractContainerScreen<?> screen)) {
             return false;
         }
         ShoppingListScreenContext context = ShoppingListScreenContext.detect(screen, false);
@@ -136,18 +136,18 @@ public final class ShoppingListCursorRestoreService {
         TIMED_OUT
     }
 
-    private static ScreenKey screenKey(MinecraftClient client) {
-        if (client == null || client.currentScreen == null) {
+    private static ScreenKey screenKey(Minecraft client) {
+        if (client == null || client.gui.screen() == null) {
             return ScreenKey.none();
         }
         int syncId = -1;
-        if (client.currentScreen instanceof HandledScreen<?> handledScreen
-                && handledScreen.getScreenHandler() != null) {
-            syncId = handledScreen.getScreenHandler().syncId;
+        if (client.gui.screen() instanceof AbstractContainerScreen<?> handledScreen
+                && handledScreen.getMenu() != null) {
+            syncId = handledScreen.getMenu().containerId;
         }
         return new ScreenKey(
-                client.currentScreen.getClass().getName(),
-                System.identityHashCode(client.currentScreen),
+                client.gui.screen().getClass().getName(),
+                System.identityHashCode(client.gui.screen()),
                 syncId);
     }
 

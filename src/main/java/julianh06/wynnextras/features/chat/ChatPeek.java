@@ -6,7 +6,7 @@
 //import net.minecraft.client.MinecraftClient;
 //import net.minecraft.client.gui.hud.ChatHud;
 //import net.neoforged.bus.api.SubscribeEvent;
-//import org.lwjgl.glfw.GLFW;
+//import julianh06.wynnextras.compat.client.InputCompat;
 //
 //
 //@WEModule
@@ -28,13 +28,13 @@
 //        if (mc.currentScreen != null) return;
 //
 //        if (config.chatPeekToggle) {
-//            if (event.getAction() == GLFW.GLFW_PRESS) {
+//            if (event.getAction() == InputCompat.PRESS) {
 //                isPeeking = !isPeeking;
 //            }
 //        } else {
-//            if (event.getAction() == GLFW.GLFW_PRESS) {
+//            if (event.getAction() == InputCompat.PRESS) {
 //                isPeeking = true;
-//            } else if (event.getAction() == GLFW.GLFW_RELEASE) {
+//            } else if (event.getAction() == InputCompat.RELEASE) {
 //                isPeeking = false;
 //            }
 //        }

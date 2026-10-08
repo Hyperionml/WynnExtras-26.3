@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version "${loom_version}"
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
 	id 'maven-publish'
 	id 'com.gradleup.shadow' version "${shadow_version}"
 	id 'wynnextras.badge-resources'
@@ -42,7 +42,7 @@ configurations {
 	shadowModImpl
 }
 configurations.implementation.extendsFrom configurations.shadowImpl
-configurations.modImplementation.extendsFrom configurations.shadowModImpl
+configurations.implementation.extendsFrom configurations.shadowModImpl
 
 fabricApi {
 	configureDataGeneration {
@@ -52,25 +52,23 @@ fabricApi {
 
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 
-	implementation 'org.apache.httpcomponents:httpclient:4.5.14'
 
 	//intellij showed some warnings about vulnerable dependencies so this should fix it
 	implementation platform("io.netty:netty-bom:4.2.10.Final")
 	implementation platform("org.apache.logging.log4j:log4j-bom:2.25.4")
 
-	modRuntimeOnly "me.djtheredstoner:DevAuth-fabric:1.2.1"
+	runtimeOnly "me.djtheredstoner:DevAuth-fabric:1.2.2"
 
-//	modRuntimeOnly "maven.modrinth:wynnmod:2.0.1"
+//	runtimeOnly "maven.modrinth:wynnmod:2.0.1"
 //
 //	shadowImpl 'tools.jackson.core:jackson-core:3.0.0'
 //	shadowImpl 'tools.jackson.core:jackson-databind:3.0.0'
 //	shadowImpl 'com.fasterxml.jackson.core:jackson-annotations:2.20'
 
-	modImplementation("com.terraformersmc:modmenu:${project.modmenu_version}")
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation("com.terraformersmc:modmenu:${project.modmenu_version}")
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
 	shadowImpl 'org.reflections:reflections:0.10.2'
 	shadowImpl("net.neoforged:bus:${project.neoforged_bus_version}") {
@@ -88,20 +86,18 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
+	it.options.release = 25
 }
 
 java {
-	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-	// if it is present.
-	// If you remove this line, sources will not be generated.
-	//withSourcesJar()
+	// Minecraft 26.3 uses unobfuscated Mojang names; no remapping task is needed.
 
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
 }
 
 jar {
+	archiveClassifier.set('dev')
 	inputs.property "archivesName", project.base.archivesName
 
 	from("LICENSE") {
@@ -109,18 +105,11 @@ jar {
 	}
 }
 
-remapJar {
-	dependsOn shadowJar
-
-//	archiveClassifier.set('remapped')
-	inputFile.set shadowJar.archiveFile.get().asFile
-	sourceNamespace = "named"
-	targetNamespace = "intermediary"
-}
 
 tasks.named("shadowJar").configure {
 	configurations = [project.configurations.shadowImpl, project.configurations.shadowModImpl]
-	archiveClassifier.set('all')
+	archiveClassifier.set('')
+	from('LICENSE') { rename { "${it}_${project.base.archivesName.get()}" } }
 	exclude 'javassist/tools/rmi/AppletServer.class'
 	relocate 'net.neoforged.bus', 'julianh06.wynnextras.shadow.neoforged.bus'
 	relocate 'net.jodah.typetools', 'julianh06.wynnextras.shadow.typetools'
@@ -131,7 +120,7 @@ publishing {
 	publications {
 		create("mavenJava", MavenPublication) {
 			artifactId = project.archives_base_name
-			from components.java
+			from components.shadow
 		}
 	}
 
@@ -143,3 +132,5 @@ publishing {
 		// retrieving dependencies.
 	}
 }
+// Minecraft 26.3 is unobfuscated; the shaded jar is the distributable.
+tasks.named("build").configure { dependsOn shadowJar }

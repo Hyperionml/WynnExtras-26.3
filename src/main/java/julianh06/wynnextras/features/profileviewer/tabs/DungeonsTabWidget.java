@@ -3,15 +3,14 @@ package julianh06.wynnextras.features.profileviewer.tabs;
 import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.utils.render.HorizontalAlignment;
 import julianh06.wynnextras.utils.render.VerticalAlignment;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import julianh06.wynnextras.features.profileviewer.PV;
 import julianh06.wynnextras.features.profileviewer.PVScreen;
 import julianh06.wynnextras.features.profileviewer.data.Dungeons;
 import julianh06.wynnextras.utils.UI.Widget;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
 import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.List;
@@ -20,20 +19,20 @@ import java.util.Map;
 import static julianh06.wynnextras.features.profileviewer.PVScreen.*;
 
 public class DungeonsTabWidget extends PVScreen.TabWidget {
-    static Identifier dungeonKeyTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/dungeons/dungeonkey.png");
-    static Identifier corruptedDungeonKeyTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/dungeons/corrupteddungeonkey.png");
-    static Identifier dungeonBackgroundTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/dungeons/dungeonpagebackground.png");
-    static Identifier dungeonBackgroundTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/dungeons/dungeonpagebackground_dark.png");
-    static Identifier decrepitSewersTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/dungeons/decrepitsewers.png");
-    static Identifier infestedPitTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/dungeons/infestedpit.png");
-    static Identifier underworldCryptTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/dungeons/underworldcrypt.png");
-    static Identifier timelostSanctumTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/dungeons/timelostsanctum.png");
-    static Identifier sandSweptTombTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/dungeons/sandswepttomb.png");
-    static Identifier iceBarrowsTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/dungeons/icebarrows.png");
-    static Identifier undergrowthRuinsTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/dungeons/undergrowthruins.png");
-    static Identifier galleonsGraveyardTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/dungeons/galleonsgraveyard.png");
-    static Identifier fallenFactoryTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/dungeons/fallenfactory.png");
-    static Identifier eldritchOutlookTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/dungeons/eldritchoutlook.png");
+    static Identifier dungeonKeyTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/dungeons/dungeonkey.png");
+    static Identifier corruptedDungeonKeyTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/dungeons/corrupteddungeonkey.png");
+    static Identifier dungeonBackgroundTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/dungeons/dungeonpagebackground.png");
+    static Identifier dungeonBackgroundTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/dungeons/dungeonpagebackground_dark.png");
+    static Identifier decrepitSewersTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/dungeons/decrepitsewers.png");
+    static Identifier infestedPitTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/dungeons/infestedpit.png");
+    static Identifier underworldCryptTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/dungeons/underworldcrypt.png");
+    static Identifier timelostSanctumTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/dungeons/timelostsanctum.png");
+    static Identifier sandSweptTombTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/dungeons/sandswepttomb.png");
+    static Identifier iceBarrowsTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/dungeons/icebarrows.png");
+    static Identifier undergrowthRuinsTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/dungeons/undergrowthruins.png");
+    static Identifier galleonsGraveyardTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/dungeons/galleonsgraveyard.png");
+    static Identifier fallenFactoryTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/dungeons/fallenfactory.png");
+    static Identifier eldritchOutlookTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/dungeons/eldritchoutlook.png");
     static List<Identifier> dungeonTextures = List.of(decrepitSewersTexture, infestedPitTexture, underworldCryptTexture, timelostSanctumTexture, sandSweptTombTexture, iceBarrowsTexture, undergrowthRuinsTexture, galleonsGraveyardTexture, fallenFactoryTexture, eldritchOutlookTexture);
 
     private InfoWidget infoWidget = null;
@@ -43,7 +42,7 @@ public class DungeonsTabWidget extends PVScreen.TabWidget {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if(PV.currentPlayerData == null) return;
 
         if(PV.currentPlayerData.getGlobalData() == null || PV.currentPlayerData.getGlobalData().getDungeons() == null) {
@@ -141,8 +140,8 @@ public class DungeonsTabWidget extends PVScreen.TabWidget {
     }
 
     private static class InfoWidget extends Widget {
-        static Identifier infoIcon = Identifier.of("wynnextras", "textures/gui/profileviewer/infoicon.png");
-        static Identifier infoIconDark = Identifier.of("wynnextras", "textures/gui/profileviewer/infoicon_dark.png");
+        static Identifier infoIcon = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/infoicon.png");
+        static Identifier infoIconDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/infoicon_dark.png");
 
         int comps;
         int corruptedComps;
@@ -154,20 +153,20 @@ public class DungeonsTabWidget extends PVScreen.TabWidget {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             PVScreen.DarkModeToggleWidget.drawImageWithFade(infoIconDark, infoIcon, x, y, width, height, ui);
 
             if(hovered) {
-                ctx.drawTooltip(MinecraftClient.getInstance().textRenderer,
-                    List.of(Text.of("Lost Sanctuary"),
-                        Text.of(""),
-                        Text.of("Normal Completions: " + comps),
-                        Text.of("Corrupted Completions: " + corruptedComps),
-                        Text.of(""),
-                        Text.of("§4The normal version of the Lost Sanctuary"),
-                        Text.of("§4has been replaced with the Timelost Sanctum"),
-                        Text.of("§4in 2023. The corrupted version has not been"),
-                        Text.of("§4updated yet and is still playable in the forgery.")
+                ctx.setComponentTooltipForNextFrame(Minecraft.getInstance().font,
+                    List.of(Component.nullToEmpty("Lost Sanctuary"),
+                        Component.nullToEmpty(""),
+                        Component.nullToEmpty("Normal Completions: " + comps),
+                        Component.nullToEmpty("Corrupted Completions: " + corruptedComps),
+                        Component.nullToEmpty(""),
+                        Component.nullToEmpty("§4The normal version of the Lost Sanctuary"),
+                        Component.nullToEmpty("§4has been replaced with the Timelost Sanctum"),
+                        Component.nullToEmpty("§4in 2023. The corrupted version has not been"),
+                        Component.nullToEmpty("§4updated yet and is still playable in the forgery.")
                     ),
                     (int)(mouseX * PVScreen.currentMatrixScale), (int)(mouseY * PVScreen.currentMatrixScale));
             }

@@ -3,8 +3,7 @@ package julianh06.wynnextras.features.chat;
 import julianh06.wynnextras.annotations.WEModule;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
-import net.minecraft.text.Text;
-
+import net.minecraft.network.chat.Component;
 import java.util.List;
 import java.util.Locale;
 
@@ -17,7 +16,7 @@ public class ChatBlocker {
                 overlay || !shouldBlock(message));
     }
 
-    private static boolean shouldBlock(Text message) {
+    private static boolean shouldBlock(Component message) {
         List<String> blockedWords = WynnExtrasConfig.INSTANCE.blockedWords;
         if (blockedWords == null || blockedWords.isEmpty()) return false;
 

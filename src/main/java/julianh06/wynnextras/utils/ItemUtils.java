@@ -2,10 +2,9 @@ package julianh06.wynnextras.utils;
 
 import julianh06.wynnextras.wynncraft.item.WynnItemEncoding;
 import julianh06.wynnextras.wynncraft.item.WynnItemParser;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.CustomModelDataComponent;
-import net.minecraft.item.ItemStack;
-
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomModelData;
 import java.util.List;
 
 public class ItemUtils {
@@ -24,7 +23,7 @@ public class ItemUtils {
     }
 
     public static Float getFirsCustomModelDataFloat(ItemStack itemStack) {
-        CustomModelDataComponent modelData = itemStack.get(DataComponentTypes.CUSTOM_MODEL_DATA);
+        CustomModelData modelData = itemStack.get(DataComponents.CUSTOM_MODEL_DATA);
         if (modelData == null) return null;
         List<Float> floats = modelData.floats();
         if (floats == null || floats.isEmpty()) return null;

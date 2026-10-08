@@ -1,6 +1,15 @@
 package julianh06.wynnextras.features.profileviewer.tabs;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.entity.Pose;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.features.badges.BadgeService;
 import julianh06.wynnextras.features.guildviewer.GV;
@@ -9,16 +18,6 @@ import julianh06.wynnextras.features.profileviewer.PVScreen;
 import julianh06.wynnextras.features.profileviewer.ProfileTitleService;
 import julianh06.wynnextras.features.profileviewer.data.CharacterData;
 import julianh06.wynnextras.utils.UI.Widget;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.render.entity.EntityRenderManager;
-import net.minecraft.client.render.entity.state.EntityRenderState;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.entity.EntityPose;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -29,12 +28,14 @@ import java.util.*;
 
 import static julianh06.wynnextras.features.profileviewer.PVScreen.*;
 
-public class GeneralTabWidget extends PVScreen.TabWidget {
-    static Identifier onlineCircleTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/onlinecircle.png");
-    static Identifier offlineCircleTexture = Identifier.of("wynnextras", "textures/gui/profileviewer/offlinecircle.png");
+import com.mojang.blaze3d.platform.InputConstants;
 
-    static Identifier onlineCircleTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/onlinecircle_dark.png");
-    static Identifier offlineCircleTextureDark = Identifier.of("wynnextras", "textures/gui/profileviewer/offlinecircle_dark.png");
+public class GeneralTabWidget extends PVScreen.TabWidget {
+    static Identifier onlineCircleTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/onlinecircle.png");
+    static Identifier offlineCircleTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/offlinecircle.png");
+
+    static Identifier onlineCircleTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/onlinecircle_dark.png");
+    static Identifier offlineCircleTextureDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/profileviewer/offlinecircle_dark.png");
 
     private boolean createdClassWidgets = false;
     private List<ClassWidget> classWidgets = new ArrayList<>();
@@ -43,7 +44,7 @@ public class GeneralTabWidget extends PVScreen.TabWidget {
     private GuildButtonWidget guildButtonWidget = null;
 
     private PVScreen pvScreen;
-    private List<Text> badgeTooltip = List.of();
+    private List<Component> badgeTooltip = List.of();
     private int badgeTooltipMouseX;
     private int badgeTooltipMouseY;
 
@@ -57,7 +58,7 @@ public class GeneralTabWidget extends PVScreen.TabWidget {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if(PV.currentPlayerData == null) return;
 
         if(!createdClassWidgets) {
@@ -99,10 +100,10 @@ public class GeneralTabWidget extends PVScreen.TabWidget {
         }
 
         int playerNameX = x + 10 + rankBadgeWidth;
-        Text playerName = BadgeService.appendBadge(PV.currentPlayerData.getUuid(), PV.currentPlayerData.getUsername(), Text.literal(" " + PV.currentPlayerData.getUsername()));
+        Component playerName = BadgeService.appendBadge(PV.currentPlayerData.getUuid(), PV.currentPlayerData.getUsername(), Component.literal(" " + PV.currentPlayerData.getUsername()));
         ui.drawText(playerName, playerNameX, y + 21, CustomColor.fromHexString(rankColorHexString), 3f);
 
-        int playerNameWidth = MinecraftClient.getInstance().textRenderer.getWidth(playerName) * 3;
+        int playerNameWidth = Minecraft.getInstance().font.width(playerName) * 3;
         if (mouseX >= ui.sx(playerNameX) && mouseX < ui.sx(playerNameX) + ui.sw(playerNameWidth)
                 && mouseY >= ui.sy(y + 15) && mouseY < ui.sy(y + 48)) {
             badgeTooltip = BadgeService.getBadgeTooltip(PV.currentPlayerData.getUuid(), PV.currentPlayerData.getUsername());
@@ -129,14 +130,14 @@ public class GeneralTabWidget extends PVScreen.TabWidget {
             ui.drawText("Last seen: " + formatted, x + 57, y + 66, CustomColor.fromHexString("FFFFFF"), 3f);
         }
         if (dummy != null) {
-            if (InputUtil.isKeyPressed(MinecraftClient.getInstance().getWindow(), InputUtil.GLFW_KEY_LEFT_SHIFT)) {
-                dummy.setPose(EntityPose.CROUCHING);
+            if (InputConstants.isKeyDown(InputConstants.KEY_LSHIFT)) {
+                dummy.setPose(Pose.CROUCHING);
                 drawPlayer(ctx, x + 66, y, dummy, ui.getScaleFactor(), tickDelta); //166 178
-            } else if (InputUtil.isKeyPressed(MinecraftClient.getInstance().getWindow(), InputUtil.GLFW_KEY_RIGHT_SHIFT)) {
-                dummy.setPose(EntityPose.SLEEPING);
+            } else if (InputConstants.isKeyDown(InputConstants.KEY_RSHIFT)) {
+                dummy.setPose(Pose.SLEEPING);
                 drawPlayer(ctx, x + 66, y, dummy, ui.getScaleFactor(), tickDelta); //166 178
             } else {
-                dummy.setPose(EntityPose.STANDING);
+                dummy.setPose(Pose.STANDING);
 //                drawPlayer(ctx, x, y, (int) (210 / ui.getScaleFactor()), mouseX, mouseY, dummy, ui.getScaleFactor()); //166 178
                 drawPlayer(ctx, x + 66, y, dummy, ui.getScaleFactor(), tickDelta); //166 178
             }
@@ -170,7 +171,7 @@ public class GeneralTabWidget extends PVScreen.TabWidget {
                 guildButtonWidget = new GuildButtonWidget(guildString, PV.currentPlayerData.getGuild().getPrefix(), pvScreen);
                 children.add(guildButtonWidget);
             }
-            int widgetWidth = (int) (MinecraftClient.getInstance().textRenderer.getWidth(guildString) * ui.getScaleFactor() * 1.2);
+            int widgetWidth = (int) (Minecraft.getInstance().font.width(guildString) * ui.getScaleFactor() * 1.2);
             guildButtonWidget.setBounds(x + 285 - widgetWidth / 2, y + 590, widgetWidth, 20);
             //ui.drawCenteredText(guildString, x + 285, y + 600, CustomColor.fromHexString("FFFFFF"), 3f);
         } else {
@@ -207,19 +208,19 @@ public class GeneralTabWidget extends PVScreen.TabWidget {
     }
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if (badgeTooltip.isEmpty()) return;
 
-        ctx.drawTooltip(MinecraftUtils.mc().textRenderer, badgeTooltip,
+        ctx.setComponentTooltipForNextFrame(MinecraftUtils.mc().font, badgeTooltip,
                 (int) (badgeTooltipMouseX * PVScreen.currentMatrixScale),
                 (int) (badgeTooltipMouseY * PVScreen.currentMatrixScale));
     }
     static float playerRotationY = 0;
 
     public void drawPlayer(
-            DrawContext context,
+            GuiGraphicsExtractor context,
             int x, int y,
-            AbstractClientPlayerEntity player,
+            AbstractClientPlayer player,
             double scaleFactor, float tickDelta
     ) {
         float teslerOffset = 0;
@@ -227,13 +228,13 @@ public class GeneralTabWidget extends PVScreen.TabWidget {
 
         Quaternionf rotation = new Quaternionf().rotateZ((float) Math.PI);
 
-        if(dummy.getPose() == EntityPose.SLEEPING) {
+        if(dummy.getPose() == Pose.SLEEPING) {
             rotation.rotateY((float) Math.PI * 0.5f);
-        } else if(dummy.getPose() == EntityPose.CROUCHING){
+        } else if(dummy.getPose() == Pose.CROUCHING){
             sneakOffset = 0.137f;
         }
 
-        player.lastHeadYaw = player.headYaw;
+        player.yHeadRotO = player.yHeadRot;
 
         if(PV.currentPlayer.equalsIgnoreCase("teslanator")) {
             teslerOffset = 1.89f;
@@ -243,9 +244,9 @@ public class GeneralTabWidget extends PVScreen.TabWidget {
             rotation.rotateY((float) Math.toRadians(-28 - playerRotationY));
         }
 
-        EntityRenderManager dispatcher = MinecraftClient.getInstance().getEntityRenderDispatcher();
-        EntityRenderState state = dispatcher.getPlayerRenderer(player).getAndUpdateRenderState(player, tickDelta);
-        state.light = 0xF000F0;
+        EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
+        EntityRenderState state = dispatcher.extractEntity(player, tickDelta);
+        state.lightCoords = 0xF000F0;
 
         Vector3f offset = new Vector3f(0f, 0.96f - teslerOffset - sneakOffset, 0f);
 
@@ -255,7 +256,7 @@ public class GeneralTabWidget extends PVScreen.TabWidget {
         int y2 = y1 + 435;
 
         double m = pvScreen != null ? pvScreen.getMatrixScale() : 1.0;
-        context.addEntity(state, (int) (215 * m / scaleFactor), offset, rotation.rotateY(180), null,
+        context.entity(state, (int) (215 * m / scaleFactor), offset, rotation.rotateY(180), null,
                 (int) (x1 * m / scaleFactor), (int) (y1 * m / scaleFactor), (int) (x2 * m / scaleFactor), (int) (y2 * m / scaleFactor));
     }
 
@@ -311,7 +312,7 @@ public class GeneralTabWidget extends PVScreen.TabWidget {
             this.guildString = guildString;
             this.action = () -> {
                 MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());
-                parent.close();
+                parent.onClose();
                 GV.open(guildPrefix);
             };
         }
@@ -324,7 +325,7 @@ public class GeneralTabWidget extends PVScreen.TabWidget {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             //ui.drawRect(x, y, width, height);
             ui.drawCenteredText((hovered ? "§n" : "") + guildString, x + width / 2f, y + 10, hovered ? CustomColor.fromHexString("00FFFF") : CustomColor.fromHexString("FFFFFF"));
         }

@@ -9,12 +9,12 @@ import julianh06.wynnextras.features.waypoints.data.WaypointData;
 import julianh06.wynnextras.features.waypoints.data.WaypointPackage;
 import julianh06.wynnextras.utils.WEVec;
 import julianh06.wynnextras.utils.render.WorldRenderUtils;
-import net.minecraft.block.Blocks;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.AABB;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.awt.*;
@@ -23,8 +23,8 @@ import java.awt.*;
 public class WaypointRenderer {
     @SubscribeEvent
     public void onRenderWorld(RenderWorldEvent event) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        BlockPos playerPos = client.player == null ? null : client.player.getBlockPos();
+        Minecraft client = Minecraft.getInstance();
+        BlockPos playerPos = client.player == null ? null : client.player.blockPosition();
         double maxRangeSquared = (double) WynnExtrasConfig.INSTANCE.waypointMaxRange
                 * WynnExtrasConfig.INSTANCE.waypointMaxRange;
 
@@ -51,10 +51,10 @@ public class WaypointRenderer {
                 WaypointCategory category = waypoint.getCategory();
                 boolean seeThrough = !waypoint.shouldSeeThrough();
 
-                Box box = waypoint.getRenderBox();
+                AABB box = waypoint.getRenderBox();
                 WEVec pos = new WEVec(centerX, box.maxY + 0.5, centerZ);
                 if(playerPos != null && waypoint.shouldShowDistance()) {
-                    WorldRenderUtils.drawText(event, pos, Text.of((int) Math.sqrt(distanceSquared) + "m"), 0.75f, seeThrough);
+                    WorldRenderUtils.drawText(event, pos, Component.nullToEmpty((int) Math.sqrt(distanceSquared) + "m"), 0.75f, seeThrough);
                 }
                 Color color = category != null ? category.asAwtColor() : Color.cyan;
 
@@ -70,9 +70,9 @@ public class WaypointRenderer {
     }
 
     private boolean isOnBarrier(Waypoint waypoint) {
-        ClientWorld world = MinecraftClient.getInstance().world;
+        ClientLevel world = Minecraft.getInstance().level;
         if(world == null) return false;
 
-        return world.getBlockState(new BlockPos(waypoint.x, waypoint.y, waypoint.z)).isOf(Blocks.BARRIER);
+        return world.getBlockState(new BlockPos(waypoint.x, waypoint.y, waypoint.z)).is(Blocks.BARRIER);
     }
 }

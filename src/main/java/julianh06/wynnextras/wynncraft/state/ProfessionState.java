@@ -9,15 +9,15 @@ import julianh06.wynnextras.features.misc.ProfessionOverlay;
 import julianh06.wynnextras.features.profileviewer.data.CharacterData;
 import julianh06.wynnextras.features.profileviewer.data.Profession;
 import julianh06.wynnextras.utils.enums.WEProfessionType;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.Box;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.phys.AABB;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.HashMap;
@@ -56,9 +56,9 @@ public final class ProfessionState {
         if (event.ticks % 10 != 0) return;
         try {
             boolean changed = syncFromWynntils();
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client.currentScreen instanceof HandledScreen<?> screen) {
-                for (var slot : screen.getScreenHandler().slots) changed |= parseMenuStack(slot.getStack());
+            Minecraft client = Minecraft.getInstance();
+            if (client.gui.screen() instanceof AbstractContainerScreen<?> screen) {
+                for (var slot : screen.getMenu().slots) changed |= parseMenuStack(slot.getItem());
             }
             if (changed) WynnExtrasConfig.save();
         } catch (Throwable ignored) {}
@@ -87,16 +87,16 @@ public final class ProfessionState {
     }
 
     private static void observeGatheringLabels() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (!WynnExtrasConfig.INSTANCE.professionOverlayEnabled || client.player == null || client.world == null) {
+        Minecraft client = Minecraft.getInstance();
+        if (!WynnExtrasConfig.INSTANCE.professionOverlayEnabled || client.player == null || client.level == null) {
             observedLabels.clear();
             return;
         }
 
-        Box searchBox = client.player.getBoundingBox().expand(48, 24, 48);
+        AABB searchBox = client.player.getBoundingBox().inflate(48, 24, 48);
         Set<Integer> visibleLabels = new HashSet<>();
-        for (Entity entity : client.world.getNonSpectatingEntities(Entity.class, searchBox)) {
-            if (!(entity instanceof DisplayEntity.TextDisplayEntity label)) continue;
+        for (Entity entity : client.level.getEntitiesOfClass(Entity.class, searchBox)) {
+            if (!(entity instanceof Display.TextDisplay label)) continue;
             String text = label.getText().getString();
             if (!text.toLowerCase().contains(" xp ")) continue;
             visibleLabels.add(label.getId());
@@ -155,9 +155,9 @@ public final class ProfessionState {
 
     private static boolean parseMenuStack(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
-        StringBuilder text = new StringBuilder(clean(stack.getName().getString()));
-        LoreComponent lore = stack.get(DataComponentTypes.LORE);
-        if (lore != null) for (Text line : lore.lines()) text.append(' ').append(clean(line.getString()));
+        StringBuilder text = new StringBuilder(clean(stack.getHoverName().getString()));
+        ItemLore lore = stack.get(DataComponents.LORE);
+        if (lore != null) for (Component line : lore.lines()) text.append(' ').append(clean(line.getString()));
         Matcher matcher = MENU_LEVEL.matcher(text);
         if (!matcher.find()) return false;
         double percent = doubleValue(matcher.group(3));

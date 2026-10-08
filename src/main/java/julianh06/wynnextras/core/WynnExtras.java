@@ -41,10 +41,6 @@ import julianh06.wynnextras.features.qol.EncounterOverlay;
 import julianh06.wynnextras.features.raid.*;
 import julianh06.wynnextras.features.raid.tna.TreeRoomMinimap;
 import julianh06.wynnextras.utils.WynncraftApiHandler;
-import julianh06.wynnextras.features.raid.RaidListData;
-import julianh06.wynnextras.features.raid.RaidLootConfig;
-import julianh06.wynnextras.features.raid.RaidLootTracker;
-import julianh06.wynnextras.features.raid.RaidLootTrackerOverlay;
 import julianh06.wynnextras.features.shoppinglist.ShoppingListFeature;
 import julianh06.wynnextras.features.shoppinglist.service.ShoppingListTradeMarketSearchService;
 import julianh06.wynnextras.features.shoppinglist.ui.ShoppingListHudOverlay;
@@ -56,24 +52,26 @@ import julianh06.wynnextras.utils.TickScheduler;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.SpecialGuiElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.PictureInPictureRendererRegistry;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.*;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.core.NonNullList;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
+import net.minecraft.network.chat.*;
+import net.minecraft.world.inventory.Slot;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
-import org.lwjgl.glfw.GLFW;
-import org.lwjgl.glfw.GLFWCharCallbackI;
-import org.lwjgl.glfw.GLFWKeyCallbackI;
+import julianh06.wynnextras.compat.client.InputCompat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,9 +91,9 @@ public class WynnExtras implements ClientModInitializer {
 			"",
 			context -> {
                 try {
-                    MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.literal("")).append(Text.literal("https://discord.gg/UbC6vZDaD5").setStyle(Style.EMPTY
-                            .withColor(Formatting.AQUA)
-                            .withUnderline(true)
+                    MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.literal("")).append(Component.literal("https://discord.gg/UbC6vZDaD5").setStyle(Style.EMPTY
+                            .withColor(ChatFormatting.AQUA)
+                            .withUnderlined(true)
                             .withClickEvent(new ClickEvent.OpenUrl(new URI("https://discord.gg/UbC6vZDaD5"))))
                     ));
                 } catch (URISyntaxException ignored) {}
@@ -110,8 +108,8 @@ public class WynnExtras implements ClientModInitializer {
 			"",
 			context -> {
 				Screen configScreen = WynnExtrasConfig.createConfigScreen(null);
-				MinecraftUtils.mc().send(() -> {
-					MinecraftUtils.mc().setScreen(configScreen);
+				MinecraftUtils.mc().schedule(() -> {
+					MinecraftUtils.mc().gui.setScreen(configScreen);
 				});
 				return 1;
 			},
@@ -133,45 +131,41 @@ public class WynnExtras implements ClientModInitializer {
 	public static final String MOD_ID = "wynnextras";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-	private static DefaultedList<Slot> testInv;
+	private static NonNullList<Slot> testInv;
 	private static int testInvSize;
-
-	GLFWKeyCallbackI previousCallback;
-	GLFWCharCallbackI previousCharCallback;
-
-	private static final Identifier PILL_FONT = Identifier.ofVanilla("banner/pill");
+	private static final Identifier PILL_FONT = Identifier.withDefaultNamespace("banner/pill");
 	private static final Style BACKGROUND_STYLE;
 	private static final Style FOREGROUND_STYLE;
-	private static final Text WYNNEXTRAS_BACKGROUND_PILL;
-	private static final Text WYNNEXTRAS_FOREGROUND_PILL;
+	private static final Component WYNNEXTRAS_BACKGROUND_PILL;
+	private static final Component WYNNEXTRAS_FOREGROUND_PILL;
 
 	private static String latestVersion = null;
 
 	static {
-		BACKGROUND_STYLE = Style.EMPTY.withFont(new StyleSpriteSource.Font(PILL_FONT)).
-		withColor(Formatting.DARK_GREEN);
-		FOREGROUND_STYLE = Style.EMPTY.withFont(new StyleSpriteSource.Font(PILL_FONT)).
-		withColor(Formatting.WHITE);
-		WYNNEXTRAS_BACKGROUND_PILL = Text.literal("\uE060\uDAFF\uDFFF\uE046\uDAFF\uDFFF\uE048\uDAFF\uDFFF\uE03D\uDAFF\uDFFF\uE03D\uDAFF\uDFFF\uE034\uDAFF\uDFFF\uE047\uDAFF\uDFFF\uE043\uDAFF\uDFFF\uE041\uDAFF\uDFFF\uE030\uDAFF\uDFFF\uE042\uDAFF\uDFFF\uE062\uDAFF\uDFC2").
-		fillStyle(BACKGROUND_STYLE);
-		WYNNEXTRAS_FOREGROUND_PILL = Text.literal("\uE016\uE018\uE00D\uE00D\uE004\uE017\uE013\uE011\uE000\uE012\uDB00\uDC06").
-		fillStyle(FOREGROUND_STYLE);
+		BACKGROUND_STYLE = Style.EMPTY.withFont(new FontDescription.Resource(PILL_FONT)).
+		withColor(ChatFormatting.DARK_GREEN);
+		FOREGROUND_STYLE = Style.EMPTY.withFont(new FontDescription.Resource(PILL_FONT)).
+		withColor(ChatFormatting.WHITE);
+		WYNNEXTRAS_BACKGROUND_PILL = Component.literal("\uE060\uDAFF\uDFFF\uE046\uDAFF\uDFFF\uE048\uDAFF\uDFFF\uE03D\uDAFF\uDFFF\uE03D\uDAFF\uDFFF\uE034\uDAFF\uDFFF\uE047\uDAFF\uDFFF\uE043\uDAFF\uDFFF\uE041\uDAFF\uDFFF\uE030\uDAFF\uDFFF\uE042\uDAFF\uDFFF\uE062\uDAFF\uDFC2").
+		withStyle(BACKGROUND_STYLE);
+		WYNNEXTRAS_FOREGROUND_PILL = Component.literal("\uE016\uE018\uE00D\uE00D\uE004\uE017\uE013\uE011\uE000\uE012\uDB00\uDC06").
+		withStyle(FOREGROUND_STYLE);
 	}
 
 
-	public static MutableText addWynnExtrasPrefix(Text text) {
-		return Text.empty().
+	public static MutableComponent addWynnExtrasPrefix(Component text) {
+		return Component.empty().
 				append(WYNNEXTRAS_BACKGROUND_PILL).
 				append(WYNNEXTRAS_FOREGROUND_PILL).
 				//append(Text.literal("\uE02f\uE02f\uDB00\uDC04").fillStyle(Style.EMPTY.withFont(PILL_FONT).withColor(Formatting.DARK_GREEN))). // adds ">>"
 				append(text);
 	}
 
-	public static MutableText addWynnExtrasPrefix(String text) {
-		return addWynnExtrasPrefix(Text.of(text));
+	public static MutableComponent addWynnExtrasPrefix(String text) {
+		return addWynnExtrasPrefix(Component.nullToEmpty(text));
 	}
 
-	public static void sendMessageToClient(Text text) {
+	public static void sendMessageToClient(Component text) {
 		MinecraftUtils.sendMessageToClient(addWynnExtrasPrefix(text));
 	}
 
@@ -183,12 +177,14 @@ public class WynnExtras implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		Core.init(MOD_ID);
+
+
 		WynntilsTooltipAdapter.initialize();
 		ProfileTitleService.fetch();
 		ClientLifecycleEvents.CLIENT_STARTED.register(client -> WynnDataService.getInstance().initialize());
 		updateVersionData();
 
-		SpecialGuiElementRegistry.register(context -> new BannerGuiRenderer(context.vertexConsumers(), MinecraftClient.getInstance().getAtlasManager()));
+		PictureInPictureRendererRegistry.register(context -> new BannerGuiRenderer(context.minecraft().getAtlasManager()));
 
 		WELoader.loadAll();
 		TickScheduler.init();
@@ -296,43 +292,14 @@ public class WynnExtras implements ClientModInitializer {
 		return testInv != null;
 	}
 
-	public static void updateTestInventory(DefaultedList<Slot> slots) {
+	public static void updateTestInventory(NonNullList<Slot> slots) {
 		testInv = slots;
 		testInvSize = slots.size() - 36;
 	}
 
 	@SubscribeEvent(priority = EventPriority.LOWEST)
 	public void initKeyInputEvent(TickEvent event) {
-		if(!KeyInputEvent.initialized && MinecraftClient.getInstance().getWindow() != null) {
-			KeyInputEvent.init();
-
-			previousCallback = GLFW.glfwSetKeyCallback(MinecraftClient.getInstance().getWindow().getHandle(), (window, key, scancode, action, mods) -> {
-				if (ShoppingListMenuExtension.handleGlobalKeyInput(key, scancode, action, mods)) return;
-				if (action == GLFW.GLFW_PRESS || action == GLFW.GLFW_REPEAT || action == GLFW.GLFW_RELEASE) {
-					new KeyInputEvent(key, scancode, action, mods).post();//, character.get()).post();
-				}
-
-				if (BankOverlay.currentOverlayType != BankOverlayType.NONE
-						&& BankOverlay2.isAnyTextInputFocused()
-						&& MinecraftClient.getInstance().options.inventoryKey.matchesKey(new KeyInput(key, scancode, mods))) return;
-
-				if(BankOverlay.currentOverlayType != BankOverlayType.NONE && (GLFW.GLFW_KEY_1 <= key && key <= GLFW.GLFW_KEY_9)) return;
-
-				if (previousCallback != null) {
-					previousCallback.invoke(window, key, scancode, action, mods);
-				}
-			});
-
-			previousCharCallback = GLFW.glfwSetCharCallback(MinecraftClient.getInstance().getWindow().getHandle(), (win, codepoint) -> {
-				if (ShoppingListMenuExtension.handleGlobalCharTyped((char) codepoint)) return;
-				if (BankOverlay.handleScreenCharTyped((char) codepoint)) return;
-
-				new CharInputEvent((char) codepoint).post();
-				if (previousCharCallback != null) {
-					previousCharCallback.invoke(win, codepoint);
-				}
-			});
-		}
+		if (!KeyInputEvent.initialized) KeyInputEvent.init();
 	}
 
 	private static int ticksUntilNotify = -1;
@@ -350,7 +317,7 @@ public class WynnExtras implements ClientModInitializer {
 	public void onClientTick(TickEvent event) {
 		WynnExtrasConfig config = WynnExtrasConfig.INSTANCE;
 		EncounterOverlay.clearLatchIfNoContainerOpen();
-		if(config.differentGUIScale && MinecraftClient.getInstance().currentScreen == null) {
+		if(config.differentGUIScale && Minecraft.getInstance().gui.screen() == null) {
 			restoreNormalGuiScale();
 		}
 
@@ -375,7 +342,7 @@ public class WynnExtras implements ClientModInitializer {
 
 	private static void restoreNormalGuiScale() {
 		if (normalGUIScale != -1) {
-			MinecraftClient.getInstance().options.getGuiScale().setValue(normalGUIScale);
+			Minecraft.getInstance().options.guiScale().set(normalGUIScale);
 			clearStoredNormalGuiScale();
 		}
 	}
@@ -394,12 +361,12 @@ public class WynnExtras implements ClientModInitializer {
 		if (lastNotificationTime == null || Duration.between(lastNotificationTime, now).compareTo(COOLDOWN) >= 0) {
 			lastNotificationTime = now;
 			MinecraftUtils.sendMessageToClient(
-				addWynnExtrasPrefix(Text.of("§aA new version of WynnExtras is available: §b" + latestVersion + "§a! You're currently using version §b" + currentVersion + "§a. You can download it now on Modrinth!"))
+				addWynnExtrasPrefix(Component.nullToEmpty("§aA new version of WynnExtras is available: §b" + latestVersion + "§a! You're currently using version §b" + currentVersion + "§a. You can download it now on Modrinth!"))
 			);
 
 			if(isLunarClient()) {
 				MinecraftUtils.sendMessageToClient(
-					addWynnExtrasPrefix(Text.of("§aSeems like you are using Lunar Client. Some features might not work correctly with Lunar. We recommend using a different launcher like prism or Modrinth."))
+					addWynnExtrasPrefix(Component.nullToEmpty("§aSeems like you are using Lunar Client. Some features might not work correctly with Lunar. We recommend using a different launcher like prism or Modrinth."))
 				);
 			}
 		}
@@ -410,12 +377,12 @@ public class WynnExtras implements ClientModInitializer {
 	}
 
 	public static boolean isOnBeta() {
-		MinecraftClient client = MinecraftClient.getInstance();
+		Minecraft client = Minecraft.getInstance();
 
 		if (client == null) return false;
-		if (client.getCurrentServerEntry() == null) return false;
+		if (client.getCurrentServer() == null) return false;
 
-		String serverIP = client.getCurrentServerEntry().address;
+		String serverIP = client.getCurrentServer().ip;
 		return serverIP.equalsIgnoreCase("beta.wynncraft.com");
 	}
 }

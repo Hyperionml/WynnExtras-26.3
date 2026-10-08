@@ -1,68 +1,65 @@
 package julianh06.wynnextras.utils.render;
 
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormatElement;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.render.LayeringTransform;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.RenderSetup;
-import net.minecraft.client.render.VertexFormats;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
 
 import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.rendertype.LayeringTransform;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
+import net.minecraft.client.renderer.rendertype.RenderType;
 
 public class WERenderLayers {
-    private static final ConcurrentHashMap<Integer, RenderLayer> linesCache = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<Integer, RenderLayer> linesThroughWallsCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Integer, RenderType> linesCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Integer, RenderType> linesThroughWallsCache = new ConcurrentHashMap<>();
 
-    private static final VertexFormat LINE_VERTEX_FORMAT = VertexFormat.builder()
-            .add("pos", VertexFormatElement.POSITION)
-            .add("color", VertexFormatElement.COLOR).build();
 
-    public static RenderPipeline linePipeline = RenderPipeline.builder()
+    public static RenderPipeline linePipeline = RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
             .withLocation("wynnextras_lines")
             .withVertexShader("shaders/vertex/lines.vsh")
             .withFragmentShader("shaders/fragment/lines.fsh")
-            .withVertexFormat(VertexFormats.POSITION_COLOR, VertexFormat.DrawMode.LINES)
+            .withVertexBinding(0, DefaultVertexFormat.POSITION_COLOR)
+            .withPrimitiveTopology(PrimitiveTopology.LINES)
             .build();
 
 
-    private static RenderLayer createLineRenderLayer(int lineWidth, boolean throughWalls) {
-        return RenderLayer.of(
+    private static RenderType createLineRenderLayer(int lineWidth, boolean throughWalls) {
+        return RenderType.create(
                 "wynnextras_lines_" + lineWidth + (throughWalls ? "_xray" : ""),
                 RenderSetup.builder(linePipeline)
-                        .translucent()
-                        .expectedBufferSize(256)
-                        .layeringTransform(throughWalls ? LayeringTransform.NO_LAYERING : LayeringTransform.VIEW_OFFSET_Z_LAYERING)
-                        .build()
+                        .sortOnUpload()
+
+                        .setLayeringTransform(throughWalls ? LayeringTransform.NO_LAYERING : LayeringTransform.VIEW_OFFSET_Z_LAYERING)
+                        .createRenderSetup()
         );
     }
 
-    public static RenderLayer getLines(int lineWidth, boolean throughWalls) {
-        ConcurrentHashMap<Integer, RenderLayer> cache = throughWalls ? linesThroughWallsCache : linesCache;
+    public static RenderType getLines(int lineWidth, boolean throughWalls) {
+        ConcurrentHashMap<Integer, RenderType> cache = throughWalls ? linesThroughWallsCache : linesCache;
         return cache.computeIfAbsent(lineWidth, lw -> createLineRenderLayer(lw, throughWalls));
     }
 
-    public static RenderLayer getFilled(boolean throughWalls) {
+    public static RenderType getFilled(boolean throughWalls) {
         return throughWalls ? FILLED_XRAY : FILLED;
     }
 
-    private static final RenderLayer FILLED = RenderLayer.of(
+    private static final RenderType FILLED = RenderType.create(
             "wynnextras_filled",
             RenderSetup.builder(RenderPipelines.DEBUG_FILLED_BOX)
-                    .translucent()
-                    .expectedBufferSize(256)
-                    .layeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
-                    .build()
+                    .sortOnUpload()
+
+                    .setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
+                    .createRenderSetup()
     );
 
-    private static final RenderLayer FILLED_XRAY = RenderLayer.of(
+    private static final RenderType FILLED_XRAY = RenderType.create(
             "wynnextras_filled_xray",
             RenderSetup.builder(RenderPipelines.DEBUG_FILLED_BOX)
-                    .translucent()
-                    .expectedBufferSize(256)
-                    .layeringTransform(LayeringTransform.NO_LAYERING)
-                    .build()
+                    .sortOnUpload()
+
+                    .setLayeringTransform(LayeringTransform.NO_LAYERING)
+                    .createRenderSetup()
     );
 
 }

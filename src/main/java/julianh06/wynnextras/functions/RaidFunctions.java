@@ -2,8 +2,7 @@ package julianh06.wynnextras.functions;
 
 import julianh06.wynnextras.features.raid.RaidLootConfig;
 import julianh06.wynnextras.features.raid.RaidLootData;
-import net.minecraft.client.resource.language.I18n;
-
+import net.minecraft.client.resources.language.I18n;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Objects;
@@ -121,7 +120,7 @@ public class RaidFunctions {
     }
 
     public static String getTranslation(String keySuffix) {
-            return I18n.translate("wynnextrasfunction.wynnextras.raid_drop." + keySuffix, new Object[]{
+            return I18n.get("wynnextrasfunction.wynnextras.raid_drop." + keySuffix, new Object[]{
                     String.join(", ", Arrays.stream(RAID.values()).map(Enum::name).sorted().toList()),
                     String.join(", ", Arrays.stream(MODE.values()).map(Enum::name).sorted().toList()),
                     String.join(", ", Arrays.stream(TYPE.values()).map(Enum::name).sorted().toList())

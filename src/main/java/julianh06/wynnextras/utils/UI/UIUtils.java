@@ -1,6 +1,11 @@
 package julianh06.wynnextras.utils.UI;
 
 import julianh06.wynnextras.utils.text.StyledText;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.utils.render.FontRenderer;
 import julianh06.wynnextras.utils.render.RenderUtils;
@@ -9,76 +14,70 @@ import julianh06.wynnextras.utils.render.TextShadow;
 import julianh06.wynnextras.utils.render.VerticalAlignment;
 import julianh06.wynnextras.features.profileviewer.PVScreen;
 import julianh06.wynnextras.mixin.Invoker.NativeImageInvoker;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
+import com.mojang.blaze3d.platform.NativeImage;
 import java.awt.*;
 
 public final class UIUtils {
-    Identifier buttontl = Identifier.of("wynnextras", "textures/general/button/cornertl.png");
-    Identifier buttontr = Identifier.of("wynnextras", "textures/general/button/cornertr.png");
-    Identifier buttonbl = Identifier.of("wynnextras", "textures/general/button/cornerbl.png");
-    Identifier buttonbr = Identifier.of("wynnextras", "textures/general/button/cornerbr.png");
-    Identifier buttontop = Identifier.of("wynnextras", "textures/general/button/top.png");
-    Identifier buttonbot = Identifier.of("wynnextras", "textures/general/button/bot.png");
-    Identifier buttonleft = Identifier.of("wynnextras", "textures/general/button/left.png");
-    Identifier buttonright = Identifier.of("wynnextras", "textures/general/button/right.png");
+    Identifier buttontl = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/button/cornertl.png");
+    Identifier buttontr = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/button/cornertr.png");
+    Identifier buttonbl = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/button/cornerbl.png");
+    Identifier buttonbr = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/button/cornerbr.png");
+    Identifier buttontop = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/button/top.png");
+    Identifier buttonbot = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/button/bot.png");
+    Identifier buttonleft = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/button/left.png");
+    Identifier buttonright = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/button/right.png");
 
-    Identifier buttontlH = Identifier.of("wynnextras", "textures/general/button/cornertlh.png");
-    Identifier buttontrH = Identifier.of("wynnextras", "textures/general/button/cornertrh.png");
-    Identifier buttonblH = Identifier.of("wynnextras", "textures/general/button/cornerblh.png");
-    Identifier buttonbrH = Identifier.of("wynnextras", "textures/general/button/cornerbrh.png");
-    Identifier buttontopH = Identifier.of("wynnextras", "textures/general/button/toph.png");
-    Identifier buttonbotH = Identifier.of("wynnextras", "textures/general/button/both.png");
-    Identifier buttonleftH = Identifier.of("wynnextras", "textures/general/button/lefth.png");
-    Identifier buttonrightH = Identifier.of("wynnextras", "textures/general/button/righth.png");
+    Identifier buttontlH = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/button/cornertlh.png");
+    Identifier buttontrH = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/button/cornertrh.png");
+    Identifier buttonblH = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/button/cornerblh.png");
+    Identifier buttonbrH = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/button/cornerbrh.png");
+    Identifier buttontopH = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/button/toph.png");
+    Identifier buttonbotH = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/button/both.png");
+    Identifier buttonleftH = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/button/lefth.png");
+    Identifier buttonrightH = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/button/righth.png");
 
-    Identifier buttontld = Identifier.of("wynnextras", "textures/general/buttondark/cornertl.png");
-    Identifier buttontrd = Identifier.of("wynnextras", "textures/general/buttondark/cornertr.png");
-    Identifier buttonbld = Identifier.of("wynnextras", "textures/general/buttondark/cornerbl.png");
-    Identifier buttonbrd = Identifier.of("wynnextras", "textures/general/buttondark/cornerbr.png");
-    Identifier buttontopd = Identifier.of("wynnextras", "textures/general/buttondark/top.png");
-    Identifier buttonbotd = Identifier.of("wynnextras", "textures/general/buttondark/bot.png");
-    Identifier buttonleftd = Identifier.of("wynnextras", "textures/general/buttondark/left.png");
-    Identifier buttonrightd = Identifier.of("wynnextras", "textures/general/buttondark/right.png");
+    Identifier buttontld = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/buttondark/cornertl.png");
+    Identifier buttontrd = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/buttondark/cornertr.png");
+    Identifier buttonbld = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/buttondark/cornerbl.png");
+    Identifier buttonbrd = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/buttondark/cornerbr.png");
+    Identifier buttontopd = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/buttondark/top.png");
+    Identifier buttonbotd = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/buttondark/bot.png");
+    Identifier buttonleftd = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/buttondark/left.png");
+    Identifier buttonrightd = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/buttondark/right.png");
 
-    Identifier buttontlHd = Identifier.of("wynnextras", "textures/general/buttondark/cornertlh.png");
-    Identifier buttontrHd = Identifier.of("wynnextras", "textures/general/buttondark/cornertrh.png");
-    Identifier buttonblHd = Identifier.of("wynnextras", "textures/general/buttondark/cornerblh.png");
-    Identifier buttonbrHd = Identifier.of("wynnextras", "textures/general/buttondark/cornerbrh.png");
-    Identifier buttontopHd = Identifier.of("wynnextras", "textures/general/buttondark/toph.png");
-    Identifier buttonbotHd = Identifier.of("wynnextras", "textures/general/buttondark/both.png");
-    Identifier buttonleftHd = Identifier.of("wynnextras", "textures/general/buttondark/lefth.png");
-    Identifier buttonrightHd = Identifier.of("wynnextras", "textures/general/buttondark/righth.png");
+    Identifier buttontlHd = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/buttondark/cornertlh.png");
+    Identifier buttontrHd = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/buttondark/cornertrh.png");
+    Identifier buttonblHd = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/buttondark/cornerblh.png");
+    Identifier buttonbrHd = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/buttondark/cornerbrh.png");
+    Identifier buttontopHd = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/buttondark/toph.png");
+    Identifier buttonbotHd = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/buttondark/both.png");
+    Identifier buttonleftHd = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/buttondark/lefth.png");
+    Identifier buttonrightHd = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/buttondark/righth.png");
 
-    public static final Identifier sliderButtontl = Identifier.of("wynnextras", "textures/general/sliderbackgrounds/cornertl.png");
-    public static final Identifier sliderButtontr = Identifier.of("wynnextras", "textures/general/sliderbackgrounds/cornertr.png");
-    public static final Identifier sliderButtonbl = Identifier.of("wynnextras", "textures/general/sliderbackgrounds/cornerbl.png");
-    public static final Identifier sliderButtonbr = Identifier.of("wynnextras", "textures/general/sliderbackgrounds/cornerbr.png");
-    public static final Identifier sliderButtontop = Identifier.of("wynnextras", "textures/general/sliderbackgrounds/top.png");
-    public static final Identifier sliderButtonbot = Identifier.of("wynnextras", "textures/general/sliderbackgrounds/bot.png");
-    public static final Identifier sliderButtonleft = Identifier.of("wynnextras", "textures/general/sliderbackgrounds/left.png");
-    public static final Identifier sliderButtonright = Identifier.of("wynnextras", "textures/general/sliderbackgrounds/right.png");
+    public static final Identifier sliderButtontl = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/sliderbackgrounds/cornertl.png");
+    public static final Identifier sliderButtontr = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/sliderbackgrounds/cornertr.png");
+    public static final Identifier sliderButtonbl = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/sliderbackgrounds/cornerbl.png");
+    public static final Identifier sliderButtonbr = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/sliderbackgrounds/cornerbr.png");
+    public static final Identifier sliderButtontop = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/sliderbackgrounds/top.png");
+    public static final Identifier sliderButtonbot = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/sliderbackgrounds/bot.png");
+    public static final Identifier sliderButtonleft = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/sliderbackgrounds/left.png");
+    public static final Identifier sliderButtonright = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/sliderbackgrounds/right.png");
 
-    public static final Identifier sliderButtontlDark = Identifier.of("wynnextras", "textures/general/sliderbackgrounds/cornertld.png");
-    public static final Identifier sliderButtontrDark = Identifier.of("wynnextras", "textures/general/sliderbackgrounds/cornertrd.png");
-    public static final Identifier sliderButtonblDark = Identifier.of("wynnextras", "textures/general/sliderbackgrounds/cornerbld.png");
-    public static final Identifier sliderButtonbrDark = Identifier.of("wynnextras", "textures/general/sliderbackgrounds/cornerbrd.png");
-    public static final Identifier sliderButtontopDark = Identifier.of("wynnextras", "textures/general/sliderbackgrounds/topd.png");
-    public static final Identifier sliderButtonbotDark = Identifier.of("wynnextras", "textures/general/sliderbackgrounds/botd.png");
-    public static final Identifier sliderButtonleftDark = Identifier.of("wynnextras", "textures/general/sliderbackgrounds/leftd.png");
-    public static final Identifier sliderButtonrightDark = Identifier.of("wynnextras", "textures/general/sliderbackgrounds/rightd.png");
+    public static final Identifier sliderButtontlDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/sliderbackgrounds/cornertld.png");
+    public static final Identifier sliderButtontrDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/sliderbackgrounds/cornertrd.png");
+    public static final Identifier sliderButtonblDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/sliderbackgrounds/cornerbld.png");
+    public static final Identifier sliderButtonbrDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/sliderbackgrounds/cornerbrd.png");
+    public static final Identifier sliderButtontopDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/sliderbackgrounds/topd.png");
+    public static final Identifier sliderButtonbotDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/sliderbackgrounds/botd.png");
+    public static final Identifier sliderButtonleftDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/sliderbackgrounds/leftd.png");
+    public static final Identifier sliderButtonrightDark = Identifier.fromNamespaceAndPath("wynnextras", "textures/general/sliderbackgrounds/rightd.png");
 
-    private DrawContext drawContext;
+    private GuiGraphicsExtractor drawContext;
     private double scaleFactor;
     private int xStart;
     private int yStart;
 
-    public UIUtils(DrawContext drawContext, double scaleFactor, int xStart, int yStart) {
+    public UIUtils(GuiGraphicsExtractor drawContext, double scaleFactor, int xStart, int yStart) {
         this.drawContext = drawContext;
         this.scaleFactor = scaleFactor;
         this.xStart = xStart;
@@ -86,7 +85,7 @@ public final class UIUtils {
         clearSeparatorCache();
     }
 
-    public void updateContext(DrawContext ctx, double scaleFactor, int xStart, int yStart) {
+    public void updateContext(GuiGraphicsExtractor ctx, double scaleFactor, int xStart, int yStart) {
         this.drawContext = ctx;
         this.scaleFactor = scaleFactor;
         this.xStart = xStart;
@@ -106,9 +105,9 @@ public final class UIUtils {
     public int sh(float logicalH) { return Math.max(0, (int)Math.round(logicalH / scaleFactor)); }
 
     public void drawBackground() {
-        if (MinecraftClient.getInstance().currentScreen == null) return;
+        if (Minecraft.getInstance().gui.screen() == null) return;
         drawContext.fillGradient(
-                0, 0, MinecraftClient.getInstance().currentScreen.width, MinecraftClient.getInstance().currentScreen.height,
+                0, 0, Minecraft.getInstance().gui.screen().width, Minecraft.getInstance().gui.screen().height,
                 0xC0101010,
                 0xD0101010
         );
@@ -149,7 +148,7 @@ public final class UIUtils {
     public void drawText(String text, float x, float y, CustomColor color, HorizontalAlignment hAlign, VerticalAlignment vAlign, TextShadow shadow, float textScale) {
         FontRenderer.getInstance().renderText(
                 drawContext,
-                StyledText.fromComponent(Text.of(text)),
+                StyledText.fromComponent(Component.nullToEmpty(text)),
                 sx(x),
                 sy(y),
                 color,
@@ -176,7 +175,7 @@ public final class UIUtils {
         drawText(text, x, y, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 3f);
     }
 
-    public void drawText(Text text, float x, float y, CustomColor color, HorizontalAlignment hAlign, VerticalAlignment vAlign, TextShadow shadow, float textScale) {
+    public void drawText(Component text, float x, float y, CustomColor color, HorizontalAlignment hAlign, VerticalAlignment vAlign, TextShadow shadow, float textScale) {
         FontRenderer.getInstance().renderText(
                 drawContext,
                 StyledText.fromComponent(text),
@@ -190,19 +189,19 @@ public final class UIUtils {
         );
     }
 
-    public void drawText(Text text, float x, float y, CustomColor color, HorizontalAlignment hAlign, VerticalAlignment vAlign, float textScale) {
+    public void drawText(Component text, float x, float y, CustomColor color, HorizontalAlignment hAlign, VerticalAlignment vAlign, float textScale) {
         drawText(text, x, y, color, hAlign, vAlign, TextShadow.NORMAL, textScale);
     }
 
-    public void drawText(Text text, float x, float y, CustomColor color, float textScale) {
+    public void drawText(Component text, float x, float y, CustomColor color, float textScale) {
         drawText(text, x, y, color, HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, textScale);
     }
 
-    public void drawText(Text text, float x, float y, CustomColor color) {
+    public void drawText(Component text, float x, float y, CustomColor color) {
         drawText(text, x, y, color, HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 3f);
     }
 
-    public void drawText(Text text, float x, float y) {
+    public void drawText(Component text, float x, float y) {
         drawText(text, x, y, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP, TextShadow.NORMAL, 3f);
     }
 
@@ -222,19 +221,19 @@ public final class UIUtils {
         drawText(text, x, y, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.CENTER, VerticalAlignment.MIDDLE, TextShadow.NORMAL, 3f);
     }
 
-    public void drawCenteredText(Text text, float x, float y, CustomColor color, float textScale) {
+    public void drawCenteredText(Component text, float x, float y, CustomColor color, float textScale) {
         drawText(text, x, y, color, HorizontalAlignment.CENTER, VerticalAlignment.MIDDLE, TextShadow.NORMAL, textScale);
     }
 
-    public void drawCenteredText(Text text, float x, float y, float textScale) {
+    public void drawCenteredText(Component text, float x, float y, float textScale) {
         drawText(text, x, y, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.CENTER, VerticalAlignment.MIDDLE, TextShadow.NORMAL, textScale);
     }
 
-    public void drawCenteredText(Text text, float x, float y, CustomColor color) {
+    public void drawCenteredText(Component text, float x, float y, CustomColor color) {
         drawText(text, x, y, color, HorizontalAlignment.CENTER, VerticalAlignment.MIDDLE, TextShadow.NORMAL, 3f);
     }
 
-    public void drawCenteredText(Text text, float x, float y) {
+    public void drawCenteredText(Component text, float x, float y) {
         drawText(text, x, y, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.CENTER, VerticalAlignment.MIDDLE, TextShadow.NORMAL, 3f);
     }
 
@@ -383,8 +382,8 @@ public final class UIUtils {
         int drawWidth = Math.max(1, Math.round((float) (width / scaleFactor * renderScale)));
         int drawHeight = Math.max(1, Math.round((float) (height / scaleFactor * renderScale)));
 
-        drawContext.getMatrices().pushMatrix();
-        drawContext.getMatrices().scale(1f / renderScale, 1f / renderScale);
+        drawContext.pose().pushMatrix();
+        drawContext.pose().scale(1f / renderScale, 1f / renderScale);
         RenderUtils.drawTexturedRect(
                 drawContext,
                 texture,
@@ -395,7 +394,7 @@ public final class UIUtils {
                 textureWidth, textureHeight,
                 textureWidth, textureHeight
         );
-        drawContext.getMatrices().popMatrix();
+        drawContext.pose().popMatrix();
     }
 
     private void drawImageExact(
@@ -433,9 +432,9 @@ public final class UIUtils {
 
     public void drawButton(float x, float y, float width, float height, boolean hovered) {
         Identifier sprite = hovered
-                ? Identifier.ofVanilla("widget/button_highlighted")
-                : Identifier.ofVanilla("widget/button");
-        drawContext.drawGuiTexture(RenderPipelines.GUI_TEXTURED, sprite, (int) sx(x), (int) sy(y), sw(width), sh(height));
+                ? Identifier.withDefaultNamespace("widget/button_highlighted")
+                : Identifier.withDefaultNamespace("widget/button");
+        drawContext.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, (int) sx(x), (int) sy(y), sw(width), sh(height));
     }
 
     public void drawVanillaPanelButton(float x, float y, float width, float height, int scale, int cornerPixels,
@@ -601,7 +600,7 @@ public final class UIUtils {
 
 
     public void drawSliderBackground(float x, float y, float width, float height) {
-        drawContext.drawGuiTexture(RenderPipelines.GUI_TEXTURED, Identifier.ofVanilla("widget/slider"), (int) sx(x), (int) sy(y), sw(width), sh(height));
+        drawContext.blitSprite(RenderPipelines.GUI_TEXTURED, Identifier.withDefaultNamespace("widget/slider"), (int) sx(x), (int) sy(y), sw(width), sh(height));
     }
 
     public void drawSliderFade(float x, float y, float width, float height, int scale, float fade) {
@@ -627,7 +626,7 @@ public final class UIUtils {
                 sliderButtontopDark, sliderButtonbotDark, sliderButtonleftDark, sliderButtonrightDark, fade);
     }
 
-    private static final Identifier GENERIC_CONTAINER_TEX = Identifier.ofVanilla("textures/gui/container/generic_54.png");
+    private static final Identifier GENERIC_CONTAINER_TEX = Identifier.withDefaultNamespace("textures/gui/container/generic_54.png");
     private static final int GENERIC_W  = 256;
     private static final int GENERIC_H  = 256;
 
@@ -713,11 +712,11 @@ public final class UIUtils {
         if(br != null) drawImage(br, x + width - scale, y + height - scale, scale, scale);
     }
 
-    public void drawProgressBar(float x, float y, float width, float height, float textScale, float progress, Identifier progressTexture, DrawContext context) {
+    public void drawProgressBar(float x, float y, float width, float height, float textScale, float progress, Identifier progressTexture, GuiGraphicsExtractor context) {
         drawProgressBar(x, y, width, height, textScale, progress, progressTexture, context, false);
     }
 
-    public void drawProgressBar(float x, float y, float width, float height, float textScale, float progress, Identifier progressTexture, DrawContext context, boolean chroma) {
+    public void drawProgressBar(float x, float y, float width, float height, float textScale, float progress, Identifier progressTexture, GuiGraphicsExtractor context, boolean chroma) {
         drawRect(x, y, width, height, getVanillaPanelBgColor());
 
         float clampedProgress = Math.max(0f, Math.min(1f, progress));
@@ -740,11 +739,11 @@ public final class UIUtils {
         drawCenteredText(String.format("%.2f%%", clampedProgress * 100), x + width / 2f, y + height / 2f + 2, CustomColor.fromHexString("FFFFFF"), textScale);
     }
 
-    public void drawProgressBar(float x, float y, float width, float height, float textScale, float progress, Identifier border, Identifier background, Identifier progressTexture, DrawContext context) {
+    public void drawProgressBar(float x, float y, float width, float height, float textScale, float progress, Identifier border, Identifier background, Identifier progressTexture, GuiGraphicsExtractor context) {
         drawProgressBar(x, y, width, height, textScale, progress, border, background, progressTexture, context, false);
     }
 
-    public void drawProgressBar(float x, float y, float width, float height, float textScale, float progress, Identifier border, Identifier background, Identifier progressTexture, DrawContext context, boolean chroma) {
+    public void drawProgressBar(float x, float y, float width, float height, float textScale, float progress, Identifier border, Identifier background, Identifier progressTexture, GuiGraphicsExtractor context, boolean chroma) {
         drawImage(background, x, y, width, height);
 
         float clampedProgress = Math.max(0f, Math.min(1f, progress));
@@ -783,8 +782,8 @@ public final class UIUtils {
         return CustomColor.fromInt(rgb & 0xFFFFFF);
     }
 
-    private static final Identifier BUTTON_TEX = Identifier.ofVanilla("textures/gui/sprites/widget/button.png");
-    private static final Identifier BUTTON_HIGHLIGHTED_TEX = Identifier.ofVanilla("textures/gui/sprites/widget/button_highlighted.png");
+    private static final Identifier BUTTON_TEX = Identifier.withDefaultNamespace("textures/gui/sprites/widget/button.png");
+    private static final Identifier BUTTON_HIGHLIGHTED_TEX = Identifier.withDefaultNamespace("textures/gui/sprites/widget/button_highlighted.png");
 
     private static CustomColor cachedSepNormal = null;
     private static CustomColor cachedSepHovered = null;
@@ -845,9 +844,9 @@ public final class UIUtils {
     // Returns [R, G, B] (0-255) or null on failure.
     private static int[] sampleSpriteCenter(Identifier id) {
         try {
-            var res = MinecraftClient.getInstance().getResourceManager().getResource(id);
+            var res = Minecraft.getInstance().getResourceManager().getResource(id);
             if (res.isEmpty()) return null;
-            try (var is = res.get().getInputStream();
+            try (var is = res.get().open();
                  NativeImage img = NativeImage.read(is)) {
                 // Pixel format is ABGR (little-endian RGBA): lowest byte = R.
                 int c = ((NativeImageInvoker) (Object) img).invokeGetColor(1, img.getHeight() / 2);
@@ -859,9 +858,9 @@ public final class UIUtils {
 
     private static int[] sampleSpriteNotCenterButAtThePositionForTheDarkerColor(Identifier id) {
         try {
-            var res = MinecraftClient.getInstance().getResourceManager().getResource(id);
+            var res = Minecraft.getInstance().getResourceManager().getResource(id);
             if (res.isEmpty()) return null;
-            try (var is = res.get().getInputStream();
+            try (var is = res.get().open();
                  NativeImage img = NativeImage.read(is)) {
                 // Pixel format is ABGR (little-endian RGBA): lowest byte = R.
                 int c = ((NativeImageInvoker) (Object) img).invokeGetColor(2, 2);
@@ -873,9 +872,9 @@ public final class UIUtils {
 
     private static int[] sampleSpriteAt(Identifier id, int u, int v) {
         try {
-            var res = MinecraftClient.getInstance().getResourceManager().getResource(id);
+            var res = Minecraft.getInstance().getResourceManager().getResource(id);
             if (res.isEmpty()) return null;
-            try (var is = res.get().getInputStream();
+            try (var is = res.get().open();
                  NativeImage img = NativeImage.read(is)) {
                 int c = ((NativeImageInvoker) (Object) img).invokeGetColor(u, v);
                 return new int[]{c & 0xFF, (c >> 8) & 0xFF, (c >> 16) & 0xFF};

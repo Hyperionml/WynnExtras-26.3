@@ -2,6 +2,7 @@ package julianh06.wynnextras.features.spellhider;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.*;
+import com.mojang.blaze3d.platform.NativeImage;
 import julianh06.wynnextras.annotations.WEModule;
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.event.InitEvent;
@@ -10,11 +11,10 @@ import julianh06.wynnextras.utils.EntityUtils;
 import julianh06.wynnextras.utils.ItemUtils;
 import julianh06.wynnextras.utils.EntityVisibility;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.item.Items;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.Items;
 import net.neoforged.bus.api.SubscribeEvent;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
@@ -160,7 +160,7 @@ public class SpellHider {
         }
     }
 
-    public static SpellModifiers getModifiers(DisplayEntity.ItemDisplayEntity display) {
+    public static SpellModifiers getModifiers(Display.ItemDisplay display) {
         if (display.getItemStack().getItem() != Items.OAK_BOAT) return null;
         Float model = ItemUtils.getFirsCustomModelDataFloat(display.getItemStack());
         if (model == null) return null;
@@ -199,9 +199,9 @@ public class SpellHider {
 
     @SubscribeEvent
     public void onEntitySetData(SetEntityDataEvent event) {
-        if (MinecraftClient.getInstance().world == null) return;
-        Entity entity = MinecraftClient.getInstance().world.getEntityById(event.getId());
-        if (entity instanceof DisplayEntity.ItemDisplayEntity display) {
+        if (Minecraft.getInstance().level == null) return;
+        Entity entity = Minecraft.getInstance().level.getEntity(event.getId());
+        if (entity instanceof Display.ItemDisplay display) {
             SpellModifiers modifiers = getModifiers(display);
 
             boolean hide = SpellProfiles.isEverythingInvisible();
@@ -239,7 +239,7 @@ public class SpellHider {
         result = 31 * result + height;
 
         // Hash ALL pixels
-        int[] pixels = image.copyPixelsArgb();
+        int[] pixels = image.getPixels();
         for (int pixel : pixels) {
             result = 31 * result + pixel;
         }
@@ -261,10 +261,10 @@ public class SpellHider {
     }
 
     public static void resetRenderedState() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.world == null) return;
-        client.world.getEntities().forEach(entity -> {
-            if (entity instanceof DisplayEntity.ItemDisplayEntity) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.level == null) return;
+        client.level.entitiesForRendering().forEach(entity -> {
+            if (entity instanceof Display.ItemDisplay) {
                 EntityVisibility.setRendered(entity, true);
             }
         });

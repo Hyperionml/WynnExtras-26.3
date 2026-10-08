@@ -1,11 +1,10 @@
 package julianh06.wynnextras.compat.wynntils;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 
 public final class WynntilsTooltipAdapter {
     private record Binding(Class<?> eventClass, Method getItemStack, Method getTooltips, Method setTooltips) {}
@@ -31,13 +30,13 @@ public final class WynntilsTooltipAdapter {
         CHAT_ITEM.isAvailable();
     }
 
-    public static List<Text> getTooltips(Object event) {
+    public static List<Component> getTooltips(Object event) {
         return EVENT.invoke(binding -> {
-            if (!binding.eventClass.isInstance(event)) return List.<Text>of();
+            if (!binding.eventClass.isInstance(event)) return List.<Component>of();
             Object result = binding.getTooltips.invoke(event);
-            if (!(result instanceof List<?> values)) return List.<Text>of();
-            List<Text> texts = new ArrayList<>(values.size());
-            for (Object value : values) if (value instanceof Text text) texts.add(text);
+            if (!(result instanceof List<?> values)) return List.<Component>of();
+            List<Component> texts = new ArrayList<>(values.size());
+            for (Object value : values) if (value instanceof Component text) texts.add(text);
             return texts;
         }).orElseGet(List::of);
     }
@@ -50,7 +49,7 @@ public final class WynntilsTooltipAdapter {
         }).orElse(null);
     }
 
-    public static void setTooltips(Object event, List<Text> tooltips) {
+    public static void setTooltips(Object event, List<Component> tooltips) {
         EVENT.run(binding -> {
             if (binding.eventClass.isInstance(event)) binding.setTooltips.invoke(event, tooltips);
             return null;

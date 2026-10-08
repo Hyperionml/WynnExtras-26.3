@@ -2,9 +2,8 @@ package julianh06.wynnextras.utils;
 
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.mixin.Accessor.BossBarHudAccessor;
-import net.minecraft.client.gui.hud.BossBarHud;
-import net.minecraft.client.gui.hud.ClientBossBar;
-
+import net.minecraft.client.gui.components.BossHealthOverlay;
+import net.minecraft.client.gui.components.LerpingBossEvent;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Collections;
@@ -15,20 +14,20 @@ public class BossBarUtils {
     private static Field bossBarsField;
     private static boolean accessFailureLogged = false;
 
-    public static Collection<ClientBossBar> getBossBars(BossBarHud hud) {
+    public static Collection<LerpingBossEvent> getBossBars(BossHealthOverlay hud) {
         if (hud == null) return Collections.emptyList();
 
         if (hud instanceof BossBarHudAccessor accessor) {
-            Map<UUID, ClientBossBar> bars = accessor.getBossBars();
+            Map<UUID, LerpingBossEvent> bars = accessor.getBossBars();
             return bars == null ? Collections.emptyList() : bars.values();
         }
 
-        Map<UUID, ClientBossBar> bars = getBossBarsReflective(hud);
+        Map<UUID, LerpingBossEvent> bars = getBossBarsReflective(hud);
         return bars == null ? Collections.emptyList() : bars.values();
     }
 
     @SuppressWarnings("unchecked")
-    private static Map<UUID, ClientBossBar> getBossBarsReflective(BossBarHud hud) {
+    private static Map<UUID, LerpingBossEvent> getBossBarsReflective(BossHealthOverlay hud) {
         try {
             Field field = bossBarsField;
             if (field == null) {
@@ -42,7 +41,7 @@ public class BossBarUtils {
             }
 
             Object value = field.get(hud);
-            if (value instanceof Map<?, ?> map) return (Map<UUID, ClientBossBar>) map;
+            if (value instanceof Map<?, ?> map) return (Map<UUID, LerpingBossEvent>) map;
         } catch (ReflectiveOperationException | RuntimeException e) {
             logAccessFailure(e);
         }

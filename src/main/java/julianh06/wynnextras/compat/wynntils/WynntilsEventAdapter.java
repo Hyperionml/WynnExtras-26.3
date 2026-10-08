@@ -1,10 +1,9 @@
 package julianh06.wynnextras.compat.wynntils;
 
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.SlotActionType;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerInput;
 
 public final class WynntilsEventAdapter {
     private record ContainerClickBinding(Constructor<?> constructor, Method post, Method isCanceled) {}
@@ -14,7 +13,7 @@ public final class WynntilsEventAdapter {
             () -> {
                 Class<?> eventClass = WynntilsCompat.requireClass("com.wynntils.mc.event.ContainerClickEvent");
                 Constructor<?> constructor = eventClass.getConstructor(
-                        ScreenHandler.class, int.class, SlotActionType.class, int.class);
+                        AbstractContainerMenu.class, int.class, ContainerInput.class, int.class);
                 Class<?> mixinHelper = WynntilsCompat.requireClass("com.wynntils.core.events.MixinHelper");
                 Method post = null;
                 for (Method method : mixinHelper.getMethods()) {
@@ -32,7 +31,7 @@ public final class WynntilsEventAdapter {
 
     private WynntilsEventAdapter() {}
 
-    public static boolean postContainerClick(ScreenHandler handler, int slot, SlotActionType action, int button) {
+    public static boolean postContainerClick(AbstractContainerMenu handler, int slot, ContainerInput action, int button) {
         if (handler == null) return false;
         return CONTAINER_CLICK.invoke(binding -> {
             Object event = binding.constructor.newInstance(handler, slot, action, button);

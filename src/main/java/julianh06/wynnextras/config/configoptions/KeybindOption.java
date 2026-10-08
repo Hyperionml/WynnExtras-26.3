@@ -1,11 +1,11 @@
 package julianh06.wynnextras.config.configoptions;
 
 import julianh06.wynnextras.utils.MinecraftUtils;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.sounds.SoundEvents;
 import julianh06.wynnextras.config.WynnExtrasConfig;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.sound.SoundEvents;
-import org.lwjgl.glfw.GLFW;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -26,23 +26,23 @@ public class KeybindOption extends ConfigOption {
     }
 
     private String keyName(int key) {
-        if (key == GLFW.GLFW_KEY_UNKNOWN) return "UNBOUND";
-        String n = GLFW.glfwGetKeyName(key, 0);
+        if (key == InputCompat.KEY_UNKNOWN) return "UNBOUND";
+        String n = InputCompat.keyName(key, 0);
         if (n != null) return n.toUpperCase();
         return switch (key) {
-            case GLFW.GLFW_KEY_SPACE         -> "SPACE";
-            case GLFW.GLFW_KEY_TAB           -> "TAB";
-            case GLFW.GLFW_KEY_ENTER         -> "ENTER";
-            case GLFW.GLFW_KEY_LEFT_SHIFT    -> "LSHIFT";
-            case GLFW.GLFW_KEY_RIGHT_SHIFT   -> "RSHIFT";
-            case GLFW.GLFW_KEY_LEFT_ALT      -> "LALT";
-            case GLFW.GLFW_KEY_RIGHT_ALT     -> "RALT";
-            case GLFW.GLFW_KEY_LEFT_CONTROL  -> "LCTRL";
-            case GLFW.GLFW_KEY_RIGHT_CONTROL -> "RCTRL";
-            case GLFW.GLFW_KEY_UP            -> "UP";
-            case GLFW.GLFW_KEY_DOWN          -> "DOWN";
-            case GLFW.GLFW_KEY_LEFT          -> "LEFT";
-            case GLFW.GLFW_KEY_RIGHT         -> "RIGHT";
+            case InputCompat.KEY_SPACE         -> "SPACE";
+            case InputCompat.KEY_TAB           -> "TAB";
+            case InputCompat.KEY_ENTER         -> "ENTER";
+            case InputCompat.KEY_LEFT_SHIFT    -> "LSHIFT";
+            case InputCompat.KEY_RIGHT_SHIFT   -> "RSHIFT";
+            case InputCompat.KEY_LEFT_ALT      -> "LALT";
+            case InputCompat.KEY_RIGHT_ALT     -> "RALT";
+            case InputCompat.KEY_LEFT_CONTROL  -> "LCTRL";
+            case InputCompat.KEY_RIGHT_CONTROL -> "RCTRL";
+            case InputCompat.KEY_UP            -> "UP";
+            case InputCompat.KEY_DOWN          -> "DOWN";
+            case InputCompat.KEY_LEFT          -> "LEFT";
+            case InputCompat.KEY_RIGHT         -> "RIGHT";
             default -> "KEY_" + key;
         };
     }
@@ -51,8 +51,8 @@ public class KeybindOption extends ConfigOption {
     public int controlWidth() { return 152; }
 
     @Override
-    public void render(DrawContext ctx, int x, int y, int w, int h, int mx, int my, boolean hovered, int categoryColor) {
-        var tr = MinecraftClient.getInstance().textRenderer;
+    public void render(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int mx, int my, boolean hovered, int categoryColor) {
+        var tr = Minecraft.getInstance().font;
         ctx.fill(x, y, x + w, y + h - 5, hovered ? PARCHMENT_HOVER : PARCHMENT);
         ctx.fill(x, y, x + w, y + 1, BORDER_LIGHT);
         ctx.fill(x, y + h - 6, x + w, y + h - 5, BORDER_DARK);
@@ -63,12 +63,12 @@ public class KeybindOption extends ConfigOption {
         boolean btnHover = mx >= bx && mx < bx + 80 && my >= by && my < by + 24;
         ctx.fill(resetX, by, resetX + 52, by + 24, BORDER_DARK);
         ctx.fill(resetX + 1, by + 1, resetX + 51, by + 23, resetHover ? PARCHMENT_HOVER : PARCHMENT);
-        ctx.drawCenteredTextWithShadow(tr, "Reset", resetX + 26, by + 8, getter.get() == defaultKey ? TEXT_DIM : TEXT_LIGHT);
+        ctx.centeredText(tr, "Reset", resetX + 26, by + 8, getter.get() == defaultKey ? TEXT_DIM : TEXT_LIGHT);
 
         ctx.fill(bx, by, bx + 80, by + 24, listening ? categoryColor : BORDER_DARK);
         ctx.fill(bx + 1, by + 1, bx + 79, by + 23, listening ? PARCHMENT_HOVER : (btnHover ? PARCHMENT_HOVER : PARCHMENT));
         String label = listening ? "[ ... ]" : "[ " + keyName(getter.get()) + " ]";
-        ctx.drawCenteredTextWithShadow(tr, label, bx + 40, by + 8,
+        ctx.centeredText(tr, label, bx + 40, by + 8,
                 listening ? 0xFFFFDD44 : TEXT_LIGHT);
     }
 
@@ -93,8 +93,8 @@ public class KeybindOption extends ConfigOption {
 
     public boolean onKeyPressed(int key) {
         if (!listening) return false;
-        if (key == GLFW.GLFW_KEY_ESCAPE || key == GLFW.GLFW_KEY_BACKSPACE || key == GLFW.GLFW_KEY_DELETE) {
-            setter.accept(GLFW.GLFW_KEY_UNKNOWN);
+        if (key == InputCompat.KEY_ESCAPE || key == InputCompat.KEY_BACKSPACE || key == InputCompat.KEY_DELETE) {
+            setter.accept(InputCompat.KEY_UNKNOWN);
             listening = false;
             WynnExtrasConfig.save();
             MinecraftUtils.playSoundUI(SoundEvents.UI_BUTTON_CLICK.value());

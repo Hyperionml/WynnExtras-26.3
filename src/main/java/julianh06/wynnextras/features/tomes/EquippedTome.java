@@ -1,6 +1,6 @@
 package julianh06.wynnextras.features.tomes;
 
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 public record EquippedTome(int slot, TomeType type, ItemStack stack) {
     public EquippedTome {

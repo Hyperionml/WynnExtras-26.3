@@ -3,13 +3,12 @@ package julianh06.wynnextras.features.qol;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.utils.BossBarUtils;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.hud.BossBarHud;
-import net.minecraft.client.gui.hud.ClientBossBar;
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
+import net.minecraft.client.gui.components.BossHealthOverlay;
+import net.minecraft.client.gui.components.LerpingBossEvent;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 
 /**
  * Auto-skips Wynncraft cutscenes that prompt "Swap Hands to skip".
@@ -27,16 +26,16 @@ public class AutoSkipCutscenes {
     public static void register() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (!WynnExtrasConfig.INSTANCE.autoSkipCutscenesEnabled) { tickCounter = 0; return; }
-            if (client == null || client.player == null || client.getNetworkHandler() == null) { tickCounter = 0; return; }
-            if (client.inGameHud == null) { tickCounter = 0; return; }
+            if (client == null || client.player == null || client.getConnection() == null) { tickCounter = 0; return; }
+            if (client.gui == null) { tickCounter = 0; return; }
 
-            BossBarHud hud = client.inGameHud.getBossBarHud();
+            BossHealthOverlay hud = client.gui.hud.getBossOverlay();
             if (hud == null) { tickCounter = 0; return; }
-            Iterable<ClientBossBar> bars = BossBarUtils.getBossBars(hud);
+            Iterable<LerpingBossEvent> bars = BossBarUtils.getBossBars(hud);
 
             boolean trigger = false;
-            for (ClientBossBar bar : bars) {
-                Text n = bar.getName();
+            for (LerpingBossEvent bar : bars) {
+                Component n = bar.getName();
                 if (n == null) continue;
                 String s = n.getString();
                 if (s != null && s.toLowerCase().contains(TRIGGER)) { trigger = true; break; }
@@ -44,9 +43,9 @@ public class AutoSkipCutscenes {
             if (!trigger) { tickCounter = 0; return; }
 
             if (tickCounter++ % INTERVAL_TICKS == 0) {
-                client.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(
-                        PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND,
-                        BlockPos.ORIGIN,
+                client.getConnection().send(new ServerboundPlayerActionPacket(
+                        ServerboundPlayerActionPacket.Action.SWAP_ITEM_WITH_OFFHAND,
+                        BlockPos.ZERO,
                         Direction.DOWN
                 ));
             }

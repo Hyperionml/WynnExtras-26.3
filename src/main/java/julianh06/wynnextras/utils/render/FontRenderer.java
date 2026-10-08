@@ -3,8 +3,8 @@ package julianh06.wynnextras.utils.render;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.utils.colors.CustomColor;
 import julianh06.wynnextras.utils.text.StyledText;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public final class FontRenderer {
     private static final FontRenderer INSTANCE = new FontRenderer();
@@ -15,33 +15,33 @@ public final class FontRenderer {
         return INSTANCE;
     }
 
-    public TextRenderer getFont() {
-        return MinecraftUtils.mc().textRenderer;
+    public Font getFont() {
+        return MinecraftUtils.mc().font;
     }
 
-    public void renderText(DrawContext context, StyledText text, float x, float y, CustomColor color,
+    public void renderText(GuiGraphicsExtractor context, StyledText text, float x, float y, CustomColor color,
                            HorizontalAlignment horizontal, VerticalAlignment vertical, TextShadow shadow, float scale) {
-        TextRenderer renderer = getFont();
-        float width = renderer.getWidth(text.getComponent()) * scale;
-        float height = renderer.fontHeight * scale;
+        Font renderer = getFont();
+        float width = renderer.width(text.getComponent()) * scale;
+        float height = renderer.lineHeight * scale;
         if (horizontal == HorizontalAlignment.CENTER) x -= width / 2;
         else if (horizontal == HorizontalAlignment.RIGHT) x -= width;
         if (vertical == VerticalAlignment.MIDDLE) y -= height / 2;
         else if (vertical == VerticalAlignment.BOTTOM) y -= height;
 
-        context.getMatrices().pushMatrix();
-        context.getMatrices().translate(x, y);
-        context.getMatrices().scale(scale, scale);
-        context.drawText(renderer, text.getComponent(), 0, 0, color.asInt(), shadow != TextShadow.NONE);
-        context.getMatrices().popMatrix();
+        context.pose().pushMatrix();
+        context.pose().translate(x, y);
+        context.pose().scale(scale, scale);
+        context.text(renderer, text.getComponent(), 0, 0, color.asInt(), shadow != TextShadow.NONE);
+        context.pose().popMatrix();
     }
 
-    public void renderText(DrawContext context, StyledText text, float x, float y, CustomColor color,
+    public void renderText(GuiGraphicsExtractor context, StyledText text, float x, float y, CustomColor color,
                            HorizontalAlignment horizontal, VerticalAlignment vertical, TextShadow shadow) {
         renderText(context, text, x, y, color, horizontal, vertical, shadow, 1);
     }
 
-    public void renderAlignedTextInBox(DrawContext context, StyledText text, float left, float right,
+    public void renderAlignedTextInBox(GuiGraphicsExtractor context, StyledText text, float left, float right,
                                        float top, float bottom, float padding, CustomColor color,
                                        HorizontalAlignment horizontal, VerticalAlignment vertical, TextShadow shadow) {
         float x = horizontal == HorizontalAlignment.LEFT ? left + padding

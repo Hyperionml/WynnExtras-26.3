@@ -11,13 +11,12 @@ import julianh06.wynnextras.utils.UI.TextInputWidget;
 import julianh06.wynnextras.utils.UI.WEScreen;
 import julianh06.wynnextras.utils.UI.Widget;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.MathHelper;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -92,7 +91,7 @@ public class AchievementScreen extends WEScreen {
     private double achievementScrollbarDragOffset;
     private HorizontalScrollTarget horizontalScrollDragging;
     private double horizontalScrollDragOffset;
-    private List<Text> hoveredBadgeTooltip = List.of();
+    private List<Component> hoveredBadgeTooltip = List.of();
     private TextInputWidget iconSearchBar;
     private TextInputWidget colorSearchBar;
     private TabButtonWidget achievementsTabButton;
@@ -117,7 +116,7 @@ public class AchievementScreen extends WEScreen {
     private static final Map<String, Boolean> CATEGORY_EXPANDED = new LinkedHashMap<>();
 
     public AchievementScreen() {
-        super(Text.literal("WynnExtras Achievements"));
+        super(Component.literal("WynnExtras Achievements"));
     }
 
     @Override
@@ -165,7 +164,7 @@ public class AchievementScreen extends WEScreen {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         hoveredBadgeTooltip = List.of();
         hideDynamicWidgets();
 
@@ -234,14 +233,14 @@ public class AchievementScreen extends WEScreen {
     }
 
     @Override
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if (tab == Tab.BADGES && !hoveredBadgeTooltip.isEmpty()) {
             TextInputWidget.drawFittingTooltip(ctx, hoveredBadgeTooltip, mouseX, mouseY);
         }
     }
 
     @Override
-    public boolean mouseDragged(Click click, double dx, double dy) {
+    public boolean mouseDragged(MouseButtonEvent click, double dx, double dy) {
         if (achievementScrollbarDragging && tab == Tab.ACHIEVEMENTS) {
             setScrollFromScrollbar(click.y() / matrixScale - achievementScrollbarDragOffset);
             return true;
@@ -254,13 +253,13 @@ public class AchievementScreen extends WEScreen {
     }
 
     @Override
-    public boolean mouseReleased(Click click) {
+    public boolean mouseReleased(MouseButtonEvent click) {
         achievementScrollbarDragging = false;
         horizontalScrollDragging = null;
         return super.mouseReleased(click);
     }
 
-    private void drawHeader(DrawContext ctx, int mouseX, int mouseY) {
+    private void drawHeader(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
         int w = layoutWidth();
         drawRect(20, 20, w - 40, 88, BG_DARK);
         drawRect(20, 105, w - 40, 3, GOLD);
@@ -273,14 +272,14 @@ public class AchievementScreen extends WEScreen {
         }
     }
 
-    private void drawTab(DrawContext ctx, int x, int y, String label, boolean selected, boolean hover) {
+    private void drawTab(GuiGraphicsExtractor ctx, int x, int y, String label, boolean selected, boolean hover) {
         drawRect(x, y, 180, 34, selected ? PARCHMENT : (hover ? PARCHMENT_HOVER : PANEL));
         drawRect(x, y, 180, 2, selected ? GOLD : BORDER_LIGHT);
         drawRect(x, y + 31, 180, 3, selected ? GOLD : BORDER);
         drawCenteredText(label, x + 90, y + 12, selected ? GOLD : TEXT_MAIN);
     }
 
-    private void drawAchievements(DrawContext ctx, int mouseX, int mouseY) {
+    private void drawAchievements(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
         List<AchievementCategory> categories = achievementCategories();
         int x = 24;
         int y = ACHIEVEMENT_VIEWPORT_TOP - Math.round(scroll);
@@ -329,12 +328,12 @@ public class AchievementScreen extends WEScreen {
         }
     }
 
-    private void drawBadges(DrawContext ctx, int mouseX, int mouseY) {
+    private void drawBadges(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
         int x = 24;
         int y = badgeIconLabelY();
         int w = layoutWidth() - 48;
 
-        int searchX = x + textRenderer.getWidth("Icons") + 16;
+        int searchX = x + font.width("Icons") + 16;
         drawRect(x, y - 6, searchX - x - 7, BADGE_SEARCH_HEIGHT, PARCHMENT);
         drawText("Icons", x + 4, y + 2, TEXT_MAIN);
         drawBadgeSearchBar(iconSearchBar(), searchX, y - 6);
@@ -343,7 +342,7 @@ public class AchievementScreen extends WEScreen {
         drawIconRow(ctx, mouseX, mouseY, x, badgeIconRowY(), w);
 
         y = badgeColorLabelY();
-        searchX = x + textRenderer.getWidth("Colors") + 16;
+        searchX = x + font.width("Colors") + 16;
         drawRect(x, y - 6, searchX - x - 7, BADGE_SEARCH_HEIGHT, PARCHMENT);
         drawText("Colors", x + 4, y + 2, TEXT_MAIN);
         drawBadgeSearchBar(colorSearchBar(), searchX, y - 6);
@@ -352,11 +351,11 @@ public class AchievementScreen extends WEScreen {
         drawColorRow(ctx, mouseX, mouseY, x, badgeColorRowY(), w);
     }
 
-    private void drawIconRow(DrawContext ctx, int mouseX, int mouseY, int x, int y, int width) {
+    private void drawIconRow(GuiGraphicsExtractor ctx, int mouseX, int mouseY, int x, int y, int width) {
         List<BadgeCatalog.BadgeIcon> icons = filteredBadgeIcons();
         int totalW = badgeRowWidth(icons.size(), BADGE_ICON_CELL);
-        targetIconScroll = MathHelper.clamp(targetIconScroll, 0, Math.max(0, totalW - width));
-        iconScroll = MathHelper.clamp(iconScroll, 0, Math.max(0, totalW - width));
+        targetIconScroll = Mth.clamp(targetIconScroll, 0, Math.max(0, totalW - width));
+        iconScroll = Mth.clamp(iconScroll, 0, Math.max(0, totalW - width));
 
         int i = 0;
         for (BadgeCatalog.BadgeIcon icon : icons) {
@@ -381,11 +380,11 @@ public class AchievementScreen extends WEScreen {
         iconScrollBarWidget.setVisible(totalW > width);
     }
 
-    private void drawColorRow(DrawContext ctx, int mouseX, int mouseY, int x, int y, int width) {
+    private void drawColorRow(GuiGraphicsExtractor ctx, int mouseX, int mouseY, int x, int y, int width) {
         List<BadgeCatalog.BadgeColor> colors = filteredBadgeColors();
         int totalW = badgeRowWidth(colors.size(), BADGE_COLOR_CELL_W);
-        targetColorScroll = MathHelper.clamp(targetColorScroll, 0, Math.max(0, totalW - width));
-        colorScroll = MathHelper.clamp(colorScroll, 0, Math.max(0, totalW - width));
+        targetColorScroll = Mth.clamp(targetColorScroll, 0, Math.max(0, totalW - width));
+        colorScroll = Mth.clamp(colorScroll, 0, Math.max(0, totalW - width));
 
         int i = 0;
         for (BadgeCatalog.BadgeColor color : colors) {
@@ -643,14 +642,14 @@ public class AchievementScreen extends WEScreen {
         return "General";
     }
 
-    private void drawCategoryHeader(DrawContext ctx, int x, int y, int w, int h, AchievementCategory category, boolean hover) {
+    private void drawCategoryHeader(GuiGraphicsExtractor ctx, int x, int y, int w, int h, AchievementCategory category, boolean hover) {
         drawRect(x, y, w, h, hover ? PARCHMENT_HOVER : PARCHMENT);
         drawRect(x, y, 4, h, GOLD);
         drawRect(x, y + h - 1, w, 1, BORDER);
         drawText(category.expanded() ? "v" : ">", x + 12, y + 8, GOLD);
         drawText(category.key(), x + 30, y + 8, TEXT_MAIN);
         String count = completedCount(category.achievements()) + "/" + category.achievements().size();
-        drawText(count, x + w - textRenderer.getWidth(count) - 12, y + 8, TEXT_DIM);
+        drawText(count, x + w - font.width(count) - 12, y + 8, TEXT_DIM);
     }
 
     private int completedCount(List<Achievement> achievements) {
@@ -661,7 +660,7 @@ public class AchievementScreen extends WEScreen {
         return count;
     }
 
-    private void drawAchievementRow(DrawContext ctx, int mouseX, int mouseY, int x, int y, int width, int rowH, Achievement achievement) {
+    private void drawAchievementRow(GuiGraphicsExtractor ctx, int mouseX, int mouseY, int x, int y, int width, int rowH, Achievement achievement) {
         boolean unlocked = achievement.isUnlocked();
         boolean hover = inside(mouseX, mouseY, x, y, width, rowH) && insideAchievementViewport(mouseX, mouseY);
         int accent = unlocked ? GREEN : BORDER_LIGHT;
@@ -683,10 +682,10 @@ public class AchievementScreen extends WEScreen {
         String progress = progressText(achievement);
         progress = trimText(progress, progressW);
         if(progress.equals("Locked")) progressY += 13;
-        drawText(progress, progressX + progressW - textRenderer.getWidth(progress), progressY, unlocked ? GREEN : GOLD);
+        drawText(progress, progressX + progressW - font.width(progress), progressY, unlocked ? GREEN : GOLD);
         if (achievement instanceof TieredAchievement tiered) {
             String tiers = trimText(tierMilestones(tiered), progressW);
-            drawText(tiers, progressX + progressW - textRenderer.getWidth(tiers), progressY + 14, TEXT_DIM);
+            drawText(tiers, progressX + progressW - font.width(tiers), progressY + 14, TEXT_DIM);
         }
         drawProgressBar(ctx, progressX, y + rowH - 14, progressW, 3, achievement.getProgress(), accent);
 
@@ -701,9 +700,9 @@ public class AchievementScreen extends WEScreen {
         }
     }
 
-    private void drawProgressBar(DrawContext ctx, int x, int y, int w, int h, float progress, int accent) {
+    private void drawProgressBar(GuiGraphicsExtractor ctx, int x, int y, int w, int h, float progress, int accent) {
         drawRect(x, y, w, h, BORDER);
-        int fill = Math.round(w * MathHelper.clamp(progress, 0f, 1f));
+        int fill = Math.round(w * Mth.clamp(progress, 0f, 1f));
         if (fill > 0) drawRect(x, y, fill, h, accent);
     }
 
@@ -730,11 +729,11 @@ public class AchievementScreen extends WEScreen {
                 && tiered.getCurrentLevel() >= reward.minTier();
     }
 
-    private void drawRewardPreview(DrawContext ctx, int x, int y, RewardPreview reward, boolean unlocked) {
+    private void drawRewardPreview(GuiGraphicsExtractor ctx, int x, int y, RewardPreview reward, boolean unlocked) {
         drawRect(x, y, REWARD_PREVIEW_W, REWARD_PREVIEW_H, BG_DARK);
         drawRect(x, y, REWARD_PREVIEW_W, 2, unlocked ? GREEN : RED);
         drawRect(x, y + REWARD_PREVIEW_H - 2, REWARD_PREVIEW_W, 2, BORDER);
-        Text preview = reward.type() == RewardType.COLOR
+        Component preview = reward.type() == RewardType.COLOR
                 ? BadgeCatalog.colorPreviewText(reward.colorId())
                 : BadgeCatalog.badgeText(reward.iconId(), reward.colorId());
         if (reward.type() == RewardType.COLOR) {
@@ -744,26 +743,26 @@ public class AchievementScreen extends WEScreen {
         }
         if (reward.minTier() != null) {
             String tier = "T" + reward.minTier();
-            drawText(tier, x + REWARD_PREVIEW_W - textRenderer.getWidth(tier) - 1, y + 3, GOLD);
+            drawText(tier, x + REWARD_PREVIEW_W - font.width(tier) - 1, y + 3, GOLD);
         }
     }
 
-    private void drawBadgeHeaderPreview(DrawContext ctx) {
+    private void drawBadgeHeaderPreview(GuiGraphicsExtractor ctx) {
         BadgeProfile profile = BadgeProfileData.getLocalProfile();
         int w = layoutWidth();
         int x = Math.max(405, w - 284);
         int y = 58;
         int boxW = Math.max(120, w - x - 24);
-        Text badge = BadgeCatalog.badgeText(profile.selectedIconId, profile.selectedColorId);
+        Component badge = BadgeCatalog.badgeText(profile.selectedIconId, profile.selectedColorId);
         int previewW = Math.max(12, boxW - 82);
         String playerName = "PlayerName";
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client != null && client.player != null) {
             playerName = client.player.getGameProfile().name();
         }
-        int nameW = Math.max(0, previewW - textRenderer.getWidth(" ") - textRenderer.getWidth(badge));
-        Text preview = Text.literal(trimText(playerName, nameW))
-                .append(Text.literal(" "))
+        int nameW = Math.max(0, previewW - font.width(" ") - font.width(badge));
+        Component preview = Component.literal(trimText(playerName, nameW))
+                .append(Component.literal(" "))
                 .append(badge);
         drawRect(x, y, boxW, 34, PANEL);
         drawRect(x, y, boxW, 2, BORDER_LIGHT);
@@ -781,14 +780,14 @@ public class AchievementScreen extends WEScreen {
         int iconY = badgeIconRowY();
         if (inside(mx, my, x, iconY, w, BADGE_ICON_ROW_H + 2)) {
             int totalW = badgeRowWidth(filteredBadgeIcons().size(), BADGE_ICON_CELL);
-            targetIconScroll = MathHelper.clamp(targetIconScroll - (float) amount * 34f, 0, Math.max(0, totalW - w));
+            targetIconScroll = Mth.clamp(targetIconScroll - (float) amount * 34f, 0, Math.max(0, totalW - w));
             return true;
         }
 
         int colorY = badgeColorRowY();
         if (inside(mx, my, x, colorY, w, BADGE_COLOR_ROW_H + 2)) {
             int totalW = badgeRowWidth(filteredBadgeColors().size(), BADGE_COLOR_CELL_W);
-            targetColorScroll = MathHelper.clamp(targetColorScroll - (float) amount * 34f, 0, Math.max(0, totalW - w));
+            targetColorScroll = Mth.clamp(targetColorScroll - (float) amount * 34f, 0, Math.max(0, totalW - w));
             return true;
         }
         return false;
@@ -850,11 +849,11 @@ public class AchievementScreen extends WEScreen {
         }
         int thumbW = horizontalScrollbarThumbWidth(width, contentWidth);
         double percent = (thumbLeft - x) / Math.max(1, width - thumbW);
-        setTargetHorizontalScroll(target, MathHelper.clamp((float) (percent * max), 0, max));
+        setTargetHorizontalScroll(target, Mth.clamp((float) (percent * max), 0, max));
     }
 
     private int horizontalScrollbarThumbWidth(int width, int contentWidth) {
-        return MathHelper.clamp(Math.round(width * (width / (float) contentWidth)), 40, width);
+        return Mth.clamp(Math.round(width * (width / (float) contentWidth)), 40, width);
     }
 
     private String progressText(Achievement achievement) {
@@ -891,11 +890,11 @@ public class AchievementScreen extends WEScreen {
         int viewport = achievementViewportHeight();
         float max = Math.max(0, contentHeight - viewport);
         maxAchievementScroll = max;
-        targetScroll = MathHelper.clamp(targetScroll, 0, max);
-        scroll = MathHelper.clamp(scroll, 0, max);
+        targetScroll = Mth.clamp(targetScroll, 0, max);
+        scroll = Mth.clamp(scroll, 0, max);
     }
 
-    private void drawPanel(DrawContext ctx, int x, int y, int w, int h, boolean hover, int accent) {
+    private void drawPanel(GuiGraphicsExtractor ctx, int x, int y, int w, int h, boolean hover, int accent) {
         drawRect(x, y, w, h, hover ? PANEL_HOVER : PANEL);
         drawRect(x, y, w, 2, accent);
     }
@@ -916,7 +915,7 @@ public class AchievementScreen extends WEScreen {
         return Math.max(1, (int) Math.round(getLogicalHeight() / scaleFactor));
     }
 
-    private void enableLogicalScissor(DrawContext ctx, int x, int y, int w, int h) {
+    private void enableLogicalScissor(GuiGraphicsExtractor ctx, int x, int y, int w, int h) {
         ctx.enableScissor(x, y, x + w, y + h);
     }
 
@@ -941,61 +940,61 @@ public class AchievementScreen extends WEScreen {
         int barH = achievementViewportHeight();
         int thumbH = scrollbarThumbHeight(barH);
         double percent = (thumbTop - barY) / Math.max(1, barH - thumbH);
-        targetScroll = MathHelper.clamp((float) (percent * maxAchievementScroll), 0, maxAchievementScroll);
+        targetScroll = Mth.clamp((float) (percent * maxAchievementScroll), 0, maxAchievementScroll);
     }
 
     private int scrollbarThumbHeight(int barH) {
         int viewport = achievementViewportHeight();
-        return MathHelper.clamp(Math.round(barH * (viewport / (viewport + maxAchievementScroll))), 24, barH);
+        return Mth.clamp(Math.round(barH * (viewport / (viewport + maxAchievementScroll))), 24, barH);
     }
 
     private int scrollbarThumbY(int barY, int barH, int thumbH) {
         return barY + Math.round((barH - thumbH) * (scroll / maxAchievementScroll));
     }
 
-    private void drawScaledBadgeText(DrawContext ctx, Text text, int x, int y, float scale, boolean centered) {
-        ctx.getMatrices().pushMatrix();
-        ctx.getMatrices().translate(x, y);
-        ctx.getMatrices().scale(scale, scale);
-        int drawX = centered ? -textRenderer.getWidth(text) / 2 : 0;
+    private void drawScaledBadgeText(GuiGraphicsExtractor ctx, Component text, int x, int y, float scale, boolean centered) {
+        ctx.pose().pushMatrix();
+        ctx.pose().translate(x, y);
+        ctx.pose().scale(scale, scale);
+        int drawX = centered ? -font.width(text) / 2 : 0;
         drawText(text, drawX, 0, 0xFFFFFFFF);
-        ctx.getMatrices().popMatrix();
+        ctx.pose().popMatrix();
     }
 
-    private List<Text> badgeRequirementTooltip(AchievementId achievementId, Integer minTier) {
+    private List<Component> badgeRequirementTooltip(AchievementId achievementId, Integer minTier) {
         if (achievementId == null) {
-            return List.of(Text.of("§aUnlocked by default"));
+            return List.of(Component.nullToEmpty("§aUnlocked by default"));
         }
 
         Achievement achievement = AchievementTracking.achievements == null ? null : AchievementTracking.achievements.getById(achievementId.id());
         if (achievement == null) {
-            return List.of(Text.of(BadgeCatalog.requirement(achievementId, minTier)));
+            return List.of(Component.nullToEmpty(BadgeCatalog.requirement(achievementId, minTier)));
         }
 
-        List<Text> tooltip = new ArrayList<>();
-        tooltip.add(Text.of("§6" + achievement.getTitle()));
-        tooltip.add(Text.of("§7" + achievement.getDescription()));
-        tooltip.add(Text.of(""));
-        tooltip.add(Text.of(minTier == null ? "§eRequired: Complete achievement" : "§eRequired Tier: " + minTier));
-        tooltip.add(Text.of("§eProgress: " + progressText(achievement)));
+        List<Component> tooltip = new ArrayList<>();
+        tooltip.add(Component.nullToEmpty("§6" + achievement.getTitle()));
+        tooltip.add(Component.nullToEmpty("§7" + achievement.getDescription()));
+        tooltip.add(Component.nullToEmpty(""));
+        tooltip.add(Component.nullToEmpty(minTier == null ? "§eRequired: Complete achievement" : "§eRequired Tier: " + minTier));
+        tooltip.add(Component.nullToEmpty("§eProgress: " + progressText(achievement)));
         if (achievement instanceof TieredAchievement tiered) {
-            tooltip.add(Text.of("§8Tiers: " + tierMilestones(tiered)));
+            tooltip.add(Component.nullToEmpty("§8Tiers: " + tierMilestones(tiered)));
         }
         return tooltip;
     }
 
-    private List<Text> badgeIconTooltip(BadgeCatalog.BadgeIcon icon) {
-        List<Text> tooltip = new ArrayList<>();
-        tooltip.add(Text.of("§6" + icon.displayName() + (icon.isCustom() ? " (Image Icon)" : "")));
+    private List<Component> badgeIconTooltip(BadgeCatalog.BadgeIcon icon) {
+        List<Component> tooltip = new ArrayList<>();
+        tooltip.add(Component.nullToEmpty("§6" + icon.displayName() + (icon.isCustom() ? " (Image Icon)" : "")));
         tooltip.addAll(badgeRequirementTooltip(icon.achievement(), icon.minTier()));
         return tooltip;
     }
 
-    private List<Text> badgeColorTooltip(BadgeCatalog.BadgeColor color) {
-        List<Text> tooltip = new ArrayList<>();
-        tooltip.add(Text.of("§6" + color.displayName()));
+    private List<Component> badgeColorTooltip(BadgeCatalog.BadgeColor color) {
+        List<Component> tooltip = new ArrayList<>();
+        tooltip.add(Component.nullToEmpty("§6" + color.displayName()));
         if (color.preservesOriginal()) {
-            tooltip.add(Text.of("§7Only available for image icons."));
+            tooltip.add(Component.nullToEmpty("§7Only available for image icons."));
         }
         tooltip.addAll(badgeRequirementTooltip(color.achievement(), color.minTier()));
         return tooltip;
@@ -1011,13 +1010,13 @@ public class AchievementScreen extends WEScreen {
         ui.drawText(text, uiX(x), uiY(y), CustomColor.fromInt(color), uiTextScale());
     }
 
-    private void drawText(Text text, float x, float y, int color) {
+    private void drawText(Component text, float x, float y, int color) {
         if (ui == null) return;
         ui.drawText(text, uiX(x), uiY(y), CustomColor.fromInt(color), uiTextScale());
     }
 
     private void drawCenteredText(String text, float centerX, float y, int color) {
-        drawText(text, centerX - textRenderer.getWidth(text) / 2f, y, color);
+        drawText(text, centerX - font.width(text) / 2f, y, color);
     }
 
     private float uiX(float x) {
@@ -1055,9 +1054,9 @@ public class AchievementScreen extends WEScreen {
 
     private String trimText(String text, int maxWidth) {
         if (maxWidth <= 0) return "";
-        if (textRenderer.getWidth(text) <= maxWidth) return text;
-        if (maxWidth <= textRenderer.getWidth("..")) return textRenderer.trimToWidth(text, maxWidth);
-        return textRenderer.trimToWidth(text, maxWidth - textRenderer.getWidth("..")) + "..";
+        if (font.width(text) <= maxWidth) return text;
+        if (maxWidth <= font.width("..")) return font.plainSubstrByWidth(text, maxWidth);
+        return font.plainSubstrByWidth(text, maxWidth - font.width("..")) + "..";
     }
 
     private abstract class LogicalWidget extends Widget {
@@ -1082,7 +1081,7 @@ public class AchievementScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             drawTab(ctx, x, y, label, tab == buttonTab, hovered);
         }
 
@@ -1104,7 +1103,7 @@ public class AchievementScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             int accent = badgeFilterAccent(filter);
             boolean active = accent != RED;
             drawRect(x, y, width, height, active ? (hovered ? PARCHMENT_HOVER : PARCHMENT) : (hovered ? PANEL_HOVER : PANEL));
@@ -1127,7 +1126,7 @@ public class AchievementScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             drawRect(x, y, width, height, hovered ? PARCHMENT_HOVER : PARCHMENT);
             drawRect(x, y, width, 2, hideMaxedAchievements ? GOLD : GREEN);
             drawRect(x, y + height - 3, width, 3, BORDER);
@@ -1164,14 +1163,14 @@ public class AchievementScreen extends WEScreen {
         }
 
         @Override
-        public void draw(DrawContext ctx, int mouseX, int mouseY, float tickDelta, julianh06.wynnextras.utils.UI.UIUtils ui) {
+        public void draw(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta, julianh06.wynnextras.utils.UI.UIUtils ui) {
             enableLogicalScissor(ctx, 24, ACHIEVEMENT_VIEWPORT_TOP, layoutWidth() - 48, achievementViewportHeight());
             super.draw(ctx, mouseX, mouseY, tickDelta, ui);
             ctx.disableScissor();
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             drawCategoryHeader(ctx, x, y, width, height, category, hovered);
         }
 
@@ -1208,7 +1207,7 @@ public class AchievementScreen extends WEScreen {
         }
 
         @Override
-        public void draw(DrawContext ctx, int mouseX, int mouseY, float tickDelta, julianh06.wynnextras.utils.UI.UIUtils ui) {
+        public void draw(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta, julianh06.wynnextras.utils.UI.UIUtils ui) {
             enableLogicalScissor(ctx, viewportX, viewportY, viewportWidth, viewportHeight);
             super.draw(ctx, mouseX, mouseY, tickDelta, ui);
             ctx.disableScissor();
@@ -1224,7 +1223,7 @@ public class AchievementScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             BadgeProfile profile = BadgeProfileData.getLocalProfile();
             boolean unlocked = BadgeCatalog.isUnlocked(icon);
             boolean selected = icon.id().equals(profile.selectedIconId);
@@ -1253,7 +1252,7 @@ public class AchievementScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             BadgeProfile profile = BadgeProfileData.getLocalProfile();
             boolean unlocked = BadgeCatalog.isUnlocked(color)
                     && BadgeCatalog.isCompatible(BadgeCatalog.icon(profile.selectedIconId), color);
@@ -1292,7 +1291,7 @@ public class AchievementScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             if (maxAchievementScroll <= 0) return;
             int thumbH = scrollbarThumbHeight(height);
             int thumbY = scrollbarThumbY(y, height, thumbH);
@@ -1342,7 +1341,7 @@ public class AchievementScreen extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             int max = Math.max(0, contentWidth - width);
             if (max <= 0) return;
             drawRect(x, y, width, height, BG_DARK);

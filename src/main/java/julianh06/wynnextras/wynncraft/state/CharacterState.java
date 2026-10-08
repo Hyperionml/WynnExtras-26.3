@@ -7,13 +7,13 @@ import julianh06.wynnextras.event.WorldChangeEvent;
 import julianh06.wynnextras.features.tomes.TomeState;
 import julianh06.wynnextras.wynncraft.menu.MenuType;
 import julianh06.wynnextras.wynncraft.menu.WynncraftMenuService;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.Locale;
@@ -91,10 +91,10 @@ public final class CharacterState {
 
     public static void update() {
         try {
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client == null || client.player == null || client.world == null) return;
+            Minecraft client = Minecraft.getInstance();
+            if (client == null || client.player == null || client.level == null) return;
 
-            String compassId = characterIdFromCompass(client.player.getInventory().getStack(7));
+            String compassId = characterIdFromCompass(client.player.getInventory().getItem(7));
             if (compassId != null && !compassId.equals(id)) {
                 id = compassId;
                 characterClass = CharacterClass.UNKNOWN;
@@ -111,20 +111,20 @@ public final class CharacterState {
 
     static String characterIdFromCompass(ItemStack compass) {
         if (compass == null || compass.isEmpty()) return null;
-        LoreComponent lore = compass.get(DataComponentTypes.LORE);
+        ItemLore lore = compass.get(DataComponents.LORE);
         if (lore == null) return null;
-        for (Text line : lore.lines()) {
+        for (Component line : lore.lines()) {
             String clean = clean(line.getString());
             if (CHARACTER_ID.matcher(clean).matches()) return clean;
         }
         return null;
     }
 
-    private static String worldFromPlayerList(MinecraftClient client) {
-        if (client.getNetworkHandler() == null) return null;
-        PlayerListEntry entry = client.getNetworkHandler().getPlayerListEntry(WORLD_NAME_UUID);
-        if (entry == null || entry.getDisplayName() == null) return null;
-        return worldFromText(entry.getDisplayName().getString());
+    private static String worldFromPlayerList(Minecraft client) {
+        if (client.getConnection() == null) return null;
+        PlayerInfo entry = client.getConnection().getPlayerInfo(WORLD_NAME_UUID);
+        if (entry == null || entry.getTabListDisplayName() == null) return null;
+        return worldFromText(entry.getTabListDisplayName().getString());
     }
 
     static String worldFromText(String value) {
@@ -139,22 +139,22 @@ public final class CharacterState {
         if (parsedClass != CharacterClass.UNKNOWN || combatLevel > 0) updatedAt = System.currentTimeMillis();
     }
 
-    private static void updateFromCurrentMenu(MinecraftClient client) {
+    private static void updateFromCurrentMenu(Minecraft client) {
         if (!WynncraftMenuService.isCurrent(MenuType.CHARACTER_INFO)) return;
-        if (!(client.currentScreen instanceof HandledScreen<?> screen)) return;
-        if (screen.getScreenHandler().slots.size() <= 7) return;
+        if (!(client.gui.screen() instanceof AbstractContainerScreen<?> screen)) return;
+        if (screen.getMenu().slots.size() <= 7) return;
 
-        ItemStack characterInfo = screen.getScreenHandler().slots.get(7).getStack();
+        ItemStack characterInfo = screen.getMenu().slots.get(7).getItem();
         if (characterInfo == null || characterInfo.isEmpty()) return;
         CharacterClass parsedClass = CharacterClass.UNKNOWN;
         int parsedLevel = 0;
 
-        CharacterInfo lineInfo = parseCharacterInfo(characterInfo.getName().getString());
+        CharacterInfo lineInfo = parseCharacterInfo(characterInfo.getHoverName().getString());
         if (lineInfo.characterClass() != CharacterClass.UNKNOWN) parsedClass = lineInfo.characterClass();
         if (lineInfo.level() > 0) parsedLevel = lineInfo.level();
-        LoreComponent lore = characterInfo.get(DataComponentTypes.LORE);
+        ItemLore lore = characterInfo.get(DataComponents.LORE);
         if (lore != null) {
-            for (Text line : lore.lines()) {
+            for (Component line : lore.lines()) {
                 lineInfo = parseCharacterInfo(line.getString());
                 if (lineInfo.characterClass() != CharacterClass.UNKNOWN) parsedClass = lineInfo.characterClass();
                 if (lineInfo.level() > 0) parsedLevel = lineInfo.level();

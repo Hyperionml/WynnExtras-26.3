@@ -1,8 +1,8 @@
 package julianh06.wynnextras.mixin.compat.wynntils;
 
 import julianh06.wynnextras.features.inventory.ScaleBackgroundRenderState;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.Slot;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.Coerce;
@@ -18,7 +18,7 @@ public abstract class WynntilsItemHighlightFeatureMixin {
     private void cancelRarityHighlightForScaleBackground(@Coerce Object event, CallbackInfo ci) {
         if (!(event instanceof WynntilsSlotRenderEventAccessor accessor)) return;
         Slot slot = accessor.wynnextras$getSlot();
-        ItemStack stack = slot == null ? ItemStack.EMPTY : slot.getStack();
+        ItemStack stack = slot == null ? ItemStack.EMPTY : slot.getItem();
         if (ScaleBackgroundRenderState.resolve(stack) != null) {
             ScaleBackgroundRenderState.begin(stack);
             ci.cancel();

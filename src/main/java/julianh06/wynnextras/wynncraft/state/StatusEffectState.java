@@ -1,12 +1,11 @@
 package julianh06.wynnextras.wynncraft.state;
 
-import net.minecraft.text.Text;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.minecraft.network.chat.Component;
 
 public final class StatusEffectState {
     public record Effect(String name, String display, int duration) {}
@@ -22,7 +21,7 @@ public final class StatusEffectState {
                 || effect.display.toLowerCase(Locale.ROOT).contains(name.toLowerCase(Locale.ROOT)));
     }
 
-    public static void update(Text footer) {
+    public static void update(Component footer) {
         List<Effect> parsed = parseFooter(footer == null ? null : footer.getString());
         EFFECTS.clear();
         EFFECTS.addAll(parsed);

@@ -2,8 +2,7 @@ package julianh06.wynnextras.features.mount;
 
 import julianh06.wynnextras.features.crafting.data.IMaterial;
 import julianh06.wynnextras.features.crafting.data.materials.*;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.resources.Identifier;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;

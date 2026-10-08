@@ -3,7 +3,7 @@ package julianh06.wynnextras.wynncraft.state;
 import julianh06.wynnextras.annotations.WEModule;
 import julianh06.wynnextras.event.ChatEvent;
 import julianh06.wynnextras.utils.MinecraftUtils;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.ArrayList;
@@ -46,9 +46,9 @@ public final class PartyState {
     }
 
     public static void sendCommand(String command) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.getNetworkHandler() == null || command == null || command.isBlank()) return;
-        client.getNetworkHandler().sendChatCommand(command.startsWith("/") ? command.substring(1) : command);
+        Minecraft client = Minecraft.getInstance();
+        if (client.getConnection() == null || command == null || command.isBlank()) return;
+        client.getConnection().sendCommand(command.startsWith("/") ? command.substring(1) : command);
     }
 
     @SubscribeEvent

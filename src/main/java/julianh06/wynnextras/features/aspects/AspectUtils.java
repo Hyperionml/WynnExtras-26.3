@@ -6,18 +6,17 @@ import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.utils.WynncraftApiHandler;
 import julianh06.wynnextras.features.profileviewer.data.ApiAspect;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.CustomModelDataComponent;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomModelData;
+import net.minecraft.world.item.component.ItemLore;
 import java.util.List;
 
 import static julianh06.wynnextras.utils.ContainerUtils.clickOnSlot;
@@ -59,14 +58,14 @@ public class AspectUtils {
             if (iv == null) return ItemStack.EMPTY;
 
             // Get the item from API
-            Identifier id = Identifier.of(iv.getId());
-            Item item = Registries.ITEM.get(id);
+            Identifier id = Identifier.parse(iv.getId());
+            Item item = BuiltInRegistries.ITEM.getValue(id);
             ItemStack stack = new ItemStack(item);
 
             // Set custom model data (same as AspectsTabWidget in Profile Viewer)
             if (iv.getCustomModelData() != null && iv.getCustomModelData().getRangeDispatch() != null) {
                 int cmd = iv.getCustomModelData().getRangeDispatch().getFirst() + (isMaxed ? 1 : 0);
-                stack.set(DataComponentTypes.CUSTOM_MODEL_DATA, new CustomModelDataComponent(List.of((float) cmd), List.of(), List.of(), List.of()));
+                stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(List.of((float) cmd), List.of(), List.of(), List.of()));
             }
 
             return stack;
@@ -76,17 +75,17 @@ public class AspectUtils {
     }
 
     public static void joinRaidPartyFinder(String raidCode) {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client == null || client.player == null) return;
 
         // Close this screen
-        client.setScreen(null);
+        client.gui.setScreen(null);
 
         // Set the raid we want to join
         pendingRaidJoin = raidCode;
 
         // Open party finder
-        client.player.networkHandler.sendChatCommand("pf");
+        client.player.connection.sendCommand("pf");
 
         clickedQueue = false;
         clickedRaid = false;
@@ -109,18 +108,18 @@ public class AspectUtils {
                 return;
             }
 
-            if (MinecraftUtils.player() == null || clientTick.currentScreen == null) return;
+            if (MinecraftUtils.player() == null || clientTick.gui.screen() == null) return;
 
-            ScreenHandler menu = MinecraftUtils.containerMenu();
+            AbstractContainerMenu menu = MinecraftUtils.containerMenu();
             if (menu == null) return;
 
             // Step 1: Click "Party Queue" button (slot 49)
             if (!clickedQueue && menu.slots.size() > 49) {
                 Slot slot = menu.getSlot(49);
-                if (slot != null && slot.getStack() != null && slot.getStack().getName() != null) {
-                    String name = slot.getStack().getName().getString();
+                if (slot != null && slot.getItem() != null && slot.getItem().getHoverName() != null) {
+                    String name = slot.getItem().getHoverName().getString();
                     if (name.contains("Queue")) {
-                        clickOnSlot(49, menu.syncId, 0, menu.getStacks());
+                        clickOnSlot(49, menu.containerId, 0, menu.getItems());
                         clickedQueue = true;
                         ticksSinceQueueClick = 0;
                         return;
@@ -150,10 +149,10 @@ public class AspectUtils {
                 for (int slotIdx = 10; slotIdx <= 20; slotIdx++) {
                     if (menu.slots.size() <= slotIdx) continue;
                     Slot slot = menu.getSlot(slotIdx);
-                    if (slot != null && slot.getStack() != null && slot.getStack().getName() != null) {
-                        String itemName = slot.getStack().getName().getString();
+                    if (slot != null && slot.getItem() != null && slot.getItem().getHoverName() != null) {
+                        String itemName = slot.getItem().getHoverName().getString();
                         if (itemName.contains(searchName) || itemName.contains(pendingRaidJoin)) {
-                            clickOnSlot(slotIdx, menu.syncId, 0, menu.getStacks());
+                            clickOnSlot(slotIdx, menu.containerId, 0, menu.getItems());
                             clickedRaid = true;
                             pendingRaidJoin = null;
                             return;
@@ -169,21 +168,21 @@ public class AspectUtils {
         if (icon == null) return ItemStack.EMPTY;
 
         if (icon.getValueString() != null) {
-            Identifier id = Identifier.of(icon.getValueString());
-            Item item = Registries.ITEM.get(id);
+            Identifier id = Identifier.parse(icon.getValueString());
+            Item item = BuiltInRegistries.ITEM.getValue(id);
             return new ItemStack(item);
         }
 
         if (icon.getValueObject() != null) {
             ApiAspect.IconValue iv = icon.getValueObject();
-            Identifier id = Identifier.of(iv.getId());
-            Item item = Registries.ITEM.get(id);
+            Identifier id = Identifier.parse(iv.getId());
+            Item item = BuiltInRegistries.ITEM.getValue(id);
             ItemStack stack = new ItemStack(item);
 
             if (iv.getCustomModelData() != null) {
                 try {
                     int cmd = iv.getCustomModelData().getRangeDispatch().getFirst() + (max ? 1 : 0);
-                    stack.set(DataComponentTypes.CUSTOM_MODEL_DATA, new CustomModelDataComponent(List.of((float) cmd), List.of(), List.of(), List.of()));
+                    stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(List.of((float) cmd), List.of(), List.of(), List.of()));
                 } catch (NumberFormatException ignored) {}
             }
 
@@ -200,14 +199,14 @@ public class AspectUtils {
                     if(aspect.getRarity().equals("legendary")) {
                         color = "§b";
                     }
-                    stack.set(DataComponentTypes.CUSTOM_NAME, Text.of(color + name.getString()));
+                    stack.set(DataComponents.CUSTOM_NAME, Component.nullToEmpty(color + name.getString()));
                 } catch (NumberFormatException ignored) {}
             }
 
             if(aspect.getTiers() != null) {
                 if(aspect.getTiers().get(String.valueOf(tier)) != null) {
                     List<String> lore = aspect.getTiers().get(String.valueOf(tier)).getDescription();
-                    stack.set(DataComponentTypes.LORE, new LoreComponent(WynncraftApiHandler.parseStyledHtml(lore)));
+                    stack.set(DataComponents.LORE, new ItemLore(WynncraftApiHandler.parseStyledHtml(lore)));
                 }
             }
 

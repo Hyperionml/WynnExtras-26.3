@@ -11,18 +11,18 @@ import julianh06.wynnextras.mixin.Accessor.HandledScreenAccessor;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
-import net.minecraft.component.ComponentType;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.util.math.MathHelper;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import julianh06.wynnextras.compat.client.InputCompat;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -79,18 +79,18 @@ public class ItemComponentsDebugOverlay {
     public static void registerInventoryScreenHooks() {
         ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
             if (!(screen instanceof InventoryScreen inventoryScreen)) return;
-            ScreenEvents.afterRender(screen).register((s, context, mouseX, mouseY, tickDelta) ->
+            ScreenEvents.afterExtract(screen).register((s, context, mouseX, mouseY, tickDelta) ->
                     render(context, mouseX, mouseY));
             ScreenKeyboardEvents.allowKeyPress(screen).register((s, input) -> {
-                if (handleKeyPressed(input.key(), input.modifiers())) return false;
+                if (handleKeyPressed(julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key()), julianh06.wynnextras.compat.client.InputCompat.legacyModifiers(input.modifiers()))) return false;
                 int debugKey = WynnExtrasConfig.INSTANCE.debugItemComponentsKey;
-                if (debugKey == GLFW.GLFW_KEY_UNKNOWN || input.key() != debugKey) return true;
+                if (debugKey == InputCompat.KEY_UNKNOWN || julianh06.wynnextras.compat.client.InputCompat.legacyKey(input.key()) != debugKey) return true;
                 return !openHoveredStack(inventoryScreen);
             });
             ScreenMouseEvents.allowMouseClick(screen).register((s, click) ->
-                    !mouseClicked(click.x(), click.y(), click.button()));
+                    !mouseClicked(click.x(), click.y(), julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button())));
             ScreenMouseEvents.allowMouseRelease(screen).register((s, click) ->
-                    !mouseReleased(click.x(), click.y(), click.button()));
+                    !mouseReleased(click.x(), click.y(), julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button())));
             ScreenMouseEvents.allowMouseDrag(screen).register((s, click, horizontalAmount, verticalAmount) ->
                     !mouseDragged(click.x(), click.y()));
             ScreenMouseEvents.allowMouseScroll(screen).register((s, mouseX, mouseY, horizontalAmount, verticalAmount) ->
@@ -105,7 +105,7 @@ public class ItemComponentsDebugOverlay {
         sessionId++;
         scroll = 0;
         clearSelection();
-        title = "Item Components: " + newStack.getName().getString();
+        title = "Item Components: " + newStack.getHoverName().getString();
         rebuildComponents(newStack.copy());
         wrapWidth = -1;
         visible = true;
@@ -143,16 +143,16 @@ public class ItemComponentsDebugOverlay {
         return dragging || resizing;
     }
 
-    public static boolean openHoveredStack(HandledScreen<?> screen) {
+    public static boolean openHoveredStack(AbstractContainerScreen<?> screen) {
         Slot slot = ((HandledScreenAccessor) screen).getFocusedSlot();
         if (slot == null) slot = findSlotAtLastMouse(screen);
-        if (slot == null || !slot.hasStack()) return false;
+        if (slot == null || !slot.hasItem()) return false;
 
-        open(slot.getStack());
+        open(slot.getItem());
         return true;
     }
 
-    public static void render(DrawContext context, int mouseX, int mouseY) {
+    public static void render(GuiGraphicsExtractor context, int mouseX, int mouseY) {
         lastMouseX = mouseX;
         lastMouseY = mouseY;
         if (!visible) return;
@@ -160,8 +160,8 @@ public class ItemComponentsDebugOverlay {
         loadConfig();
         clampToScreen();
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        TextRenderer tr = mc.textRenderer;
+        Minecraft mc = Minecraft.getInstance();
+        Font tr = mc.font;
         rebuildWrappedLinesIfNeeded(tr);
 
         int right = x + width;
@@ -175,21 +175,21 @@ public class ItemComponentsDebugOverlay {
         context.fill(x, y, x + 1, bottom, 0xFF5B6D83);
         context.fill(right - 1, y, right, bottom, 0xFF5B6D83);
 
-        String clippedTitle = tr.trimToWidth(title, width - 42);
-        context.drawTextWithShadow(tr, clippedTitle, x + PADDING, y + 5, 0xFFFFFFFF);
+        String clippedTitle = tr.plainSubstrByWidth(title, width - 42);
+        context.text(tr, clippedTitle, x + PADDING, y + 5, 0xFFFFFFFF);
 
         int closeX = right - 16;
         int closeY = y + 3;
         boolean closeHovered = isInBounds(mouseX, mouseY, closeX, closeY, 11, 11);
         context.fill(closeX, closeY, closeX + 11, closeY + 11, closeHovered ? 0xFF883333 : 0xFF4A2A2A);
-        context.drawTextWithShadow(tr, "x", closeX + 3, closeY + 1, 0xFFFFFFFF);
+        context.text(tr, "x", closeX + 3, closeY + 1, 0xFFFFFFFF);
 
         int contentX = x + PADDING;
         int contentY = y + TITLE_HEIGHT + PADDING;
         int contentW = width - PADDING * 2 - SCROLLBAR_WIDTH;
         int contentH = height - TITLE_HEIGHT - PADDING * 2;
         int maxScroll = getMaxScroll(contentH);
-        scroll = MathHelper.clamp(scroll, 0, maxScroll);
+        scroll = Mth.clamp(scroll, 0, maxScroll);
 
         context.enableScissor(contentX, contentY, contentX + contentW, contentY + contentH);
         int lineY = contentY - scroll;
@@ -199,7 +199,7 @@ public class ItemComponentsDebugOverlay {
             if (lineY + LINE_HEIGHT >= contentY) {
                 drawSelection(context, tr, line, lineIndex, lineY, contentX);
                 int color = line.componentHeader ? 0xFF8FC5FF : line.text.startsWith("  ") ? 0xFFB8C7D9 : 0xFFE7EDF5;
-                context.drawTextWithShadow(tr, line.text, contentX, lineY, color);
+                context.text(tr, line.text, contentX, lineY, color);
             }
             lineY += LINE_HEIGHT;
         }
@@ -297,35 +297,35 @@ public class ItemComponentsDebugOverlay {
         int contentY = y + TITLE_HEIGHT + PADDING;
         int contentH = height - TITLE_HEIGHT - PADDING * 2;
         if (!isInBounds(mouseX, mouseY, x, contentY, width, contentH)) return false;
-        scroll = MathHelper.clamp(scroll - (int) (verticalAmount * 24), 0, getMaxScroll(contentH));
+        scroll = Mth.clamp(scroll - (int) (verticalAmount * 24), 0, getMaxScroll(contentH));
         return true;
     }
 
     public static boolean handleKeyPressed(int keyCode, int modifiers) {
-        if (!visible || keyCode != GLFW.GLFW_KEY_C || (modifiers & GLFW.GLFW_MOD_CONTROL) == 0 || !hasSelection()) return false;
-        MinecraftClient.getInstance().keyboard.setClipboard(getSelectedText());
+        if (!visible || keyCode != InputCompat.KEY_C || (modifiers & InputCompat.MOD_CONTROL) == 0 || !hasSelection()) return false;
+        Minecraft.getInstance().keyboardHandler.setClipboard(getSelectedText());
         return true;
     }
 
     private static SelectionPosition selectionPosition(double mouseX, double mouseY) {
         if (wrappedLines.isEmpty()) return null;
-        MinecraftClient mc = MinecraftClient.getInstance();
-        TextRenderer tr = mc.textRenderer;
+        Minecraft mc = Minecraft.getInstance();
+        Font tr = mc.font;
         rebuildWrappedLinesIfNeeded(tr);
 
         int contentX = x + PADDING;
         int contentY = y + TITLE_HEIGHT + PADDING;
-        int lineIndex = MathHelper.clamp(((int) mouseY - contentY + scroll) / LINE_HEIGHT, 0, wrappedLines.size() - 1);
+        int lineIndex = Mth.clamp(((int) mouseY - contentY + scroll) / LINE_HEIGHT, 0, wrappedLines.size() - 1);
         String text = wrappedLines.get(lineIndex).text;
         int availableWidth = Math.max(0, (int) mouseX - contentX);
         int charIndex = 0;
-        while (charIndex < text.length() && tr.getWidth(text.substring(0, charIndex + 1)) <= availableWidth) {
+        while (charIndex < text.length() && tr.width(text.substring(0, charIndex + 1)) <= availableWidth) {
             charIndex++;
         }
         return new SelectionPosition(lineIndex, charIndex);
     }
 
-    private static void drawSelection(DrawContext context, TextRenderer tr, RenderedLine line, int lineIndex, int lineY, int contentX) {
+    private static void drawSelection(GuiGraphicsExtractor context, Font tr, RenderedLine line, int lineIndex, int lineY, int contentX) {
         if (!hasSelection()) return;
 
         SelectionPosition start = earlierSelectionPosition(selectionStart, selectionEnd);
@@ -336,8 +336,8 @@ public class ItemComponentsDebugOverlay {
         int endIndex = lineIndex == end.lineIndex ? end.charIndex : line.text.length();
         if (startIndex >= endIndex) return;
 
-        int selectionStartX = contentX + tr.getWidth(line.text.substring(0, startIndex));
-        int selectionEndX = contentX + tr.getWidth(line.text.substring(0, endIndex));
+        int selectionStartX = contentX + tr.width(line.text.substring(0, startIndex));
+        int selectionEndX = contentX + tr.width(line.text.substring(0, endIndex));
         context.fill(selectionStartX, lineY, selectionEndX, lineY + LINE_HEIGHT, 0xA06086C5);
     }
 
@@ -380,15 +380,15 @@ public class ItemComponentsDebugOverlay {
 
     private static void rebuildComponents(ItemStack stack) {
         itemLines = new ArrayList<>();
-        itemLines.add("Item: " + Registries.ITEM.getId(stack.getItem()));
-        itemLines.add("Name: " + stack.getName().getString());
+        itemLines.add("Item: " + BuiltInRegistries.ITEM.getKey(stack.getItem()));
+        itemLines.add("Name: " + stack.getHoverName().getString());
         itemLines.add("Count: " + stack.getCount());
 
-        List<ComponentType<?>> types = new ArrayList<>(stack.getComponents().getTypes());
+        List<DataComponentType<?>> types = new ArrayList<>(stack.getComponents().keySet());
         types.sort(Comparator.comparing(ItemComponentsDebugOverlay::componentTypeName));
         itemLines.add("Components (" + types.size() + "): click a component to inspect it");
         components = new ArrayList<>();
-        for (ComponentType<?> type : types) {
+        for (DataComponentType<?> type : types) {
             Object value = getComponent(stack, type);
             components.add(new ComponentEntry(type, componentTypeName(type), value == null ? "<null>" : value.getClass().getSimpleName(), value));
         }
@@ -430,7 +430,7 @@ public class ItemComponentsDebugOverlay {
         if (changed) clearSelection();
     }
 
-    private static List<String> serializeComponent(ComponentType<?> type, Object value) {
+    private static List<String> serializeComponent(DataComponentType<?> type, Object value) {
         try {
             if (value == null) return List.of("  null");
             if (value instanceof Identifier identifier) {
@@ -447,13 +447,13 @@ public class ItemComponentsDebugOverlay {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private static DataResult<JsonElement> encodeComponent(ComponentType<?> type, Object value) {
-        return ((ComponentType) type).getCodec().encodeStart(JsonOps.INSTANCE, value);
+    private static DataResult<JsonElement> encodeComponent(DataComponentType<?> type, Object value) {
+        return ((DataComponentType) type).codec().encodeStart(JsonOps.INSTANCE, value);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private static Object getComponent(ItemStack stack, ComponentType<?> type) {
-        return stack.get((ComponentType) type);
+    private static Object getComponent(ItemStack stack, DataComponentType<?> type) {
+        return stack.get((DataComponentType) type);
     }
 
     private static List<String> formatJson(JsonElement json) {
@@ -492,7 +492,7 @@ public class ItemComponentsDebugOverlay {
         }
     }
 
-    private static void rebuildWrappedLinesIfNeeded(TextRenderer tr) {
+    private static void rebuildWrappedLinesIfNeeded(Font tr) {
         int contentWidth = width - PADDING * 2 - SCROLLBAR_WIDTH;
         if (contentWidth == wrapWidth) return;
         wrapWidth = contentWidth;
@@ -513,14 +513,14 @@ public class ItemComponentsDebugOverlay {
         }
     }
 
-    private static void addWrappedLines(String line, ComponentEntry entry, boolean componentHeader, TextRenderer tr, int maxWidth) {
+    private static void addWrappedLines(String line, ComponentEntry entry, boolean componentHeader, Font tr, int maxWidth) {
         for (String part : wrapLine(tr, line, maxWidth)) {
             if (wrappedLines.size() >= MAX_LINES) return;
             wrappedLines.add(new RenderedLine(part, entry, componentHeader));
         }
     }
 
-    private static List<String> wrapLine(TextRenderer tr, String line, int maxWidth) {
+    private static List<String> wrapLine(Font tr, String line, int maxWidth) {
         List<String> result = new ArrayList<>();
         if (line.isEmpty()) {
             result.add("");
@@ -529,7 +529,7 @@ public class ItemComponentsDebugOverlay {
 
         String remaining = line;
         String indent = line.startsWith("  ") ? "  " : "";
-        while (tr.getWidth(remaining) > maxWidth) {
+        while (tr.width(remaining) > maxWidth) {
             int split = findSplitIndex(tr, remaining, maxWidth);
             result.add(remaining.substring(0, split));
             String tail = remaining.substring(split).stripLeading();
@@ -546,12 +546,12 @@ public class ItemComponentsDebugOverlay {
         return result;
     }
 
-    private static int findSplitIndex(TextRenderer tr, String text, int maxWidth) {
+    private static int findSplitIndex(Font tr, String text, int maxWidth) {
         int low = 1;
         int high = text.length();
         while (low < high) {
             int mid = (low + high + 1) / 2;
-            if (tr.getWidth(text.substring(0, mid)) <= maxWidth) low = mid;
+            if (tr.width(text.substring(0, mid)) <= maxWidth) low = mid;
             else high = mid - 1;
         }
 
@@ -564,12 +564,12 @@ public class ItemComponentsDebugOverlay {
         return Math.max(0, wrappedLines.size() * LINE_HEIGHT - contentH);
     }
 
-    private static Slot findSlotAtLastMouse(HandledScreen<?> screen) {
+    private static Slot findSlotAtLastMouse(AbstractContainerScreen<?> screen) {
         HandledScreenAccessor accessor = (HandledScreenAccessor) screen;
         int left = accessor.getX();
         int top = accessor.getY();
 
-        for (Slot slot : screen.getScreenHandler().slots) {
+        for (Slot slot : screen.getMenu().slots) {
             int slotX = left + slot.x;
             int slotY = top + slot.y;
             if (lastMouseX >= slotX && lastMouseX < slotX + 16 && lastMouseY >= slotY && lastMouseY < slotY + 16) {
@@ -600,11 +600,11 @@ public class ItemComponentsDebugOverlay {
         WynnExtrasConfig.save();
     }
 
-    private static String componentTypeName(ComponentType<?> type) {
-        return String.valueOf(Registries.DATA_COMPONENT_TYPE.getId(type));
+    private static String componentTypeName(DataComponentType<?> type) {
+        return String.valueOf(BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(type));
     }
 
-    private static void drawScrollbar(DrawContext context, int contentY, int contentH, int maxScroll) {
+    private static void drawScrollbar(GuiGraphicsExtractor context, int contentY, int contentH, int maxScroll) {
         int sbX = x + width - PADDING - SCROLLBAR_WIDTH;
         context.fill(sbX, contentY, sbX + SCROLLBAR_WIDTH, contentY + contentH, 0xFF1B2028);
         if (maxScroll <= 0) return;
@@ -615,21 +615,21 @@ public class ItemComponentsDebugOverlay {
         context.fill(sbX + 1, thumbY, sbX + SCROLLBAR_WIDTH - 1, thumbY + thumbH, 0xFF6D829A);
     }
 
-    private static void drawResizeGrip(DrawContext context, int right, int bottom) {
+    private static void drawResizeGrip(GuiGraphicsExtractor context, int right, int bottom) {
         context.fill(right - 10, bottom - 3, right - 2, bottom - 2, 0xFF9AAFC7);
         context.fill(right - 7, bottom - 6, right - 2, bottom - 5, 0xFF9AAFC7);
         context.fill(right - 4, bottom - 9, right - 2, bottom - 8, 0xFF9AAFC7);
     }
 
     private static void clampToScreen() {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.getWindow() == null) return;
-        int screenW = mc.getWindow().getScaledWidth();
-        int screenH = mc.getWindow().getScaledHeight();
+        int screenW = mc.getWindow().getGuiScaledWidth();
+        int screenH = mc.getWindow().getGuiScaledHeight();
         width = Math.min(Math.max(width, MIN_WIDTH), Math.max(MIN_WIDTH, screenW));
         height = Math.min(Math.max(height, MIN_HEIGHT), Math.max(MIN_HEIGHT, screenH));
-        x = MathHelper.clamp(x, 0, Math.max(0, screenW - width));
-        y = MathHelper.clamp(y, 0, Math.max(0, screenH - height));
+        x = Mth.clamp(x, 0, Math.max(0, screenW - width));
+        y = Mth.clamp(y, 0, Math.max(0, screenH - height));
     }
 
     private static boolean isInBounds(double mouseX, double mouseY, int bx, int by, int bw, int bh) {
@@ -637,7 +637,7 @@ public class ItemComponentsDebugOverlay {
     }
 
     private static class ComponentEntry {
-        private final ComponentType<?> type;
+        private final DataComponentType<?> type;
         private final String typeName;
         private final String valueType;
         private final Object value;
@@ -646,7 +646,7 @@ public class ItemComponentsDebugOverlay {
         private long requestId;
         private List<String> detailLines;
 
-        private ComponentEntry(ComponentType<?> type, String typeName, String valueType, Object value) {
+        private ComponentEntry(DataComponentType<?> type, String typeName, String valueType, Object value) {
             this.type = type;
             this.typeName = typeName;
             this.valueType = valueType;

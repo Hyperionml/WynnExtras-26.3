@@ -1,10 +1,9 @@
 package julianh06.wynnextras.utils.UI;
 
-import net.minecraft.client.gui.DrawContext;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public abstract class Widget {
     protected int x, y, width, height;
@@ -88,7 +87,7 @@ public abstract class Widget {
         }
     }
 
-    public void draw(DrawContext ctx, int mouseX, int mouseY, float tickDelta, UIUtils ui) {
+    public void draw(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta, UIUtils ui) {
         this.ui = ui;
         if(!visible || this.ui == null) return;
         hovered = contains(mouseX, mouseY);
@@ -103,9 +102,9 @@ public abstract class Widget {
 
     protected void updateValues() {}
 
-    protected void drawBackground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) { /* override */ }
-    protected abstract void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta);
-    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY, float tickDelta) { /* override */ }
+    protected void drawBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) { /* override */ }
+    protected abstract void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta);
+    protected void drawForeground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) { /* override */ }
 
     /**
      * Mouse click event propagation.

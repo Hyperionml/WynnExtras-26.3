@@ -1,9 +1,8 @@
 package julianh06.wynnextras.wynncraft.menu;
 
 import julianh06.wynnextras.utils.enums.WEProfessionType;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -27,8 +26,8 @@ public final class WynncraftMenuService {
 
     public static MenuType currentType() {
         try {
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client == null || !(client.currentScreen instanceof HandledScreen<?> screen)) return MenuType.NONE;
+            Minecraft client = Minecraft.getInstance();
+            if (client == null || !(client.gui.screen() instanceof AbstractContainerScreen<?> screen)) return MenuType.NONE;
             return detect(screen.getTitle().getString());
         } catch (Throwable ignored) {
             return MenuType.UNKNOWN;
@@ -81,8 +80,8 @@ public final class WynncraftMenuService {
     }
 
     private static String currentTitle() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client == null || !(client.currentScreen instanceof HandledScreen<?> screen)) return null;
+        Minecraft client = Minecraft.getInstance();
+        if (client == null || !(client.gui.screen() instanceof AbstractContainerScreen<?> screen)) return null;
         return screen.getTitle().getString();
     }
 

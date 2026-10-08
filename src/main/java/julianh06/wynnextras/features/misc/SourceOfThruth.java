@@ -1,17 +1,16 @@
 package julianh06.wynnextras.features.misc;
 
 import julianh06.wynnextras.utils.colors.CustomColor;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvent;
 import julianh06.wynnextras.utils.MinecraftUtils;
 import julianh06.wynnextras.core.command.Command;
 import julianh06.wynnextras.sound.ModSounds;
 import julianh06.wynnextras.utils.UI.WEScreen;
 import julianh06.wynnextras.utils.UI.Widget;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,7 +29,7 @@ public class SourceOfThruth extends WEScreen {
     static String answer = "";
 
     protected SourceOfThruth() {
-        super(Text.of("Source of truth"));
+        super(Component.nullToEmpty("Source of truth"));
         answer = "";
     }
 
@@ -39,7 +38,7 @@ public class SourceOfThruth extends WEScreen {
     }
 
     @Override
-    protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+    protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
         if(sourceOfTruthWidget == null) {
             sourceOfTruthWidget = new SourceOfTruthWidget(0, 0, 0, 0);
             addRootWidget(sourceOfTruthWidget);
@@ -49,7 +48,7 @@ public class SourceOfThruth extends WEScreen {
     }
 
     private static class SourceOfTruthWidget extends Widget {
-        public static final Identifier shellTexture = Identifier.of("wynnextras", "textures/gui/misc/sourceoftruth.png");
+        public static final Identifier shellTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/misc/sourceoftruth.png");
         PullThingWidget pullThingWidget = null;
 
         public SourceOfTruthWidget(int x, int y, int width, int height) {
@@ -57,7 +56,7 @@ public class SourceOfThruth extends WEScreen {
         }
 
         @Override
-        protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+        protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
             if(pullThingWidget == null) {
                 pullThingWidget = new PullThingWidget(x + 475, y + 210);
                 addChild(pullThingWidget);
@@ -74,7 +73,7 @@ public class SourceOfThruth extends WEScreen {
         }
 
         private static class PullThingWidget extends Widget {
-            static Identifier pullThingTexture = Identifier.of("wynnextras", "textures/gui/misc/pullthisforawisemessage.png");
+            static Identifier pullThingTexture = Identifier.fromNamespaceAndPath("wynnextras", "textures/gui/misc/pullthisforawisemessage.png");
 
             boolean holding = false;
             int posX;
@@ -87,7 +86,7 @@ public class SourceOfThruth extends WEScreen {
             }
 
             @Override
-            protected void drawContent(DrawContext ctx, int mouseX, int mouseY, float tickDelta) {
+            protected void drawContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float tickDelta) {
                 if(holding) {
                     posX = (int) (mouseX * ui.getScaleFactor() - width / 2f);
                     posY = (int) (mouseY * ui.getScaleFactor() - height / 2f);
@@ -126,9 +125,9 @@ public class SourceOfThruth extends WEScreen {
                     SoundEvent sound = getRandomSound();
                     answer = getAnswerString(sound);
 
-                    if(MinecraftClient.getInstance().player != null) {
+                    if(Minecraft.getInstance().player != null) {
                         int rnd = (int) (Math.random() * 5);
-                        if (MinecraftClient.getInstance().player.getName().getString().equals("D4MIT") && sound.equals(ModSounds.YES) && rnd == 0) {
+                        if (Minecraft.getInstance().player.getName().getString().equals("D4MIT") && sound.equals(ModSounds.YES) && rnd == 0) {
                             answer = "YES D4MIT YOU SHOULD GAMBLE A RESONANCE!!!!!!";
                             sound = ModSounds.SKELETON;
                         }
@@ -138,8 +137,8 @@ public class SourceOfThruth extends WEScreen {
                         return true;
                     }
 
-                    if(MinecraftClient.getInstance().player == null) return true;
-                    MinecraftClient.getInstance().player.playSound(sound, 10f, 1f);
+                    if(Minecraft.getInstance().player == null) return true;
+                    Minecraft.getInstance().player.playSound(sound, 10f, 1f);
                 } else if(distance != 0) {
                     answer = "You didn't pull hard enough.";
                 }

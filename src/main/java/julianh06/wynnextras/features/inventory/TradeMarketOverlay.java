@@ -9,17 +9,15 @@ import julianh06.wynnextras.utils.render.TextShadow;
 import julianh06.wynnextras.utils.render.VerticalAlignment;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.core.WynnExtras;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Text;
-
+import julianh06.wynnextras.compat.client.HudRenderCallback;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -80,17 +78,17 @@ public class TradeMarketOverlay {
         WynnExtrasConfig.save();
     }
 
-    public static void renderOnScreen(DrawContext context) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.player == null || mc.world == null) return;
-        if (mc.currentScreen == null) return;
+    public static void renderOnScreen(GuiGraphicsExtractor context) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) return;
+        if (mc.gui.screen() == null) return;
         if (!WynnExtrasConfig.INSTANCE.tradeMarketOverlay) return;
 
         // Only show on Your Trades screen
-        String screenTitle = mc.currentScreen.getTitle().getString();
+        String screenTitle = mc.gui.screen().getTitle().getString();
         if (!screenTitle.equals(YOUR_TRADES_TITLE)) return;
 
-        ScreenHandler handler = MinecraftUtils.containerMenu();
+        AbstractContainerMenu handler = MinecraftUtils.containerMenu();
         if (handler == null) return;
 
         loadConfig();
@@ -102,7 +100,7 @@ public class TradeMarketOverlay {
         renderOverlay(context, mc, values);
     }
 
-    private static TradeValues calculateTradeValues(ScreenHandler handler) {
+    private static TradeValues calculateTradeValues(AbstractContainerMenu handler) {
         long ifAllSoldValue = 0;
         long alreadySoldValue = 0;
         int pendingCount = 0;
@@ -112,10 +110,10 @@ public class TradeMarketOverlay {
             Slot slot = handler.getSlot(i);
             if (slot == null) continue;
 
-            ItemStack stack = slot.getStack();
+            ItemStack stack = slot.getItem();
             if (stack == null || stack.isEmpty()) continue;
 
-            String itemName = stack.getName().getString();
+            String itemName = stack.getHoverName().getString();
             if (itemName.equals("Back") || itemName.equals("Sell an Item") ||
                     itemName.contains("Page") || itemName.contains("Filter") ||
                     itemName.equals("Available Slot")) {
@@ -123,10 +121,10 @@ public class TradeMarketOverlay {
             }
 
             if (stack.getComponents() == null) continue;
-            LoreComponent loreComponent = stack.getComponents().get(DataComponentTypes.LORE);
+            ItemLore loreComponent = stack.getComponents().get(DataComponents.LORE);
             if (loreComponent == null) continue;
 
-            List<Text> loreLines = loreComponent.lines();
+            List<Component> loreLines = loreComponent.lines();
             if (loreLines.size() < 4) continue;
 
             // Parse status from lore[0]
@@ -207,7 +205,7 @@ public class TradeMarketOverlay {
         return new TradeValues(ifAllSoldValue, alreadySoldValue, pendingCount, soldCount);
     }
 
-    private static void renderOverlay(DrawContext context, MinecraftClient mc, TradeValues values) {
+    private static void renderOverlay(GuiGraphicsExtractor context, Minecraft mc, TradeValues values) {
         int y = yPos;
 
         int bgColor = 0xCC1A1A1A;
@@ -224,7 +222,7 @@ public class TradeMarketOverlay {
         }
 
         // Brand pill + Title
-        Text pillWithTitle = WynnExtras.addWynnExtrasPrefix(Text.literal("Trade Value").styled(s -> s.withColor(TITLE_COLOR.asInt())));
+        Component pillWithTitle = WynnExtras.addWynnExtrasPrefix(Component.literal("Trade Value").withStyle(s -> s.withColor(TITLE_COLOR.asInt())));
         FontRenderer.getInstance().renderText(
                 context, StyledText.fromComponent(pillWithTitle),
                 xPos, y, CustomColor.fromHexString("FFFFFF"), HorizontalAlignment.LEFT, VerticalAlignment.TOP,
@@ -274,14 +272,14 @@ public class TradeMarketOverlay {
         return sb.toString().trim();
     }
 
-    private static void drawText(DrawContext context, String text, float x, float y, CustomColor color) {
+    private static void drawText(GuiGraphicsExtractor context, String text, float x, float y, CustomColor color) {
         FontRenderer.getInstance().renderText(
                 context, StyledText.fromString(text),
                 x, y, color, HorizontalAlignment.LEFT, VerticalAlignment.TOP,
                 TextShadow.OUTLINE, TEXT_SCALE);
     }
 
-    private static void drawTextRight(DrawContext context, String text, float x, float y, CustomColor color) {
+    private static void drawTextRight(GuiGraphicsExtractor context, String text, float x, float y, CustomColor color) {
         FontRenderer.getInstance().renderText(
                 context, StyledText.fromString(text),
                 x, y, color, HorizontalAlignment.RIGHT, VerticalAlignment.TOP,
@@ -289,10 +287,10 @@ public class TradeMarketOverlay {
     }
 
     private static float getTextWidth(String text) {
-        return FontRenderer.getInstance().getFont().getWidth(text) * TEXT_SCALE;
+        return FontRenderer.getInstance().getFont().width(text) * TEXT_SCALE;
     }
 
-    private static void drawBackground(DrawContext context, int x1, int y1, int x2, int y2, int color) {
+    private static void drawBackground(GuiGraphicsExtractor context, int x1, int y1, int x2, int y2, int color) {
         int r = 3; // corner radius
         // Main center rectangle
         context.fill(x1 + r, y1, x2 - r, y2, color);
@@ -311,11 +309,11 @@ public class TradeMarketOverlay {
     }
 
     public static boolean handleClick(double mouseX, double mouseY, int button, int action) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.currentScreen == null) return false;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.gui.screen() == null) return false;
         if (!WynnExtrasConfig.INSTANCE.tradeMarketOverlay) return false;
 
-        String screenTitle = mc.currentScreen.getTitle().getString();
+        String screenTitle = mc.gui.screen().getTitle().getString();
         if (!screenTitle.equals(YOUR_TRADES_TITLE)) return false;
 
         loadConfig();
@@ -346,8 +344,8 @@ public class TradeMarketOverlay {
     public static void handleMouseMove(double mouseX, double mouseY) {
         if (!isDragging) return;
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.currentScreen == null) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.gui.screen() == null) {
             isDragging = false;
             return;
         }
@@ -357,8 +355,8 @@ public class TradeMarketOverlay {
 
         // Clamp to screen bounds
         if (mc.getWindow() != null) {
-            int screenWidth = mc.getWindow().getScaledWidth();
-            int screenHeight = mc.getWindow().getScaledHeight();
+            int screenWidth = mc.getWindow().getGuiScaledWidth();
+            int screenHeight = mc.getWindow().getGuiScaledHeight();
             xPos = Math.max(0, Math.min(xPos, screenWidth - WIDTH));
             yPos = Math.max(0, Math.min(yPos, screenHeight - HEIGHT));
         }

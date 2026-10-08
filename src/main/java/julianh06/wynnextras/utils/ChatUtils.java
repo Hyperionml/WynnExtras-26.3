@@ -1,78 +1,78 @@
 package julianh06.wynnextras.utils;
 
-import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
-import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
-import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
 
 // TODO: fail proof sendMessage for when localPlayer is null
 public class ChatUtils {
-    public static void sendMessage(Text message) {
-        MinecraftUtils.localPlayer().sendMessage(message, false);
+    public static void sendMessage(Component message) {
+        julianh06.wynnextras.compat.client.ClientMessages.display(message, false);
     }
 
     public static void sendMessage(String message) {
-        sendMessage(message, Formatting.RESET);
+        sendMessage(message, ChatFormatting.RESET);
     }
 
-    public static void sendMessage(String message, Formatting... formats) {
+    public static void sendMessage(String message, ChatFormatting... formats) {
         sendGenericMessage(message, false, formats);
     }
 
     public static void sendActionbarMessage(String message) {
-        sendActionbarMessage(message, Formatting.RESET);
+        sendActionbarMessage(message, ChatFormatting.RESET);
     }
 
-    public static void sendActionbarMessage(String message, Formatting... formats) {
+    public static void sendActionbarMessage(String message, ChatFormatting... formats) {
         sendGenericMessage(message, true, formats);
     }
 
     public static void displayTitle(String title, int duration) {
-        displayTitle(title, "", duration, 10, 10, Formatting.RESET);
+        displayTitle(title, "", duration, 10, 10, ChatFormatting.RESET);
     }
 
     public static void displayTitle(String title, String subtitle, int duration) {
-        displayTitle(title, subtitle, duration, 10, 10, Formatting.RESET);
+        displayTitle(title, subtitle, duration, 10, 10, ChatFormatting.RESET);
     }
 
-    public static void displayTitle(String title, String subtitle, int duration, int fadeInTicks, int fadeOutTicks, Formatting... formats) {
-        MutableText titleComponent = Text.literal(title);
-        MutableText subtitleComponent = Text.literal(subtitle);
+    public static void displayTitle(String title, String subtitle, int duration, int fadeInTicks, int fadeOutTicks, ChatFormatting... formats) {
+        MutableComponent titleComponent = Component.literal(title);
+        MutableComponent subtitleComponent = Component.literal(subtitle);
 
-        titleComponent = titleComponent.formatted(formats);
-        subtitleComponent = subtitleComponent.formatted(formats);
+        titleComponent = titleComponent.withStyle(formats);
+        subtitleComponent = subtitleComponent.withStyle(formats);
 
-        MinecraftUtils.localNetworkHandler().onTitleFade(new TitleFadeS2CPacket(fadeInTicks, duration, fadeOutTicks));
+        MinecraftUtils.localNetworkHandler().setTitlesAnimation(new ClientboundSetTitlesAnimationPacket(fadeInTicks, duration, fadeOutTicks));
 
         if (!subtitle.isEmpty()) {
-            MinecraftUtils.localNetworkHandler().onSubtitle(new SubtitleS2CPacket(subtitleComponent));
+            MinecraftUtils.localNetworkHandler().setSubtitleText(new ClientboundSetSubtitleTextPacket(subtitleComponent));
         }
         if (!title.isEmpty()) {
-            MinecraftUtils.localNetworkHandler().onTitle(new TitleS2CPacket(titleComponent));
+            MinecraftUtils.localNetworkHandler().setTitleText(new ClientboundSetTitleTextPacket(titleComponent));
         }
     }
 
-    public static void displayTitle(String title, String subtitle, int duration, Formatting... formats) {
+    public static void displayTitle(String title, String subtitle, int duration, ChatFormatting... formats) {
         displayTitle(title, subtitle, duration, 10, 10, formats);
     }
 
-    private static void sendGenericMessage(String message, Boolean actionbar, Formatting... formats) {
-        MutableText component = Text.literal(message);
+    private static void sendGenericMessage(String message, Boolean actionbar, ChatFormatting... formats) {
+        MutableComponent component = Component.literal(message);
 
-        component = component.formatted(formats);
+        component = component.withStyle(formats);
 
-        MinecraftUtils.localPlayer().sendMessage(component, actionbar);
+        julianh06.wynnextras.compat.client.ClientMessages.display(component, actionbar);
     }
 
-    public static MutableText concatComponents(Iterable<? extends Text> components) {
+    public static MutableComponent concatComponents(Iterable<? extends Component> components) {
         return concatComponents("", components);
     }
 
-    public static MutableText concatComponents(String separator, Iterable<? extends Text> components) {
-        MutableText result = Text.empty();
-        for (Text component : components) {
+    public static MutableComponent concatComponents(String separator, Iterable<? extends Component> components) {
+        MutableComponent result = Component.empty();
+        for (Component component : components) {
             if (!result.getString().isEmpty()) {
                 result.append(separator);
             }

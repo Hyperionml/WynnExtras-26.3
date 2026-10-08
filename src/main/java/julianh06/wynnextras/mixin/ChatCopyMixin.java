@@ -1,15 +1,15 @@
 package julianh06.wynnextras.mixin;
 
 import julianh06.wynnextras.utils.MinecraftUtils;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.ChatComponent;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 import julianh06.wynnextras.config.WynnExtrasConfig;
 import julianh06.wynnextras.core.WynnExtras;
 import julianh06.wynnextras.mixin.Accessor.ChatHudAccessor;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.hud.ChatHud;
-import net.minecraft.client.gui.hud.ChatHudLine;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -21,25 +21,25 @@ import java.util.List;
 public class ChatCopyMixin {
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
-    private void onRightClickCopy(Click click, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
+    private void onRightClickCopy(MouseButtonEvent click, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
         if (!WynnExtrasConfig.INSTANCE.rightClickToCopyChat) return;
-        if (click.button() != 1) return; // right mouse button only
+        if (julianh06.wynnextras.compat.client.InputCompat.legacyMouseButton(click.button()) != 1) return; // right mouse button only
 
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        ChatHud chatHud = mc.inGameHud.getChatHud();
+        ChatComponent chatHud = mc.gui.hud.getChat();
         ChatHudAccessor acc = (ChatHudAccessor) chatHud;
 
         if (!isInChatArea(click.x(), click.y())) return;
 
-        List<ChatHudLine.Visible> visible = acc.getVisibleMessages();
+        List<GuiMessage.Line> visible = acc.getVisibleMessages();
         if (visible.isEmpty()) return;
 
         // Approximate line index from cursor Y. Chat renders bottom-up just above the chat input.
-        double chatScale = mc.options.getChatScale().getValue();
-        double lineSpacing = mc.options.getChatLineSpacing().getValue();
+        double chatScale = mc.options.chatScale().get();
+        double lineSpacing = mc.options.chatLineSpacing().get();
         double lineHeightPx = 9.0 * (lineSpacing + 1.0) * chatScale;
-        int screenHeight = mc.getWindow().getScaledHeight();
+        int screenHeight = mc.getWindow().getGuiScaledHeight();
         // Chat bottom is ~40 px above the screen bottom when focused (the input line sits below).
         double chatBottomY = screenHeight - 40;
         double dy = chatBottomY - click.y();
@@ -58,15 +58,15 @@ public class ChatCopyMixin {
         for (int i = 0; i <= topIdx; i++) {
             if (visible.get(i).endOfEntry()) msgIdx++;
         }
-        List<ChatHudLine> messages = acc.getMessages();
+        List<GuiMessage> messages = acc.getMessages();
         if (msgIdx < 0 || msgIdx >= messages.size()) return;
 
         String raw = messages.get(msgIdx).content().getString();
         String clean = stripPuaAndFormatting(raw).trim();
         if (clean.isEmpty()) return;
 
-        mc.keyboard.setClipboard(clean);
-        MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Text.of("§aCopied to clipboard: §f" + clean)));
+        mc.keyboardHandler.setClipboard(clean);
+        MinecraftUtils.sendMessageToClient(WynnExtras.addWynnExtrasPrefix(Component.nullToEmpty("§aCopied to clipboard: §f" + clean)));
 
         cir.setReturnValue(true);
     }
@@ -104,9 +104,9 @@ public class ChatCopyMixin {
     }
 
     private static boolean isInChatArea(double x, double y) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        int sh = mc.getWindow().getScaledHeight();
-        int sw = mc.getWindow().getScaledWidth();
+        Minecraft mc = Minecraft.getInstance();
+        int sh = mc.getWindow().getGuiScaledHeight();
+        int sw = mc.getWindow().getGuiScaledWidth();
         // Chat occupies the bottom-left portion of the screen.
         return x >= 0 && x <= sw * 0.6 && y >= sh * 0.4 && y <= sh - 30;
     }

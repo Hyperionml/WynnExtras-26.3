@@ -3,12 +3,10 @@ package julianh06.wynnextras.utils.path;
 import julianh06.wynnextras.event.RenderWorldEvent;
 import julianh06.wynnextras.utils.WEVec;
 import julianh06.wynnextras.utils.render.WorldRenderUtils;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-
-import java.awt.*;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
+import java.awt.Color;
 import java.util.*;
-import java.util.List;
 import java.util.function.Function;
 
 public class Graph {
@@ -18,7 +16,7 @@ public class Graph {
         this.nodes = nodes;
     }
 
-    public Path findPath(Vec3d start, Vec3d target) {
+    public Path findPath(Vec3 start, Vec3 target) {
         Node startNode = findClosestNode(start);
         Node targetNode = findClosestNode(target);
 
@@ -36,7 +34,7 @@ public class Graph {
         return findPath(startNode, node -> node.equals(targetNode));
     }
 
-    public Path findPath(Vec3d startPos, Node.Group targetGroup) {
+    public Path findPath(Vec3 startPos, Node.Group targetGroup) {
         if (startPos == null || targetGroup == null) {
             return null;
         }
@@ -101,11 +99,11 @@ public class Graph {
         return null; // No node with target group found
     }
 
-    private Node findClosestNode(Vec3d pos) {
+    private Node findClosestNode(Vec3 pos) {
         Node closestNode = null;
         double closestDist = Double.MAX_VALUE;
         for (Node node : nodes) {
-            double dist = node.getPos().toCenterPos().squaredDistanceTo(pos);
+            double dist = net.minecraft.world.phys.Vec3.atCenterOf(node.getPos()).distanceToSqr(pos);
             if (dist < closestDist) {
                 closestNode = node;
                 closestDist = dist;
@@ -128,8 +126,8 @@ public class Graph {
 
                 WorldRenderUtils.draw3DLine(
                         event,
-                        new WEVec(from.toCenterPos()),
-                        new WEVec(to.toCenterPos()),
+                        new WEVec(net.minecraft.world.phys.Vec3.atCenterOf(from)),
+                        new WEVec(net.minecraft.world.phys.Vec3.atCenterOf(to)),
                         entry.getValue() == 0 ? Color.RED : Color.GREEN,
                         2,
                         false

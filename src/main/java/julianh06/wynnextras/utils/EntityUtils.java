@@ -1,16 +1,16 @@
 package julianh06.wynnextras.utils;
 
+import com.mojang.math.Transformation;
 import julianh06.wynnextras.mixin.Invoker.GetTransformationInvoker;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.util.math.AffineTransformation;
+import net.minecraft.world.entity.Display;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
 
 public class EntityUtils {
 
     // TODO
-    public static void setScale(DisplayEntity e, Vector3fc scale) {
-        AffineTransformation current = ((GetTransformationInvoker) e).invokeGetTransformation(e.getDataTracker());
+    public static void setScale(Display e, Vector3fc scale) {
+        Transformation current = GetTransformationInvoker.invokeGetTransformation(e.getEntityData());
 
         /*
         if (current == null) return;
@@ -22,10 +22,10 @@ public class EntityUtils {
         AffineTransformation resultMatrix = new AffineTransformation(matrix);
 
         AffineTransformation result = new AffineTransformation(
-                resultMatrix.getTranslation(),
-                current.getLeftRotation(),
-                resultMatrix.getScale(),
-                current.getRightRotation()
+                resultMatrix.translation(),
+                current.leftRotation(),
+                resultMatrix.scale(),
+                current.rightRotation()
         );
         e.setTransformation(result);
 
@@ -33,13 +33,13 @@ public class EntityUtils {
 
 
         Vector3f newScale = new Vector3f();
-        current.getScale().mul(scale, newScale);
+        current.scale().mul(scale, newScale);
 
-        AffineTransformation affineTransformation = new AffineTransformation(
-                current.getTranslation(),
-                current.getLeftRotation(),
+        Transformation affineTransformation = new Transformation(
+                current.translation(),
+                current.leftRotation(),
                 newScale,
-                current.getRightRotation());
+                current.rightRotation());
         e.setTransformation(affineTransformation);
 
     }

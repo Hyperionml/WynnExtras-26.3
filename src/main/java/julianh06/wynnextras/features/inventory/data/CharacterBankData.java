@@ -2,9 +2,8 @@ package julianh06.wynnextras.features.inventory.data;
 
 import julianh06.wynnextras.features.inventory.BankOverlay;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.ItemStack;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.ItemStack;
 import java.nio.file.Path;
 
 public class CharacterBankData extends BankData {
@@ -34,7 +33,7 @@ public class CharacterBankData extends BankData {
     }
 
     public static void saveLastHeldWeaponAsync(String characterId, ItemStack weapon) {
-        if (!isValidCharacterId(characterId) || MinecraftClient.getInstance().player == null) {
+        if (!isValidCharacterId(characterId) || Minecraft.getInstance().player == null) {
             return;
         }
         if (!characterId.equals(BankOverlay.currentCharacterID)) return;
@@ -44,7 +43,7 @@ public class CharacterBankData extends BankData {
     }
 
     private static Path getConfigPath(String characterId) {
-        return FabricLoader.getInstance().getConfigDir().resolve("wynnextras/" + MinecraftClient.getInstance().player.getUuid().toString() + "/characterbank_" + characterId +  ".json");
+        return FabricLoader.getInstance().getConfigDir().resolve("wynnextras/" + Minecraft.getInstance().player.getUUID().toString() + "/characterbank_" + characterId +  ".json");
     }
 
     private static boolean isValidCharacterId(String characterId) {
